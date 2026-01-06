@@ -7,10 +7,10 @@ import { getEvent } from '../definitions/events.js';
 export function createHandlers(game) {
   const handlers = {
     // === Connection Handlers ===
-    
+
     [ClientMsg.JOIN]: (ws, payload) => {
       const { playerId } = payload;
-      
+
       // Check if player already exists (reconnection)
       const existing = game.getPlayer(playerId);
       if (existing) {
@@ -18,8 +18,8 @@ export function createHandlers(game) {
         if (result.success) {
           ws.playerId = playerId;
           ws.clientType = 'player';
-          send(ws, ServerMsg.WELCOME, { 
-            playerId, 
+          send(ws, ServerMsg.WELCOME, {
+            playerId,
             reconnected: true,
             player: existing.getPrivateState(),
           });
@@ -28,14 +28,14 @@ export function createHandlers(game) {
         }
         return result;
       }
-      
+
       // New player
       const result = game.addPlayer(playerId, ws);
       if (result.success) {
         ws.playerId = playerId;
         ws.clientType = 'player';
-        send(ws, ServerMsg.WELCOME, { 
-          playerId, 
+        send(ws, ServerMsg.WELCOME, {
+          playerId,
           player: result.player.getPrivateState(),
         });
         send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
@@ -49,12 +49,12 @@ export function createHandlers(game) {
     [ClientMsg.REJOIN]: (ws, payload) => {
       const { playerId } = payload;
       const result = game.reconnectPlayer(playerId, ws);
-      
+
       if (result.success) {
         ws.playerId = playerId;
         ws.clientType = 'player';
-        send(ws, ServerMsg.WELCOME, { 
-          playerId, 
+        send(ws, ServerMsg.WELCOME, {
+          playerId,
           reconnected: true,
           player: result.player.getPrivateState(),
         });
@@ -94,7 +94,7 @@ export function createHandlers(game) {
     [ClientMsg.SET_NAME]: (ws, payload) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
-      
+
       player.name = payload.name.slice(0, 20); // Max 20 chars
       game.broadcastPlayerList();
       return { success: true };
@@ -103,62 +103,62 @@ export function createHandlers(game) {
     [ClientMsg.SELECT_UP]: (ws) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
-      
+
       // Find active event and valid targets
       for (const [eventId, instance] of game.activeEvents) {
         if (instance.participants.includes(player.id)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
           const selected = player.selectUp(targets);
-          
+
           player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
           return { success: true, selected };
         }
       }
-      
+
       return { success: false, error: 'No active event' };
     },
 
     [ClientMsg.SELECT_DOWN]: (ws) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
-      
+
       for (const [eventId, instance] of game.activeEvents) {
         if (instance.participants.includes(player.id)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
           const selected = player.selectDown(targets);
-          
+
           player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
           return { success: true, selected };
         }
       }
-      
+
       return { success: false, error: 'No active event' };
     },
 
     [ClientMsg.CONFIRM]: (ws) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
-      
+
       const targetId = player.confirmSelection();
       if (targetId === null) {
         return { success: false, error: 'Nothing selected' };
       }
-      
+
       const result = game.recordSelection(player.id, targetId);
       player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
-      
+
       return result;
     },
 
     [ClientMsg.CANCEL]: (ws) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
-      
+
       player.cancelSelection();
       player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
-      
+
       return { success: true };
     },
 
@@ -282,7 +282,7 @@ export function createHandlers(game) {
       }
       const player = game.getPlayer(payload.playerId);
       if (player) {
-        player.revive();
+        game.revivePlayer(payload.playerId, 'host');
         game.broadcastGameState();
         return { success: true };
       }

@@ -10,27 +10,27 @@ export class Player {
     this.id = id;
     this.seatNumber = nextSeatNumber++;
     this.ws = ws;
-    
+
     // Identity
     this.name = `Player ${this.seatNumber}`;
     this.portrait = `player${this.seatNumber}.png`;
-    
+
     // Game state
     this.role = null;
     this.status = PlayerStatus.ALIVE;
     this.isProtected = false;
     this.linkedTo = null; // For Cupid
-    
+
     // Event state
     this.currentSelection = null; // Currently highlighted target
     this.confirmedSelection = null; // Locked in choice
     this.pendingEvents = new Set(); // Events waiting for this player
-    
+
     // History
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
-    
+
     // Connection
     this.connected = ws !== null;
     this.lastSeen = Date.now();
@@ -64,7 +64,7 @@ export class Player {
   }
 
   // Revive the player (host action)
-  revive() {
+  revive(cause = 'unknown') {
     this.status = PlayerStatus.ALIVE;
     this.deathCause = null;
     return this;
@@ -79,30 +79,28 @@ export class Player {
   // Selection controls (for swipe interface)
   selectUp(validTargets) {
     if (!validTargets.length) return null;
-    
-    const currentIndex = this.currentSelection 
-      ? validTargets.findIndex(t => t.id === this.currentSelection)
+
+    const currentIndex = this.currentSelection
+      ? validTargets.findIndex((t) => t.id === this.currentSelection)
       : -1;
-    
-    const newIndex = currentIndex <= 0 
-      ? validTargets.length - 1 
-      : currentIndex - 1;
-    
+
+    const newIndex =
+      currentIndex <= 0 ? validTargets.length - 1 : currentIndex - 1;
+
     this.currentSelection = validTargets[newIndex].id;
     return this.currentSelection;
   }
 
   selectDown(validTargets) {
     if (!validTargets.length) return null;
-    
+
     const currentIndex = this.currentSelection
-      ? validTargets.findIndex(t => t.id === this.currentSelection)
+      ? validTargets.findIndex((t) => t.id === this.currentSelection)
       : -1;
-    
-    const newIndex = currentIndex >= validTargets.length - 1
-      ? 0
-      : currentIndex + 1;
-    
+
+    const newIndex =
+      currentIndex >= validTargets.length - 1 ? 0 : currentIndex + 1;
+
     this.currentSelection = validTargets[newIndex].id;
     return this.currentSelection;
   }

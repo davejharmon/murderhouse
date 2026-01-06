@@ -438,6 +438,14 @@ export class Game {
     return true;
   }
 
+  revivePlayer(playerId, cause) {
+    const player = this.getPlayer(playerId);
+    if (!player) return false;
+    player.revive(cause);
+    this.addLog(`${player.name} revived (${cause})`);
+    return true;
+  }
+
   checkLinkedDeaths() {
     for (const player of this.players.values()) {
       if (player.linkedTo && player.isAlive) {
