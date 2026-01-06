@@ -380,6 +380,7 @@ const events = {
     phase: [GamePhase.DAY],
     priority: 40, // Before vote (50)
     playerInitiated: true, // Player triggers this event, not host
+    playerResolved: true, // Player's selection auto-resolves the event
 
     participants: (game) => {
       // Players with a pistol that has uses remaining

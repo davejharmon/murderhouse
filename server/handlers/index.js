@@ -1,7 +1,7 @@
 // server/handlers/index.js
 // WebSocket message handlers
 
-import { ClientMsg, ServerMsg } from '../../shared/constants.js';
+import { ClientMsg, ServerMsg, DEBUG_MODE } from '../../shared/constants.js';
 import { getEvent } from '../definitions/events.js';
 
 export function createHandlers(game) {
@@ -255,6 +255,13 @@ export function createHandlers(game) {
       return game.resolveAllEvents();
     },
 
+    [ClientMsg.SKIP_EVENT]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.skipEvent(payload.eventId);
+    },
+
     [ClientMsg.NEXT_PHASE]: (ws) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
@@ -384,6 +391,54 @@ export function createHandlers(game) {
         return { success: true };
       }
       return { success: false, error: 'Item not found in inventory' };
+    },
+
+    // === Debug Actions ===
+
+    [ClientMsg.DEBUG_AUTO_SELECT]: (ws, payload) => {
+      if (!DEBUG_MODE) {
+        return { success: false, error: 'Debug mode not enabled' };
+      }
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
+      }
+
+      // Find active event for this player
+      let eventId = null;
+      for (const [eid, instance] of game.activeEvents) {
+        if (instance.participants.includes(player.id)) {
+          eventId = eid;
+          break;
+        }
+      }
+
+      if (!eventId) {
+        return { success: false, error: 'Player has no active event' };
+      }
+
+      const instance = game.activeEvents.get(eventId);
+      const event = instance.event;
+      const targets = event.validTargets(player, game);
+
+      if (targets.length === 0) {
+        // No targets, just abstain
+        player.abstain();
+        game.recordSelection(player.id, null);
+        return { success: true, action: 'abstained' };
+      }
+
+      // Pick random target
+      const randomTarget = targets[Math.floor(Math.random() * targets.length)];
+      player.currentSelection = randomTarget.id;
+      player.confirmSelection();
+      game.recordSelection(player.id, randomTarget.id);
+
+      return { success: true, action: 'selected', targetId: randomTarget.id };
     },
   };
 

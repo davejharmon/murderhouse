@@ -59,6 +59,7 @@ export const ClientMsg = {
   START_CUSTOM_VOTE: 'startCustomVote',
   RESOLVE_EVENT: 'resolveEvent',
   RESOLVE_ALL_EVENTS: 'resolveAllEvents',
+  SKIP_EVENT: 'skipEvent',
   NEXT_PHASE: 'nextPhase',
   END_GAME: 'endGame',
   RESET_GAME: 'resetGame',
@@ -76,6 +77,9 @@ export const ClientMsg = {
   SET_PLAYER_PORTRAIT: 'setPlayerPortrait',
   GIVE_ITEM: 'giveItem',
   REMOVE_ITEM: 'removeItem',
+
+  // Debug actions (only when DEBUG_MODE enabled)
+  DEBUG_AUTO_SELECT: 'debugAutoSelect',
 };
 
 export const SlideType = {
@@ -90,3 +94,6 @@ export const SlideType = {
 
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 9;
+
+// Debug mode - enables testing tools
+export const DEBUG_MODE = true;

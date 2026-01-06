@@ -46,6 +46,8 @@ export default function Host() {
   const handleResolveEvent = (eventId) =>
     send(ClientMsg.RESOLVE_EVENT, { eventId });
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
+  const handleSkipEvent = (eventId) =>
+    send(ClientMsg.SKIP_EVENT, { eventId });
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => send(ClientMsg.PREV_SLIDE);
@@ -64,6 +66,8 @@ export default function Host() {
     send(ClientMsg.GIVE_ITEM, { playerId, itemId });
   const handleRemoveItem = (playerId, itemId) =>
     send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
+  const handleDebugAutoSelect = (playerId) =>
+    send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
 
   return (
     <div className={styles.container}>
@@ -128,12 +132,14 @@ export default function Host() {
               pendingEvents={gameState?.pendingEvents || []}
               activeEvents={gameState?.activeEvents || []}
               eventProgress={gameState?.eventProgress || {}}
+              eventMetadata={gameState?.eventMetadata || {}}
               currentPhase={phase}
               onStartEvent={handleStartEvent}
               onStartAllEvents={handleStartAllEvents}
               onStartCustomVote={handleStartCustomVote}
               onResolveEvent={handleResolveEvent}
               onResolveAllEvents={handleResolveAllEvents}
+              onSkipEvent={handleSkipEvent}
             />
           )}
 
@@ -158,6 +164,7 @@ export default function Host() {
             onKick={handleKickPlayer}
             onGiveItem={handleGiveItem}
             onRemoveItem={handleRemoveItem}
+            onDebugAutoSelect={handleDebugAutoSelect}
           />
         </main>
 

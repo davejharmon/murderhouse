@@ -1,5 +1,5 @@
 // client/src/components/PlayerGrid.jsx
-import { PlayerStatus } from '@shared/constants.js';
+import { PlayerStatus, DEBUG_MODE } from '@shared/constants.js';
 import styles from './PlayerGrid.module.css';
 
 export default function PlayerGrid({
@@ -12,6 +12,7 @@ export default function PlayerGrid({
   onKick,
   onGiveItem,
   onRemoveItem,
+  onDebugAutoSelect,
 }) {
   const availableItems = ['pistol']; // For now, hardcoded list
   // Get which events a player is participating in
@@ -132,6 +133,17 @@ export default function PlayerGrid({
                       title="Revive player"
                     >
                       ↺
+                    </button>
+                  )}
+
+                  {/* Debug Auto-Select Button */}
+                  {DEBUG_MODE && isActive && onDebugAutoSelect && (
+                    <button
+                      className={`${styles.actionBtn} ${styles.debug}`}
+                      onClick={() => onDebugAutoSelect(player.id)}
+                      title="Debug: Auto-select random target"
+                    >
+                      🎲
                     </button>
                   )}
 
