@@ -12,11 +12,10 @@ export default function GameLog({ entries = [] }) {
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
     });
   };
 
@@ -32,12 +31,8 @@ export default function GameLog({ entries = [] }) {
         ) : (
           entries.map((entry, i) => (
             <div key={i} className={styles.entry}>
-              <span className={styles.time}>
-                {formatTime(entry.timestamp)}
-              </span>
-              <span className={styles.message}>
-                {entry.message}
-              </span>
+              <span className={styles.time}>{formatTime(entry.timestamp)}</span>
+              <span className={styles.message}>{entry.message}</span>
             </div>
           ))
         )}
