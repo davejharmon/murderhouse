@@ -59,6 +59,28 @@
   min-height: 40px;
 }
 
+/* Override PlayerConsole padding for compact layout */
+.playerCell :global(.console) {
+  height: auto !important;
+  padding: var(--space-xs) !important;
+}
+
+.playerCell :global(.header) {
+  padding: var(--space-xs) 0 !important;
+}
+
+.playerCell :global(.tinyScreen) {
+  margin: var(--space-xs) 0 !important;
+  padding: var(--space-sm) !important;
+  min-height: 80px !important;
+  flex: 0 1 auto !important;
+}
+
+.playerCell :global(.buttonGrid) {
+  min-height: 120px !important;
+  gap: var(--space-xs) !important;
+}
+
 .playerHeader {
   display: flex;
   justify-content: space-between;
