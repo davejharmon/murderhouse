@@ -31,15 +31,16 @@ murderhouse/
 ├── server/
 │   ├── definitions/           # Declarative game rules
 │   │   ├── roles.js           # Role definitions (villager, werewolf, seer, etc.)
-│   │   └── events.js          # Event definitions (vote, kill, investigate, etc.)
+│   │   ├── events.js          # Event definitions (vote, kill, investigate, shoot, etc.)
+│   │   └── items.js           # Item definitions (pistol, etc.)
 │   ├── handlers/              # WebSocket message handlers
 │   ├── Game.js                # Core game state machine
-│   ├── Player.js              # Player model
+│   ├── Player.js              # Player model with inventory
 │   └── index.js               # Server entry point
 └── client/
     └── src/
         ├── context/           # React context (WebSocket state)
-        ├── components/        # Reusable UI components
+        ├── components/        # Reusable UI components (includes CustomVoteModal)
         ├── pages/             # Route pages (Player, Host, Screen, Landing)
         └── styles/            # Global CSS
 ```
@@ -82,9 +83,11 @@ Events resolve in priority order (lower number = earlier):
 
 1. **protect** (10) - Doctor's protection
 2. **investigate** (30) - Seer's investigation
-3. **vote** (50) - Day elimination vote
-4. **kill** (60) - Werewolf attack
-5. **suspect** (80) - Villager suspicion tracking
+3. **shoot** (40) - Use pistol item to kill
+4. **customVote** (45) - Host-initiated custom vote with rewards
+5. **vote** (50) - Day elimination vote
+6. **kill** (60) - Werewolf attack
+7. **suspect** (80) - Villager suspicion tracking
 
 ### Player Interface
 
@@ -95,6 +98,39 @@ Players use a swipe-based interface on their phones:
 - **Cancel** to change selection before event resolves
 
 The "tiny screen" shows contextual information based on game state.
+
+## Inventory System
+
+Players can receive items that grant special abilities:
+
+- **Items** are added to player inventory by the host or through game events
+- **Stackable Items**: Multiple copies of the same item add additional uses
+- **Usage**: Items with actions create new events that players can participate in
+
+### Available Items
+
+| Item   | Uses | Description                                    |
+| ------ | ---- | ---------------------------------------------- |
+| Pistol | 1    | Shoot another player during DAY phase          |
+
+### Item Events
+
+- **shoot** (priority 40): Player with pistol selects target, creates dramatic reveal slides
+
+## Custom Votes
+
+The host can initiate custom votes during DAY phase with configurable rewards:
+
+- **Item Reward**: Vote for who receives an item (e.g., pistol)
+- **Role Reassignment**: Vote to change someone's role
+- **Resurrection**: Vote to bring a dead player back to life
+
+### Voting Mechanics
+
+- **Runoff System**: Ties trigger a runoff vote with only tied candidates as valid targets
+- **Up to 3 Runoffs**: After 3 runoffs, winner is randomly selected from frontrunners
+- **Tally Slides**: Vote results show tally first, then resolution (prevents spoilers)
+- **Self-Voting**: Players can vote for themselves in item/role votes (not resurrection)
 
 ## Game Flow
 
@@ -108,10 +144,12 @@ The "tiny screen" shows contextual information based on game state.
 ### Day Phase
 
 1. Players discuss (verbally, in-person)
-2. Host starts "vote" event
-3. Players select targets on their devices
-4. Host resolves vote - majority is eliminated
-5. Role is revealed on big screen
+2. Host can start custom votes (optional) or items may trigger events
+3. Host starts "vote" event for elimination
+4. Players select targets on their devices
+5. Host resolves vote - tally slide shows vote counts
+6. Host advances to result slide - majority is eliminated, role revealed on big screen
+7. Ties trigger runoff votes with only tied candidates as options
 
 ### Night Phase
 
@@ -197,6 +235,23 @@ passives: {
 }
 ```
 
+### Adding a New Item
+
+```javascript
+// server/definitions/items.js
+export const items = {
+  myItem: {
+    id: 'myItem',
+    name: 'My Item',
+    description: 'What this item does',
+    maxUses: 1, // -1 for unlimited uses
+    eventId: 'myItemEvent', // Optional: Event triggered when used
+  },
+};
+```
+
+Items are added to player inventory via `game.giveItem(playerId, itemId)`. If the item has an `eventId`, it creates a pending event when added.
+
 ## Technical Notes
 
 ### WebSocket Protocol
@@ -209,7 +264,12 @@ Messages follow the format: `{ type: string, payload: object }`
 - `selectUp` / `selectDown` - Navigate targets
 - `confirm` / `cancel` - Lock/unlock selection
 - `hostConnect` / `screenConnect` - Connect as host/screen
-- `startGame`, `nextPhase`, `startEvent`, `resolveEvent`, etc.
+- `startGame`, `nextPhase`, `resetGame` - Game control
+- `startEvent`, `resolveEvent`, `startAllEvents`, `resolveAllEvents` - Event management
+- `startCustomVote` - Start custom vote with config (rewardType, rewardParam, description)
+- `giveItem`, `removeItem` - Inventory management
+- `killPlayer`, `revivePlayer`, `kickPlayer` - Player management
+- `nextSlide`, `prevSlide`, `clearSlides` - Slide control
 
 **Server → Client:**
 
