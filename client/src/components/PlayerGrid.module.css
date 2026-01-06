@@ -1,0 +1,163 @@
+/* client/src/components/PlayerGrid.module.css */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  text-align: center;
+}
+
+.emptyText {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.1em;
+}
+
+.emptySubtext {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-md);
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--color-text-muted);
+}
+
+.card.active {
+  border-color: var(--color-accent-blue);
+  background: rgba(74, 158, 255, 0.05);
+}
+
+.card.dead {
+  opacity: 0.5;
+}
+
+.portrait {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-md);
+}
+
+.portraitImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+}
+
+.disconnected {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--color-accent-red);
+  font-size: 0.75rem;
+}
+
+.info {
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.seat {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.1em;
+}
+
+.name {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.role {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: var(--space-xs);
+}
+
+.events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: center;
+  margin-bottom: var(--space-sm);
+}
+
+.eventBadge {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  padding: 2px 6px;
+  background: var(--color-accent-blue);
+  color: var(--color-bg-dark);
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.actionBtn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border-radius: 50%;
+}
+
+.actionBtn.kill:hover {
+  background: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+}
+
+.actionBtn.revive:hover {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+}
+
+.deadOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--border-radius-lg);
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--color-accent-red);
+  letter-spacing: 0.2em;
+}

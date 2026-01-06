@@ -1,0 +1,137 @@
+/* client/src/pages/Landing.module.css */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: var(--color-bg-dark);
+}
+
+.content {
+  width: 100%;
+  max-width: 600px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.header h1 {
+  font-size: 3rem;
+  letter-spacing: 0.15em;
+  margin-bottom: var(--space-sm);
+}
+
+.tagline {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.linkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.linkGroup h2 {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.playerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.playerLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.playerLink:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-accent-blue);
+  transform: translateY(-2px);
+}
+
+.playerLink.taken {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-green);
+}
+
+.playerNum {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.takenLabel {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-accent-green);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: var(--space-xs);
+}
+
+.controlLinks {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.controlLink {
+  flex: 1;
+  padding: var(--space-md);
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.controlLink:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-accent-blue);
+}
+
+.footer {
+  margin-top: var(--space-2xl);
+  text-align: center;
+}
+
+.status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.status.connected {
+  color: var(--color-accent-green);
+}

@@ -1,0 +1,234 @@
+/* client/src/styles/global.css */
+/* Severance-inspired aesthetic: clean, corporate, subtly unsettling */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Colors - Severance palette */
+  --color-bg-dark: #0a0c0f;
+  --color-bg-medium: #141820;
+  --color-bg-light: #1e2430;
+  --color-bg-elevated: #262e3c;
+  
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #8b939f;
+  --color-text-muted: #5a6270;
+  
+  --color-accent-blue: #4a9eff;
+  --color-accent-green: #4ade80;
+  --color-accent-red: #ef4444;
+  --color-accent-amber: #fbbf24;
+  --color-accent-purple: #a78bfa;
+  
+  /* Role colors */
+  --color-village: #7eb8da;
+  --color-werewolf: #c94c4c;
+  --color-seer: #9b7ed9;
+  --color-doctor: #7ed9a6;
+  --color-hunter: #d9a67e;
+  
+  /* Typography */
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.25rem; }
+
+/* Code/mono text */
+code, .mono {
+  font-family: var(--font-mono);
+}
+
+/* Buttons */
+button {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-bg-light);
+  border-color: var(--color-text-muted);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: var(--color-bg-dark);
+}
+
+button.primary:hover:not(:disabled) {
+  background: #6bb3ff;
+  border-color: #6bb3ff;
+}
+
+button.danger {
+  background: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+  color: white;
+}
+
+button.success {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  color: var(--color-bg-dark);
+}
+
+/* Links */
+a {
+  color: var(--color-accent-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-elevated);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-accent-blue);
+  color: var(--color-bg-dark);
+}
+
+/* Connection badge */
+.connection-badge {
+  position: fixed;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border-radius: var(--border-radius);
+  background: var(--color-bg-elevated);
+  z-index: 1000;
+}
+
+.connection-badge.connected {
+  color: var(--color-accent-green);
+}
+
+.connection-badge.disconnected {
+  color: var(--color-accent-red);
+}
+
+/* Notifications */
+.notifications {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  z-index: 1000;
+}
+
+.notification {
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  animation: slideIn 0.3s ease;
+}
+
+.notification.error {
+  border-color: var(--color-accent-red);
+  color: var(--color-accent-red);
+}
+
+.notification.info {
+  border-color: var(--color-accent-blue);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

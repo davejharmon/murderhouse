@@ -1,0 +1,55 @@
+/* client/src/components/GameLog.module.css */
+
+.log {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h2 {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+}
+
+.entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.empty {
+  padding: var(--space-md);
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.entry {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.entry:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.message {
+  color: var(--color-text-secondary);
+}
