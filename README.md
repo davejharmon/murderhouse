@@ -21,6 +21,11 @@ Open in your browser:
 - **Host Dashboard**: http://localhost:5173/host
 - **Big Screen** (projector): http://localhost:5173/screen
 - **Player Consoles**: http://localhost:5173/player/1 through /player/9
+- **Debug Grid** (9-player testing): http://localhost:5173/debug
+
+**Debug Mode**: Set `DEBUG_MODE = true` in `shared/constants.js` to enable:
+- `/debug` route with 9-player grid view for easy testing
+- 🎲 Auto-select buttons on host dashboard to randomize uncommitted selections
 
 ## Architecture
 
@@ -91,13 +96,14 @@ Events resolve in priority order (lower number = earlier):
 
 ### Player Interface
 
-Players use a swipe-based interface on their phones:
+Players use a unified YES/NO interface:
 
-- **Swipe Up/Down** (or tap buttons) to navigate through targets
-- **Confirm** to lock in selection
-- **Cancel** to change selection before event resolves
+- **UP/DOWN buttons** (or swipe) to navigate through targets or abilities
+- **YES button** to confirm selection (immutable - no changing after)
+- **NO button** to abstain from event (also immutable)
+- When idle with items, swipe through abilities and press YES to activate
 
-The "tiny screen" shows contextual information based on game state.
+The "tiny screen" shows contextual information based on game state and selections.
 
 ## Inventory System
 
@@ -115,7 +121,7 @@ Players can receive items that grant special abilities:
 
 ### Item Events
 
-- **shoot** (priority 40): Player with pistol selects target, creates dramatic reveal slides
+- **shoot** (priority 40): Player-initiated and player-resolved. Immediate slides on selection (DRAW → GUNSHOT/NO SHOTS FIRED)
 
 ## Custom Votes
 
@@ -200,6 +206,9 @@ export const events = {
     phase: [GamePhase.NIGHT],
     priority: 40,
 
+    playerInitiated: false, // true = event triggered by player (not shown in host's pending events)
+    playerResolved: false,  // true = auto-resolves when player acts (host sees SKIP button)
+
     participants: (game) =>
       game.getAlivePlayers().filter((p) => p.role.id === 'myRole'),
     validTargets: (actor, game) =>
@@ -207,6 +216,12 @@ export const events = {
 
     aggregation: 'individual', // or 'majority'
     allowAbstain: true,
+
+    // Optional: Execute immediately when player makes selection
+    onSelection: (actorId, targetId, game) => {
+      // targetId is null if player abstained
+      // Return { slide: {...}, message: '...' }
+    },
 
     resolve: (results, game) => {
       // results = { playerId: targetId, ... }
@@ -262,14 +277,16 @@ Messages follow the format: `{ type: string, payload: object }`
 
 - `join` - Join as player
 - `selectUp` / `selectDown` - Navigate targets
-- `confirm` / `cancel` - Lock/unlock selection
+- `confirm` / `abstain` - Lock in selection or abstain
+- `useItem` - Activate item ability
 - `hostConnect` / `screenConnect` - Connect as host/screen
 - `startGame`, `nextPhase`, `resetGame` - Game control
-- `startEvent`, `resolveEvent`, `startAllEvents`, `resolveAllEvents` - Event management
+- `startEvent`, `resolveEvent`, `skipEvent`, `startAllEvents`, `resolveAllEvents` - Event management
 - `startCustomVote` - Start custom vote with config (rewardType, rewardParam, description)
 - `giveItem`, `removeItem` - Inventory management
 - `killPlayer`, `revivePlayer`, `kickPlayer` - Player management
 - `nextSlide`, `prevSlide`, `clearSlides` - Slide control
+- `debugAutoSelect`, `debugAutoSelectAll` - Debug helpers (only when DEBUG_MODE enabled)
 
 **Server → Client:**
 
