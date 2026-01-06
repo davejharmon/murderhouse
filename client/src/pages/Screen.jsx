@@ -5,12 +5,7 @@ import { SlideType, GamePhase, PlayerStatus } from '@shared/constants.js';
 import styles from './Screen.module.css';
 
 export default function Screen() {
-  const {
-    connected,
-    gameState,
-    currentSlide,
-    connectAsScreen,
-  } = useGame();
+  const { connected, gameState, currentSlide, connectAsScreen } = useGame();
 
   // Connect as screen on mount
   useEffect(() => {
@@ -20,7 +15,7 @@ export default function Screen() {
   }, [connected, connectAsScreen]);
 
   // Get player by ID
-  const getPlayer = (id) => gameState?.players?.find(p => p.id === id);
+  const getPlayer = (id) => gameState?.players?.find((p) => p.id === id);
 
   // Render slide based on type
   const renderSlide = () => {
@@ -31,25 +26,25 @@ export default function Screen() {
     switch (currentSlide.type) {
       case SlideType.TITLE:
         return renderTitle(currentSlide);
-      
+
       case SlideType.PLAYER_REVEAL:
         return renderPlayerReveal(currentSlide);
-      
+
       case SlideType.VOTE_TALLY:
         return renderVoteTally(currentSlide);
-      
+
       case SlideType.GALLERY:
         return renderGallery(currentSlide);
-      
+
       case SlideType.COUNTDOWN:
         return renderCountdown(currentSlide);
-      
+
       case SlideType.DEATH:
         return renderDeath(currentSlide);
-      
+
       case SlideType.VICTORY:
         return renderVictory(currentSlide);
-      
+
       default:
         return renderTitle(currentSlide);
     }
@@ -61,7 +56,7 @@ export default function Screen() {
     if (!phase || phase === GamePhase.LOBBY) {
       return (
         <div className={styles.slide}>
-          <h1 className={styles.title}>MURDERHAUS</h1>
+          <h1 className={styles.title}>MURDERHOUSE</h1>
           <p className={styles.subtitle}>
             {gameState?.players?.length || 0} players connected
           </p>
@@ -72,18 +67,19 @@ export default function Screen() {
     return (
       <div className={styles.slide}>
         <h1 className={styles.title}>
-          {phase === GamePhase.DAY ? `DAY ${gameState.dayCount}` : `NIGHT ${gameState.dayCount}`}
+          {phase === GamePhase.DAY
+            ? `DAY ${gameState.dayCount}`
+            : `NIGHT ${gameState.dayCount}`}
         </h1>
         <div className={styles.gallery}>
-          {gameState?.players?.map(p => (
-            <div 
-              key={p.id} 
-              className={`${styles.playerThumb} ${p.status !== PlayerStatus.ALIVE ? styles.dead : ''}`}
+          {gameState?.players?.map((p) => (
+            <div
+              key={p.id}
+              className={`${styles.playerThumb} ${
+                p.status !== PlayerStatus.ALIVE ? styles.dead : ''
+              }`}
             >
-              <img 
-                src={`/images/players/${p.portrait}`}
-                alt={p.name}
-              />
+              <img src={`/images/players/${p.portrait}`} alt={p.name} />
             </div>
           ))}
         </div>
@@ -96,9 +92,7 @@ export default function Screen() {
       <h1 className={styles.title} style={{ color: slide.color }}>
         {slide.title}
       </h1>
-      {slide.subtitle && (
-        <p className={styles.subtitle}>{slide.subtitle}</p>
-      )}
+      {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
     </div>
   );
 
@@ -109,14 +103,14 @@ export default function Screen() {
     return (
       <div className={styles.slide}>
         <div className={styles.playerReveal}>
-          <img 
+          <img
             src={`/images/players/${player.portrait}`}
             alt={player.name}
             className={styles.largePortrait}
           />
           <h1 className={styles.title}>{player.name}</h1>
           {slide.revealRole && player.role && (
-            <p 
+            <p
               className={styles.roleReveal}
               style={{ color: player.roleColor }}
             >
@@ -130,11 +124,11 @@ export default function Screen() {
 
   const renderVoteTally = (slide) => {
     const { tally, title, subtitle } = slide;
-    
+
     // Convert tally to sorted array
     const sorted = Object.entries(tally || {})
       .map(([id, count]) => ({ player: getPlayer(id), count }))
-      .filter(entry => entry.player)
+      .filter((entry) => entry.player)
       .sort((a, b) => b.count - a.count);
 
     return (
@@ -143,7 +137,7 @@ export default function Screen() {
         <div className={styles.tallyList}>
           {sorted.map(({ player, count }) => (
             <div key={player.id} className={styles.tallyRow}>
-              <img 
+              <img
                 src={`/images/players/${player.portrait}`}
                 alt={player.name}
                 className={styles.tallyPortrait}
@@ -165,15 +159,14 @@ export default function Screen() {
       <div className={styles.slide}>
         {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
         <div className={styles.gallery}>
-          {players.map(p => (
-            <div 
-              key={p.id} 
-              className={`${styles.playerThumb} ${p.status !== PlayerStatus.ALIVE ? styles.dead : ''}`}
+          {players.map((p) => (
+            <div
+              key={p.id}
+              className={`${styles.playerThumb} ${
+                p.status !== PlayerStatus.ALIVE ? styles.dead : ''
+              }`}
             >
-              <img 
-                src={`/images/players/${p.portrait}`}
-                alt={p.name}
-              />
+              <img src={`/images/players/${p.portrait}`} alt={p.name} />
               <span className={styles.thumbName}>{p.name}</span>
             </div>
           ))}
@@ -199,14 +192,14 @@ export default function Screen() {
       <div className={`${styles.slide} ${styles.deathSlide}`}>
         <h1 className={styles.title}>{slide.title || 'ELIMINATED'}</h1>
         <div className={styles.deathReveal}>
-          <img 
+          <img
             src={`/images/players/${player.portrait}`}
             alt={player.name}
             className={`${styles.largePortrait} ${styles.deathPortrait}`}
           />
           <h2 className={styles.deathName}>{slide.subtitle || player.name}</h2>
           {slide.revealRole && player.role && (
-            <p 
+            <p
               className={styles.roleReveal}
               style={{ color: player.roleColor }}
             >
@@ -220,21 +213,12 @@ export default function Screen() {
 
   const renderVictory = (slide) => (
     <div className={`${styles.slide} ${styles.victorySlide}`}>
-      <h1 
-        className={styles.victoryTitle}
-        style={{ color: slide.color }}
-      >
+      <h1 className={styles.victoryTitle} style={{ color: slide.color }}>
         {slide.title}
       </h1>
-      {slide.subtitle && (
-        <p className={styles.subtitle}>{slide.subtitle}</p>
-      )}
+      {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
     </div>
   );
 
-  return (
-    <div className={styles.container}>
-      {renderSlide()}
-    </div>
-  );
+  return <div className={styles.container}>{renderSlide()}</div>;
 }

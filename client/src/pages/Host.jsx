@@ -38,17 +38,21 @@ export default function Host() {
     }
   };
 
-  const handleStartEvent = (eventId) => send(ClientMsg.START_EVENT, { eventId });
+  const handleStartEvent = (eventId) =>
+    send(ClientMsg.START_EVENT, { eventId });
   const handleStartAllEvents = () => send(ClientMsg.START_ALL_EVENTS);
-  const handleResolveEvent = (eventId) => send(ClientMsg.RESOLVE_EVENT, { eventId });
+  const handleResolveEvent = (eventId) =>
+    send(ClientMsg.RESOLVE_EVENT, { eventId });
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => send(ClientMsg.PREV_SLIDE);
   const handleClearSlides = () => send(ClientMsg.CLEAR_SLIDES);
 
-  const handleKillPlayer = (playerId) => send(ClientMsg.KILL_PLAYER, { playerId });
-  const handleRevivePlayer = (playerId) => send(ClientMsg.REVIVE_PLAYER, { playerId });
+  const handleKillPlayer = (playerId) =>
+    send(ClientMsg.KILL_PLAYER, { playerId });
+  const handleRevivePlayer = (playerId) =>
+    send(ClientMsg.REVIVE_PLAYER, { playerId });
   const handleKickPlayer = (playerId) => {
     if (window.confirm('Remove this player?')) {
       send(ClientMsg.KICK_PLAYER, { playerId });
@@ -58,13 +62,17 @@ export default function Host() {
   return (
     <div className={styles.container}>
       {/* Connection indicator */}
-      <div className={`connection-badge ${connected ? 'connected' : 'disconnected'}`}>
+      <div
+        className={`connection-badge ${
+          connected ? 'connected' : 'disconnected'
+        }`}
+      >
         {connected ? '● ONLINE' : '○ OFFLINE'}
       </div>
 
       {/* Notifications */}
-      <div className="notifications">
-        {notifications.map(n => (
+      <div className='notifications'>
+        {notifications.map((n) => (
           <div key={n.id} className={`notification ${n.type}`}>
             {n.message}
           </div>
@@ -75,7 +83,7 @@ export default function Host() {
         {/* Left Panel - Game Controls */}
         <aside className={styles.sidebar}>
           <header className={styles.header}>
-            <h1>MURDERHAUS</h1>
+            <h1>MURDERHOUSE</h1>
             <div className={styles.phaseIndicator}>
               {isLobby && 'LOBBY'}
               {phase === GamePhase.DAY && `DAY ${gameState?.dayCount}`}
@@ -89,8 +97,8 @@ export default function Host() {
             <h2>Game Control</h2>
             <div className={styles.buttonGroup}>
               {isLobby && (
-                <button 
-                  className="primary"
+                <button
+                  className='primary'
                   onClick={handleStartGame}
                   disabled={!gameState?.players || gameState.players.length < 4}
                 >
@@ -99,15 +107,10 @@ export default function Host() {
               )}
 
               {!isLobby && !isGameOver && (
-                <button onClick={handleNextPhase}>
-                  Next Phase
-                </button>
+                <button onClick={handleNextPhase}>Next Phase</button>
               )}
 
-              <button 
-                className="danger"
-                onClick={handleResetGame}
-              >
+              <button className='danger' onClick={handleResetGame}>
                 Reset
               </button>
             </div>
