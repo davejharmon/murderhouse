@@ -7,11 +7,13 @@ export default function EventPanel({
   pendingEvents,
   activeEvents,
   eventProgress,
+  eventMetadata,
   currentPhase,
   onStartEvent,
   onStartAllEvents,
   onResolveEvent,
   onResolveAllEvents,
+  onSkipEvent,
   onStartCustomVote,
 }) {
   const [showCustomVoteModal, setShowCustomVoteModal] = useState(false);
@@ -90,18 +92,30 @@ export default function EventPanel({
           <div className={styles.eventList}>
             {activeEvents.map(eventId => {
               const progress = eventProgress[eventId] || {};
+              const metadata = eventMetadata[eventId] || {};
+              const isPlayerResolved = metadata.playerResolved || false;
+
               return (
                 <div key={eventId} className={styles.activeEvent}>
                   <div className={styles.eventName}>{eventId}</div>
                   <div className={styles.progress}>
                     {progress.responded || 0}/{progress.total || 0}
                   </div>
-                  <button
-                    className={styles.resolveBtn}
-                    onClick={() => onResolveEvent(eventId)}
-                  >
-                    Resolve
-                  </button>
+                  {isPlayerResolved ? (
+                    <button
+                      className={`${styles.resolveBtn} ${styles.skipBtn}`}
+                      onClick={() => onSkipEvent(eventId)}
+                    >
+                      Skip
+                    </button>
+                  ) : (
+                    <button
+                      className={styles.resolveBtn}
+                      onClick={() => onResolveEvent(eventId)}
+                    >
+                      Resolve
+                    </button>
+                  )}
                 </div>
               );
             })}
