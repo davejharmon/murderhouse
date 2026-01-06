@@ -392,79 +392,51 @@ const events = {
     aggregation: 'individual',
     allowAbstain: true,
 
-    resolve: (results, game) => {
-      const resolutions = [];
-      const abstainers = [];
+    // Immediate action on selection - execute and push slide right away
+    onSelection: (shooterId, targetId, game) => {
+      const shooter = game.getPlayer(shooterId);
+      if (!shooter) return null;
 
-      for (const [shooterId, targetId] of Object.entries(results)) {
-        if (targetId === null) {
-          // Player abstained
-          const shooter = game.getPlayer(shooterId);
-          if (shooter) {
-            abstainers.push(shooter);
-          }
-          continue;
-        }
-
-        const shooter = game.getPlayer(shooterId);
-        const victim = game.getPlayer(targetId);
-
-        // Kill the victim
-        game.killPlayer(victim.id, 'shot');
-
-        // Consume the pistol use
-        game.consumeItem(shooterId, 'pistol');
-
-        resolutions.push({
-          shooter,
-          victim,
-          message: `${shooter.name} shot ${victim.name} with a pistol!`,
+      // Player abstained
+      if (targetId === null) {
+        return {
+          message: `${shooter.name} chose not to shoot.`,
           slide: {
-            type: 'death',
-            playerId: victim.id,
-            shooterId: shooter.id,
-            title: 'GUNSHOT',
-            subtitle: `${shooter.name} shot ${victim.name}!`,
-            revealRole: true,
+            type: 'title',
+            title: 'NO SHOTS FIRED',
+            subtitle: `${shooter.name} is keeping their powder dry... for now.`,
           },
-        });
+        };
       }
 
-      if (resolutions.length === 0) {
-        // No one shot - check if anyone abstained
-        if (abstainers.length > 0) {
-          const names = abstainers.map(p => p.name).join(', ');
-          const subtitle = abstainers.length === 1
-            ? `${abstainers[0].name} is keeping their powder dry... for now.`
-            : `${names} are keeping their powder dry... for now.`;
+      // Player shot someone - execute immediately
+      const victim = game.getPlayer(targetId);
+      if (!victim) return null;
 
-          return {
-            success: true,
-            outcome: 'abstained',
-            abstainers,
-            message: `No shots fired.`,
-            slide: {
-              type: 'title',
-              title: 'NO SHOTS FIRED',
-              subtitle,
-            },
-            immediateSlide: true,
-          };
-        }
+      // Kill the victim
+      game.killPlayer(victim.id, 'shot');
 
-        return { success: true, silent: true };
-      }
+      // Consume the pistol use
+      game.consumeItem(shooterId, 'pistol');
 
-      // For simplicity, return the first resolution (typically only one player shoots per event)
-      const resolution = resolutions[0];
+      return {
+        message: `${shooter.name} shot ${victim.name} with a pistol!`,
+        slide: {
+          type: 'death',
+          playerId: victim.id,
+          shooterId: shooter.id,
+          title: 'GUNSHOT',
+          subtitle: `${shooter.name} shot ${victim.name}!`,
+          revealRole: true,
+        },
+      };
+    },
+
+    resolve: (results, game) => {
+      // All actions already executed in onSelection, just clean up
       return {
         success: true,
-        outcome: 'shot',
-        shooter: resolution.shooter,
-        victim: resolution.victim,
-        message: resolution.message,
-        slide: resolution.slide,
-        immediateSlide: true, // Show this slide immediately, jumping to it
+        silent: true, // No new slides or messages needed
       };
     },
   },

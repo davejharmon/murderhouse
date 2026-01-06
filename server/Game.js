@@ -404,6 +404,17 @@ export class Game {
         instance.results[playerId] = targetId;
         player.confirmedSelection = targetId;
 
+        // Check if event has immediate slide generation on selection
+        if (instance.event.onSelection) {
+          const result = instance.event.onSelection(playerId, targetId, this);
+          if (result?.slide) {
+            this.pushSlide(result.slide, true); // Push and jump to slide immediately
+          }
+          if (result?.message) {
+            this.addLog(result.message);
+          }
+        }
+
         this.broadcastGameState();
         return { success: true, eventId };
       }
