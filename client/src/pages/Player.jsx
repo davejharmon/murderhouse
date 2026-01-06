@@ -46,6 +46,10 @@ export default function Player() {
     send(ClientMsg.CANCEL);
   }, [send]);
 
+  const handleUseItem = useCallback((itemId) => {
+    send(ClientMsg.USE_ITEM, { itemId });
+  }, [send]);
+
   // Touch handling for swipe
   useEffect(() => {
     let touchStartY = 0;
@@ -127,6 +131,7 @@ export default function Player() {
         onSwipeDown={handleSwipeDown}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
+        onUseItem={handleUseItem}
       />
     </div>
   );

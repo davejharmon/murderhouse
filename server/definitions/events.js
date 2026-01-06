@@ -304,26 +304,26 @@ const events = {
     phase: [GamePhase.DAY, GamePhase.NIGHT], // Can trigger in either
     priority: 100, // Immediate
     isInterrupt: true, // Pauses normal flow
-    
+
     participants: (game) => {
       // Dynamically set when triggered
       return game.interruptData?.hunter ? [game.interruptData.hunter] : [];
     },
-    
+
     validTargets: (actor, game) => {
       return game.getAlivePlayers().filter(p => p.id !== actor.id);
     },
-    
+
     aggregation: 'individual',
     allowAbstain: false,
-    
+
     resolve: (results, game) => {
       const [[hunterId, targetId]] = Object.entries(results);
       const hunter = game.getPlayer(hunterId);
       const victim = game.getPlayer(targetId);
-      
+
       game.killPlayer(victim.id, 'hunter');
-      
+
       return {
         success: true,
         victim,
@@ -335,6 +335,73 @@ const events = {
           subtitle: `${victim.name} was shot by the Hunter`,
           revealRole: true,
         },
+      };
+    },
+  },
+
+  shoot: {
+    id: 'shoot',
+    name: 'Shoot',
+    description: 'Use your pistol to shoot someone.',
+    phase: [GamePhase.DAY],
+    priority: 40, // Before vote (50)
+
+    participants: (game) => {
+      // Players with a pistol that has uses remaining
+      return game.getAlivePlayers().filter(p => p.hasItem('pistol') && p.canUseItem('pistol'));
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const resolutions = [];
+
+      for (const [shooterId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+
+        const shooter = game.getPlayer(shooterId);
+        const victim = game.getPlayer(targetId);
+
+        // Kill the victim
+        game.killPlayer(victim.id, 'shot');
+
+        // Consume the pistol use
+        game.consumeItem(shooterId, 'pistol');
+
+        resolutions.push({
+          shooter,
+          victim,
+          message: `${shooter.name} shot ${victim.name} with a pistol!`,
+          slide: {
+            type: 'death',
+            playerId: victim.id,
+            shooterId: shooter.id,
+            title: 'GUNSHOT',
+            subtitle: `${shooter.name} shot ${victim.name}!`,
+            revealRole: true,
+          },
+        });
+      }
+
+      if (resolutions.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      // For simplicity, return the first resolution (typically only one player shoots per event)
+      const resolution = resolutions[0];
+      return {
+        success: true,
+        outcome: 'shot',
+        shooter: resolution.shooter,
+        victim: resolution.victim,
+        message: resolution.message,
+        slide: resolution.slide,
+        immediateSlide: true, // Show this slide immediately, jumping to it
       };
     },
   },

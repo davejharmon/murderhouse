@@ -10,7 +10,10 @@ export default function PlayerGrid({
   onKill,
   onRevive,
   onKick,
+  onGiveItem,
+  onRemoveItem,
 }) {
+  const availableItems = ['pistol']; // For now, hardcoded list
   // Get which events a player is participating in
   const getPlayerEvents = (playerId) => {
     const events = [];
@@ -60,11 +63,33 @@ export default function PlayerGrid({
               <div className={styles.seat}>#{player.seatNumber}</div>
               <div className={styles.name}>{player.name}</div>
               {player.role && (
-                <div 
+                <div
                   className={styles.role}
                   style={{ color: player.roleColor }}
                 >
                   {player.roleName}
+                </div>
+              )}
+
+              {/* Inventory */}
+              {player.inventory && player.inventory.length > 0 && (
+                <div className={styles.inventory}>
+                  {player.inventory.map((item, idx) => (
+                    <div key={idx} className={styles.inventoryItem}>
+                      <span className={styles.itemName}>
+                        {item.id} ({item.uses}/{item.maxUses})
+                      </span>
+                      {onRemoveItem && (
+                        <button
+                          className={styles.removeItemBtn}
+                          onClick={() => onRemoveItem(player.id, item.id)}
+                          title="Remove item"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -83,7 +108,7 @@ export default function PlayerGrid({
             {/* Actions */}
             <div className={styles.actions}>
               {isLobby ? (
-                <button 
+                <button
                   className={styles.actionBtn}
                   onClick={() => onKick(player.id)}
                   title="Kick player"
@@ -93,7 +118,7 @@ export default function PlayerGrid({
               ) : (
                 <>
                   {isAlive ? (
-                    <button 
+                    <button
                       className={`${styles.actionBtn} ${styles.kill}`}
                       onClick={() => onKill(player.id)}
                       title="Kill player"
@@ -101,13 +126,35 @@ export default function PlayerGrid({
                       💀
                     </button>
                   ) : (
-                    <button 
+                    <button
                       className={`${styles.actionBtn} ${styles.revive}`}
                       onClick={() => onRevive(player.id)}
                       title="Revive player"
                     >
                       ↺
                     </button>
+                  )}
+
+                  {/* Give Item Dropdown */}
+                  {onGiveItem && (
+                    <select
+                      className={styles.itemSelect}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          onGiveItem(player.id, e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      defaultValue=""
+                      title="Give item"
+                    >
+                      <option value="" disabled>+ Item</option>
+                      {availableItems.map(itemId => (
+                        <option key={itemId} value={itemId}>
+                          {itemId}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </>
               )}

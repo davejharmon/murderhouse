@@ -13,6 +13,7 @@ export default function PlayerConsole({
   onSwipeDown,
   onConfirm,
   onCancel,
+  onUseItem,
 }) {
   const isAlive = player?.status === PlayerStatus.ALIVE;
   const isDead = player?.status === PlayerStatus.DEAD;
@@ -100,7 +101,7 @@ export default function PlayerConsole({
         <div className={styles.seatNumber}>#{player?.seatNumber}</div>
         <div className={styles.playerName}>{player?.name}</div>
         {player?.roleName && (
-          <div 
+          <div
             className={styles.role}
             style={{ color: player.roleColor }}
           >
@@ -108,6 +109,26 @@ export default function PlayerConsole({
           </div>
         )}
       </header>
+
+      {/* Inventory Display */}
+      {player?.inventory && player.inventory.length > 0 && (
+        <div className={styles.inventory}>
+          <div className={styles.inventoryLabel}>INVENTORY</div>
+          <div className={styles.inventoryItems}>
+            {player.inventory.map((item, idx) => (
+              <div key={idx} className={styles.inventoryItem}>
+                <span className={styles.itemIcon}>🔫</span>
+                <span className={styles.itemDetails}>
+                  <span className={styles.itemName}>{item.id.toUpperCase()}</span>
+                  <span className={styles.itemUses}>
+                    {item.uses}/{item.maxUses} uses
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tiny Screen Display */}
       <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''}`}>
@@ -170,6 +191,34 @@ export default function PlayerConsole({
           </div>
         )}
       </div>
+
+      {/* Item Action Buttons */}
+      {!hasActiveEvent && isAlive && player?.inventory && player.inventory.length > 0 && (
+        <div className={styles.itemActions}>
+          {player.inventory.map((item, idx) => {
+            const canUse = item.uses > 0;
+            const isCorrectPhase =
+              (item.id === 'pistol' && phase === GamePhase.DAY);
+
+            return (
+              <button
+                key={idx}
+                className={`${styles.itemActionBtn} ${!canUse || !isCorrectPhase ? styles.disabled : ''}`}
+                onClick={() => onUseItem && onUseItem(item.id)}
+                disabled={!canUse || !isCorrectPhase}
+              >
+                <span className={styles.itemActionIcon}>🔫</span>
+                <span className={styles.itemActionText}>
+                  SHOOT
+                  {!isCorrectPhase && phase !== GamePhase.LOBBY && (
+                    <span className={styles.itemActionHint}> (day only)</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Status bar */}
       <footer className={styles.statusBar}>

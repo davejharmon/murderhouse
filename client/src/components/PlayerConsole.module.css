@@ -212,3 +212,121 @@
   margin-left: var(--space-sm);
   font-size: 1rem;
 }
+
+/* Inventory */
+.inventory {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.inventoryLabel {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+  margin-bottom: var(--space-sm);
+  text-align: center;
+}
+
+.inventoryItems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.inventoryItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-md);
+}
+
+.itemIcon {
+  font-size: 1.5rem;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.itemName {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffc107;
+  letter-spacing: 0.1em;
+}
+
+.itemUses {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+}
+
+/* Item Action Buttons */
+.itemActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg) 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.itemActionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));
+  border: 2px solid rgba(255, 193, 7, 0.5);
+  border-radius: var(--border-radius-lg);
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffc107;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.15em;
+}
+
+.itemActionBtn:hover:not(.disabled) {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.3));
+  border-color: rgba(255, 193, 7, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.itemActionBtn:active:not(.disabled) {
+  transform: translateY(0);
+}
+
+.itemActionBtn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.3);
+  color: var(--color-text-muted);
+}
+
+.itemActionIcon {
+  font-size: 1.5rem;
+}
+
+.itemActionText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.itemActionHint {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}

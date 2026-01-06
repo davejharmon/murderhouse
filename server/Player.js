@@ -31,6 +31,9 @@ export class Player {
     this.suspicions = [];
     this.lastProtected = null;
 
+    // Inventory
+    this.inventory = []; // Array of { id, uses, maxUses }
+
     // Connection
     this.connected = ws !== null;
     this.lastSeen = Date.now();
@@ -48,6 +51,7 @@ export class Player {
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
+    this.inventory = [];
   }
 
   // Check if player is alive
@@ -153,7 +157,63 @@ export class Player {
       pendingEvents: [...this.pendingEvents],
       investigations: this.investigations,
       linkedTo: this.linkedTo,
+      inventory: this.inventory,
     };
+  }
+
+  // Inventory management
+  addItem(itemDef) {
+    // Check if player already has this item
+    const existingItem = this.getItem(itemDef.id);
+
+    if (existingItem) {
+      // Add uses to existing item instead of creating duplicate
+      existingItem.uses += itemDef.maxUses === -1 ? 0 : itemDef.maxUses;
+    } else {
+      // Add new item to inventory
+      this.inventory.push({
+        id: itemDef.id,
+        uses: itemDef.maxUses,
+        maxUses: itemDef.maxUses,
+      });
+    }
+
+    return this;
+  }
+
+  hasItem(itemId) {
+    return this.inventory.some((item) => item.id === itemId);
+  }
+
+  getItem(itemId) {
+    return this.inventory.find((item) => item.id === itemId) || null;
+  }
+
+  removeItem(itemId) {
+    const index = this.inventory.findIndex((item) => item.id === itemId);
+    if (index !== -1) {
+      this.inventory.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  canUseItem(itemId) {
+    const item = this.getItem(itemId);
+    if (!item) return false;
+    return item.maxUses === -1 || item.uses > 0;
+  }
+
+  useItem(itemId) {
+    const item = this.getItem(itemId);
+    if (!item) return false;
+
+    if (item.maxUses !== -1) {
+      item.uses--;
+      return item.uses <= 0; // Return true if depleted
+    }
+
+    return false; // Unlimited use items never deplete
   }
 
   // Send message to this player

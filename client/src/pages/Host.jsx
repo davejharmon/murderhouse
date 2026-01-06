@@ -58,6 +58,10 @@ export default function Host() {
       send(ClientMsg.KICK_PLAYER, { playerId });
     }
   };
+  const handleGiveItem = (playerId, itemId) =>
+    send(ClientMsg.GIVE_ITEM, { playerId, itemId });
+  const handleRemoveItem = (playerId, itemId) =>
+    send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
 
   return (
     <div className={styles.container}>
@@ -148,6 +152,8 @@ export default function Host() {
             onKill={handleKillPlayer}
             onRevive={handleRevivePlayer}
             onKick={handleKickPlayer}
+            onGiveItem={handleGiveItem}
+            onRemoveItem={handleRemoveItem}
           />
         </main>
 

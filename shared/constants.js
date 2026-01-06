@@ -47,6 +47,7 @@ export const ClientMsg = {
   SELECT_DOWN: 'selectDown',
   CONFIRM: 'confirm',
   CANCEL: 'cancel',
+  USE_ITEM: 'useItem',
   
   // Host actions
   HOST_CONNECT: 'hostConnect',
@@ -71,6 +72,8 @@ export const ClientMsg = {
   KILL_PLAYER: 'killPlayer',
   REVIVE_PLAYER: 'revivePlayer',
   SET_PLAYER_PORTRAIT: 'setPlayerPortrait',
+  GIVE_ITEM: 'giveItem',
+  REMOVE_ITEM: 'removeItem',
 };
 
 export const SlideType = {

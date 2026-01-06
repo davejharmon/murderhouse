@@ -162,6 +162,37 @@ export function createHandlers(game) {
       return { success: true };
     },
 
+    [ClientMsg.USE_ITEM]: (ws, payload) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+
+      const { itemId } = payload;
+
+      // Check if player has the item
+      if (!player.hasItem(itemId)) {
+        return { success: false, error: 'Item not in inventory' };
+      }
+
+      // Check if item can be used
+      if (!player.canUseItem(itemId)) {
+        return { success: false, error: 'Item has no uses remaining' };
+      }
+
+      // Map items to their events
+      const itemEventMap = {
+        pistol: 'shoot',
+      };
+
+      const eventId = itemEventMap[itemId];
+      if (!eventId) {
+        return { success: false, error: 'Item has no usable action' };
+      }
+
+      // Start the event (this will check phase, participants, etc.)
+      const result = game.startEvent(eventId);
+      return result;
+    },
+
     // === Host Actions ===
 
     [ClientMsg.START_GAME]: (ws) => {
@@ -300,6 +331,34 @@ export function createHandlers(game) {
         return { success: true };
       }
       return { success: false, error: 'Player not found' };
+    },
+
+    [ClientMsg.GIVE_ITEM]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const result = game.giveItem(payload.playerId, payload.itemId);
+      if (result.success) {
+        game.broadcastGameState();
+      }
+      return result;
+    },
+
+    [ClientMsg.REMOVE_ITEM]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
+      }
+      const removed = player.removeItem(payload.itemId);
+      if (removed) {
+        game.addLog(`${player.name} lost ${payload.itemId}`);
+        game.broadcastGameState();
+        return { success: true };
+      }
+      return { success: false, error: 'Item not found in inventory' };
     },
   };
 

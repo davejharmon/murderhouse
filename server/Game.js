@@ -12,6 +12,7 @@ import {
 import { Player, resetSeatCounter } from './Player.js';
 import { getRole, roleDistribution } from './definitions/roles.js';
 import { getEvent, getEventsForPhase } from './definitions/events.js';
+import { getItem } from './definitions/items.js';
 
 export class Game {
   constructor(broadcast) {
@@ -251,6 +252,17 @@ export class Game {
     }
 
     this.addLog(`${event.name} event started`);
+
+    // Special handling for shoot event - show immediate slide
+    if (eventId === 'shoot' && participants.length > 0) {
+      const shooter = participants[0];
+      this.pushSlide({
+        type: 'title',
+        title: 'DRAW!',
+        subtitle: `${shooter.name} is searching for a target...`,
+      }, true); // Jump to this slide immediately
+    }
+
     this.broadcastGameState();
 
     return { success: true };
@@ -328,7 +340,9 @@ export class Game {
 
     // Push result slide if defined
     if (resolution.slide) {
-      this.pushSlide(resolution.slide);
+      // If immediateSlide flag is set, jump to it right away
+      const jumpTo = resolution.immediateSlide === true;
+      this.pushSlide(resolution.slide, jumpTo);
     }
 
     // Send private results (e.g., seer investigations)
@@ -443,6 +457,34 @@ export class Game {
     if (!player) return false;
     player.revive(cause);
     this.addLog(`${player.name} revived (${cause})`);
+    return true;
+  }
+
+  giveItem(playerId, itemId) {
+    const player = this.getPlayer(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    const itemDef = getItem(itemId);
+    if (!itemDef) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    player.addItem(itemDef);
+    this.addLog(`${player.name} received ${itemDef.name}`);
+    return { success: true };
+  }
+
+  consumeItem(playerId, itemId) {
+    const player = this.getPlayer(playerId);
+    if (!player) return false;
+
+    const depleted = player.useItem(itemId);
+    if (depleted) {
+      player.removeItem(itemId);
+      this.addLog(`${player.name}'s ${itemId} was consumed`);
+    }
     return true;
   }
 
