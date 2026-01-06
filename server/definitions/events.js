@@ -394,9 +394,17 @@ const events = {
 
     resolve: (results, game) => {
       const resolutions = [];
+      const abstainers = [];
 
       for (const [shooterId, targetId] of Object.entries(results)) {
-        if (targetId === null) continue;
+        if (targetId === null) {
+          // Player abstained
+          const shooter = game.getPlayer(shooterId);
+          if (shooter) {
+            abstainers.push(shooter);
+          }
+          continue;
+        }
 
         const shooter = game.getPlayer(shooterId);
         const victim = game.getPlayer(targetId);
@@ -423,6 +431,27 @@ const events = {
       }
 
       if (resolutions.length === 0) {
+        // No one shot - check if anyone abstained
+        if (abstainers.length > 0) {
+          const names = abstainers.map(p => p.name).join(', ');
+          const subtitle = abstainers.length === 1
+            ? `${abstainers[0].name} is keeping their powder dry... for now.`
+            : `${names} are keeping their powder dry... for now.`;
+
+          return {
+            success: true,
+            outcome: 'abstained',
+            abstainers,
+            message: `No shots fired.`,
+            slide: {
+              type: 'title',
+              title: 'NO SHOTS FIRED',
+              subtitle,
+            },
+            immediateSlide: true,
+          };
+        }
+
         return { success: true, silent: true };
       }
 
