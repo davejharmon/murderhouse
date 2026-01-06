@@ -6,34 +6,34 @@
   background: var(--color-bg-dark);
   color: var(--color-text);
   overflow: auto;
-  padding: var(--space-md);
+  padding: var(--space-sm);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg);
-  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   background: var(--color-bg-elevated);
   border: 1px solid var(--border-color);
 }
 
 .header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   color: var(--color-accent);
 }
 
 .info {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
+  gap: var(--space-sm);
   max-width: 1800px;
   margin: 0 auto;
 }
@@ -45,7 +45,18 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  height: fit-content;
+  max-height: 320px;
+}
+
+/* Scale down PlayerConsole content for compact view */
+.playerCell :global(*) {
+  font-size: 0.85rem;
+}
+
+.playerCell :global(button) {
+  padding: var(--space-xs) var(--space-sm);
+  min-height: 40px;
 }
 
 .playerHeader {
