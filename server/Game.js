@@ -249,6 +249,9 @@ export class Game {
 
       const targets = event.validTargets(player, this);
 
+      // Send updated player state so client clears abstained/confirmed flags
+      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId,
         eventName: event.name,
@@ -341,6 +344,9 @@ export class Game {
       player.clearSelection();
 
       const targets = event.validTargets(player, this);
+
+      // Send updated player state so client clears abstained/confirmed flags
+      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
 
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId: 'customVote',
