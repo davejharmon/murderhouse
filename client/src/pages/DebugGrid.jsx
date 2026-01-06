@@ -5,7 +5,9 @@ import PlayerConsole from '../components/PlayerConsole';
 import styles from './DebugGrid.module.css';
 
 const PLAYER_COUNT = 9;
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
+const WS_URL = import.meta.env.DEV
+  ? `ws://${window.location.hostname}:8080`
+  : `ws://${window.location.host}`;
 
 export default function DebugGrid() {
   const [playerStates, setPlayerStates] = useState({});
