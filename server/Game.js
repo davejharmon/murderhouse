@@ -418,6 +418,11 @@ export class Game {
           }
         }
 
+        // Auto-resolve player-resolved events immediately
+        if (instance.event.playerResolved) {
+          this.resolveEvent(eventId);
+        }
+
         this.broadcastGameState();
         return { success: true, eventId };
       }
@@ -468,6 +473,8 @@ export class Game {
       if (player) {
         player.pendingEvents.delete(eventId);
         player.clearSelection();
+        // Send updated player state so UI refreshes
+        player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
       }
     }
 
@@ -527,6 +534,33 @@ export class Game {
     }
 
     return { success: true, results };
+  }
+
+  skipEvent(eventId) {
+    // Skip/cancel an event immediately with no effect (useful for player-resolved events)
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) {
+      return { success: false, error: 'Event not active' };
+    }
+
+    const { event, participants } = instance;
+
+    // Clear player event state
+    for (const pid of participants) {
+      const player = this.getPlayer(pid);
+      if (player) {
+        player.pendingEvents.delete(eventId);
+        player.clearSelection();
+      }
+    }
+
+    // Remove from active events
+    this.activeEvents.delete(eventId);
+
+    this.addLog(`${event.name} event skipped by host`);
+    this.broadcastGameState();
+
+    return { success: true };
   }
 
   showTallyAndDeferResolution(eventId, instance) {
@@ -925,6 +959,7 @@ export class Game {
       activeEvents: [...this.activeEvents.keys()],
       eventParticipants: this.getEventParticipantMap(),
       eventProgress: this.getEventProgressMap(),
+      eventMetadata: this.getEventMetadataMap(),
     };
   }
 
@@ -945,6 +980,17 @@ export class Game {
         responded,
         total: instance.participants.length,
         complete: responded === instance.participants.length,
+      };
+    }
+    return map;
+  }
+
+  getEventMetadataMap() {
+    const map = {};
+    for (const [eventId, instance] of this.activeEvents) {
+      map[eventId] = {
+        playerResolved: instance.event.playerResolved || false,
+        playerInitiated: instance.event.playerInitiated || false,
       };
     }
     return map;
