@@ -74,6 +74,10 @@ export function GameProvider({ children }) {
 
       case ServerMsg.PLAYER_STATE:
         setPlayerState(payload);
+        // Clear event prompt if player has no pending events
+        if (payload.pendingEvents && payload.pendingEvents.length === 0) {
+          setEventPrompt(null);
+        }
         break;
 
       case ServerMsg.PLAYER_LIST:
