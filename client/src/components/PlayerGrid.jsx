@@ -41,6 +41,7 @@ export default function PlayerGrid({
         const isAlive = player.status === PlayerStatus.ALIVE;
         const events = getPlayerEvents(player.id);
         const isActive = events.length > 0;
+        const hasUncommittedSelection = isActive && !player.confirmedSelection && !player.abstained;
 
         return (
           <div 
@@ -137,7 +138,7 @@ export default function PlayerGrid({
                   )}
 
                   {/* Debug Auto-Select Button */}
-                  {DEBUG_MODE && isActive && onDebugAutoSelect && (
+                  {DEBUG_MODE && hasUncommittedSelection && onDebugAutoSelect && (
                     <button
                       className={`${styles.actionBtn} ${styles.debug}`}
                       onClick={() => onDebugAutoSelect(player.id)}
