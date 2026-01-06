@@ -574,18 +574,6 @@ export class Game {
     };
   }
 
-  // old version, can delete (doesn't give host full state)
-  getPublicGameState() {
-    return {
-      phase: this.phase,
-      dayCount: this.dayCount,
-      players: this.getPlayersBySeat().map((p) => p.getPublicState()),
-      pendingEvents: this.pendingEvents,
-      activeEvents: [...this.activeEvents.keys()],
-      eventParticipants: this.getEventParticipantMap(),
-      eventProgress: this.getEventProgressMap(),
-    };
-  }
 
   getEventParticipantMap() {
     const map = {};

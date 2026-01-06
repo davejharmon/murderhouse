@@ -23,7 +23,7 @@ export function createHandlers(game) {
             reconnected: true,
             player: existing.getPrivateState(),
           });
-          send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
+          send(ws, ServerMsg.GAME_STATE, game.getGameState());
           send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState());
         }
         return result;
@@ -38,7 +38,7 @@ export function createHandlers(game) {
           playerId,
           player: result.player.getPrivateState(),
         });
-        send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
+        send(ws, ServerMsg.GAME_STATE, game.getGameState());
         send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState());
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
@@ -58,7 +58,7 @@ export function createHandlers(game) {
           reconnected: true,
           player: result.player.getPrivateState(),
         });
-        send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
+        send(ws, ServerMsg.GAME_STATE, game.getGameState());
         send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState());
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
@@ -70,7 +70,7 @@ export function createHandlers(game) {
       game.host = ws;
       ws.clientType = 'host';
       send(ws, ServerMsg.WELCOME, { role: 'host' });
-      send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
+      send(ws, ServerMsg.GAME_STATE, game.getGameState({ audience: 'host' }));
       send(ws, ServerMsg.SLIDE_QUEUE, {
         queue: game.slideQueue,
         currentIndex: game.currentSlideIndex,
@@ -84,7 +84,7 @@ export function createHandlers(game) {
       game.screen = ws;
       ws.clientType = 'screen';
       send(ws, ServerMsg.WELCOME, { role: 'screen' });
-      send(ws, ServerMsg.GAME_STATE, game.getPublicGameState());
+      send(ws, ServerMsg.GAME_STATE, game.getGameState());
       send(ws, ServerMsg.SLIDE, game.getCurrentSlide());
       return { success: true };
     },
