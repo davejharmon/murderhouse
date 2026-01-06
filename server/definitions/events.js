@@ -379,6 +379,7 @@ const events = {
     description: 'Use your pistol to shoot someone.',
     phase: [GamePhase.DAY],
     priority: 40, // Before vote (50)
+    playerInitiated: true, // Player triggers this event, not host
 
     participants: (game) => {
       // Players with a pistol that has uses remaining

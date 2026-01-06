@@ -208,6 +208,9 @@ export class Game {
     this.pendingEvents = [];
 
     for (const event of phaseEvents) {
+      // Skip player-initiated events (like shoot) - they start when player uses ability
+      if (event.playerInitiated) continue;
+
       const participants = event.participants(this);
       if (participants.length > 0) {
         this.pendingEvents.push(event.id);
