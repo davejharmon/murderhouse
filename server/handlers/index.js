@@ -216,6 +216,20 @@ export function createHandlers(game) {
       return game.startAllEvents();
     },
 
+    [ClientMsg.START_CUSTOM_VOTE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+
+      const { rewardType, rewardParam, description } = payload;
+
+      return game.startCustomVote({
+        rewardType,
+        rewardParam,
+        description,
+      });
+    },
+
     [ClientMsg.RESOLVE_EVENT]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };

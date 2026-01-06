@@ -41,6 +41,8 @@ export default function Host() {
   const handleStartEvent = (eventId) =>
     send(ClientMsg.START_EVENT, { eventId });
   const handleStartAllEvents = () => send(ClientMsg.START_ALL_EVENTS);
+  const handleStartCustomVote = (config) =>
+    send(ClientMsg.START_CUSTOM_VOTE, config);
   const handleResolveEvent = (eventId) =>
     send(ClientMsg.RESOLVE_EVENT, { eventId });
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
@@ -126,8 +128,10 @@ export default function Host() {
               pendingEvents={gameState?.pendingEvents || []}
               activeEvents={gameState?.activeEvents || []}
               eventProgress={gameState?.eventProgress || {}}
+              currentPhase={phase}
               onStartEvent={handleStartEvent}
               onStartAllEvents={handleStartAllEvents}
+              onStartCustomVote={handleStartCustomVote}
               onResolveEvent={handleResolveEvent}
               onResolveAllEvents={handleResolveAllEvents}
             />

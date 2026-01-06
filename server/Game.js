@@ -17,14 +17,16 @@ import { getItem } from './definitions/items.js';
 export class Game {
   constructor(broadcast) {
     this.broadcast = broadcast; // Function to send to all clients
+    this.host = null;
+    this.screen = null;
     this.reset();
   }
 
   reset() {
     resetSeatCounter();
     this.players = new Map(); // id -> Player
-    this.host = null; // Host WebSocket
-    this.screen = null; // Big screen WebSocket
+    // NOTE: We keep host and screen connections alive during reset
+    // Only clear them if explicitly needed (not during game reset)
 
     this.phase = GamePhase.LOBBY;
     this.dayCount = 0;
@@ -33,6 +35,7 @@ export class Game {
     this.pendingEvents = []; // Events that can be started this phase
     this.activeEvents = new Map(); // eventId -> { event, results, participants }
     this.eventResults = []; // Results to reveal at end of phase
+    this.pendingResolutions = new Map(); // eventId -> { resolution, slideIndex }
 
     // Slide queue for big screen
     this.slideQueue = [];
@@ -263,6 +266,15 @@ export class Game {
       }, true); // Jump to this slide immediately
     }
 
+    // Show slide when vote events start
+    if (eventId === 'vote') {
+      this.pushSlide({
+        type: 'title',
+        title: 'ELIMINATION VOTE',
+        subtitle: 'Choose who to eliminate',
+      }, true);
+    }
+
     this.broadcastGameState();
 
     return { success: true };
@@ -277,6 +289,109 @@ export class Game {
       }
     }
     return { success: true, started };
+  }
+
+  startCustomVote(config) {
+    // Validate configuration
+    const validation = this.validateCustomVoteConfig(config);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Check phase
+    if (this.phase !== GamePhase.DAY) {
+      return { success: false, error: 'Custom votes only available during DAY phase' };
+    }
+
+    // Check if customVote already active
+    if (this.activeEvents.has('customVote')) {
+      return { success: false, error: 'Custom vote already in progress' };
+    }
+
+    const event = getEvent('customVote');
+    if (!event) {
+      return { success: false, error: 'Custom vote event not found' };
+    }
+
+    const participants = event.participants(this);
+    if (participants.length === 0) {
+      return { success: false, error: 'No eligible participants' };
+    }
+
+    // Create event instance with configuration and runoff tracking
+    const eventInstance = {
+      event,
+      results: {},
+      participants: participants.map(p => p.id),
+      startedAt: Date.now(),
+      config, // Store configuration
+      runoffCandidates: [],
+      runoffRound: 0,
+    };
+
+    this.activeEvents.set('customVote', eventInstance);
+    this.pendingEvents = this.pendingEvents.filter(id => id !== 'customVote');
+
+    // Notify participants with custom description
+    for (const player of participants) {
+      player.pendingEvents.add('customVote');
+      player.clearSelection();
+
+      const targets = event.validTargets(player, this);
+
+      player.send(ServerMsg.EVENT_PROMPT, {
+        eventId: 'customVote',
+        eventName: event.name,
+        description: config.description,
+        targets: targets.map(t => t.getPublicState()),
+      });
+    }
+
+    this.addLog(`Custom Vote started: ${config.description}`);
+
+    // Show slide when custom vote starts
+    this.pushSlide({
+      type: 'title',
+      title: 'CUSTOM VOTE',
+      subtitle: config.description,
+    }, true);
+
+    this.broadcastGameState();
+
+    return { success: true };
+  }
+
+  validateCustomVoteConfig(config) {
+    if (!config) {
+      return { valid: false, error: 'Configuration required' };
+    }
+
+    const { rewardType, rewardParam, description } = config;
+
+    // Validate reward type
+    if (!['item', 'role', 'resurrection'].includes(rewardType)) {
+      return { valid: false, error: 'Invalid reward type' };
+    }
+
+    // Validate reward parameter
+    if (rewardType === 'item') {
+      const item = getItem(rewardParam);
+      if (!item) {
+        return { valid: false, error: `Item '${rewardParam}' not found` };
+      }
+    } else if (rewardType === 'role') {
+      const role = getRole(rewardParam);
+      if (!role) {
+        return { valid: false, error: `Role '${rewardParam}' not found` };
+      }
+    }
+    // Resurrection doesn't need param validation
+
+    if (!description || description.trim() === '') {
+      return { valid: false, error: 'Description required' };
+    }
+
+    return { valid: true };
   }
 
   recordSelection(playerId, targetId) {
@@ -318,8 +433,20 @@ export class Game {
       }
     }
 
+    // For vote/customVote events, show tally slide first and defer resolution
+    if (eventId === 'vote' || eventId === 'customVote') {
+      return this.showTallyAndDeferResolution(eventId, instance);
+    }
+
     // Resolve the event
     const resolution = event.resolve(results, this);
+
+    // Check if this is a runoff situation
+    if (resolution.runoff === true) {
+      // Don't clear event or player states - trigger runoff instead
+      this.addLog(resolution.message);
+      return this.triggerRunoff(eventId, resolution.frontrunners);
+    }
 
     // Clear player event state
     for (const pid of participants) {
@@ -386,6 +513,168 @@ export class Game {
     }
 
     return { success: true, results };
+  }
+
+  showTallyAndDeferResolution(eventId, instance) {
+    const { event, results } = instance;
+
+    // Compute tally from results
+    const tally = {};
+    for (const [voterId, targetId] of Object.entries(results)) {
+      if (targetId === null) continue;
+      tally[targetId] = (tally[targetId] || 0) + 1;
+    }
+
+    // Create and push tally slide
+    const tallySlide = {
+      type: 'voteTally',
+      tally,
+      title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
+      subtitle: `${Object.keys(tally).length} candidates received votes`,
+    };
+
+    this.pushSlide(tallySlide, false); // Don't jump yet
+
+    // Pre-compute the resolution (but don't apply effects yet)
+    const resolution = event.resolve(results, this);
+
+    // If this is a runoff, handle it immediately
+    if (resolution.runoff === true) {
+      this.addLog(resolution.message);
+      // Jump to tally slide to show the tie
+      this.currentSlideIndex = this.slideQueue.length - 1;
+      this.broadcastSlides();
+      // Trigger runoff
+      return this.triggerRunoff(eventId, resolution.frontrunners);
+    }
+
+    // Push result slide (but mark it as pending execution)
+    if (resolution.slide) {
+      const resultSlide = {
+        ...resolution.slide,
+        pendingEventId: eventId, // Mark this slide as requiring execution
+      };
+      this.pushSlide(resultSlide, false);
+    }
+
+    // Jump to tally slide
+    this.currentSlideIndex = this.slideQueue.length - 2; // Tally is second-to-last
+    this.broadcastSlides();
+
+    // Store pending resolution
+    this.pendingResolutions.set(eventId, {
+      eventId,
+      instance,
+      resolution,
+      tallySlideIndex: this.slideQueue.length - 2,
+      resultSlideIndex: this.slideQueue.length - 1,
+    });
+
+    this.addLog(`${eventId} tally displayed, awaiting resolution`);
+
+    return { success: true, showingTally: true };
+  }
+
+  executePendingResolution(eventId) {
+    const pending = this.pendingResolutions.get(eventId);
+    if (!pending) {
+      return { success: false, error: 'No pending resolution for this event' };
+    }
+
+    const { instance, resolution } = pending;
+    const { participants } = instance;
+
+    // Clear player event state
+    for (const pid of participants) {
+      const player = this.getPlayer(pid);
+      if (player) {
+        player.pendingEvents.delete(eventId);
+        player.clearSelection();
+      }
+    }
+
+    // Handle resolution
+    this.activeEvents.delete(eventId);
+    this.pendingResolutions.delete(eventId);
+
+    if (!resolution.silent) {
+      this.eventResults.push(resolution);
+      this.addLog(resolution.message);
+    }
+
+    // Send private results (e.g., seer investigations)
+    if (resolution.investigations) {
+      for (const inv of resolution.investigations) {
+        const seer = this.getPlayer(inv.seerId);
+        if (seer) {
+          seer.send(ServerMsg.EVENT_RESULT, {
+            eventId: 'investigate',
+            message: inv.privateMessage,
+            data: inv,
+          });
+        }
+      }
+    }
+
+    // Check for linked death (Cupid lovers)
+    this.checkLinkedDeaths();
+
+    // Check win condition
+    const winner = this.checkWinCondition();
+    if (winner) {
+      this.endGame(winner);
+    }
+
+    this.broadcastGameState();
+
+    return { success: true, resolution };
+  }
+
+  triggerRunoff(eventId, frontrunners) {
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) {
+      return { success: false, error: 'Event not active' };
+    }
+
+    const { event, participants } = instance;
+
+    // Set runoff state
+    instance.runoffCandidates = frontrunners;
+    instance.runoffRound = (instance.runoffRound || 0) + 1;
+    instance.results = {}; // Clear previous votes
+
+    // Clear player selections
+    for (const pid of participants) {
+      const player = this.getPlayer(pid);
+      if (player) {
+        player.clearSelection();
+      }
+    }
+
+    // Re-notify participants with updated targets
+    const runoffParticipants = participants
+      .map(pid => this.getPlayer(pid))
+      .filter(p => p);
+
+    for (const player of runoffParticipants) {
+      const targets = event.validTargets(player, this);
+
+      // Get description (use custom description if available)
+      const baseDescription = instance.config?.description || event.description;
+      const description = `RUNOFF VOTE (Round ${instance.runoffRound}): ${baseDescription}`;
+
+      player.send(ServerMsg.EVENT_PROMPT, {
+        eventId,
+        eventName: event.name,
+        description,
+        targets: targets.map((t) => t.getPublicState()),
+      });
+    }
+
+    this.addLog(`${event.name} runoff started (Round ${instance.runoffRound})`);
+    this.broadcastGameState();
+
+    return { success: true, runoff: true };
   }
 
   // === Win Conditions ===
@@ -516,6 +805,15 @@ export class Game {
   nextSlide() {
     if (this.currentSlideIndex < this.slideQueue.length - 1) {
       this.currentSlideIndex++;
+
+      // Check if the NEW slide we just moved to has a pending resolution
+      const nextSlide = this.getCurrentSlide();
+      if (nextSlide?.pendingEventId) {
+        const eventId = nextSlide.pendingEventId;
+        // Execute the pending resolution
+        this.executePendingResolution(eventId);
+      }
+
       this.broadcastSlides();
     }
   }

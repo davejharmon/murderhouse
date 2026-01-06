@@ -55,6 +55,7 @@ export const ClientMsg = {
   START_GAME: 'startGame',
   START_EVENT: 'startEvent',
   START_ALL_EVENTS: 'startAllEvents',
+  START_CUSTOM_VOTE: 'startCustomVote',
   RESOLVE_EVENT: 'resolveEvent',
   RESOLVE_ALL_EVENTS: 'resolveAllEvents',
   NEXT_PHASE: 'nextPhase',

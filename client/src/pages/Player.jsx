@@ -29,6 +29,15 @@ export default function Player() {
     }
   }, [connected, playerId, joinAsPlayer]);
 
+  // Auto-rejoin after game reset
+  useEffect(() => {
+    // If we're connected but have no playerState, and game is in LOBBY, rejoin
+    if (connected && playerId && !playerState && gameState?.phase === GamePhase.LOBBY) {
+      console.log('[Player] Detected reset, rejoining...');
+      joinAsPlayer(playerId);
+    }
+  }, [connected, playerId, playerState, gameState?.phase, joinAsPlayer]);
+
   // Handle swipe gestures
   const handleSwipeUp = useCallback(() => {
     send(ClientMsg.SELECT_UP);

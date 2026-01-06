@@ -3,6 +3,7 @@
 // Events are actions that players can take during specific phases
 
 import { GamePhase, Team } from '../../shared/constants.js';
+import { getRole } from './roles.js';
 
 /**
  * Event Definition Schema:
@@ -40,24 +41,35 @@ const events = {
     description: 'Choose who to eliminate.',
     phase: [GamePhase.DAY],
     priority: 50,
-    
+
     participants: (game) => game.getAlivePlayers(),
-    
+
     validTargets: (actor, game) => {
+      // Check for runoff voting - only show runoff candidates
+      const instance = game.activeEvents.get('vote');
+      if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
+        return instance.runoffCandidates
+          .map(id => game.getPlayer(id))
+          .filter(p => p && p.id !== actor.id);
+      }
+
       return game.getAlivePlayers().filter(p => p.id !== actor.id);
     },
-    
+
     aggregation: 'majority',
     allowAbstain: true,
-    
+
     resolve: (results, game) => {
+      const instance = game.activeEvents.get('vote');
+      const runoffRound = instance?.runoffRound || 0;
+
       // Count votes
       const tally = {};
       for (const [voterId, targetId] of Object.entries(results)) {
         if (targetId === null) continue; // Abstained
         tally[targetId] = (tally[targetId] || 0) + 1;
       }
-      
+
       if (Object.keys(tally).length === 0) {
         return {
           success: true,
@@ -66,35 +78,57 @@ const events = {
           slide: { type: 'title', title: 'NO ELIMINATION', subtitle: 'The village could not decide.' },
         };
       }
-      
+
       // Find max votes
       const maxVotes = Math.max(...Object.values(tally));
       const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
-      
+
       if (frontrunners.length > 1) {
-        // Tie - could trigger tiebreaker or random
+        // Tie detected
+        if (runoffRound >= 3) {
+          // After 3 runoffs, pick randomly
+          const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)];
+          const eliminated = game.getPlayer(winnerId);
+          game.killPlayer(eliminated.id, 'eliminated');
+
+          return {
+            success: true,
+            outcome: 'eliminated',
+            eliminated,
+            tally,
+            message: `After multiple runoffs, ${eliminated.name} was randomly selected for elimination.`,
+            slide: {
+              type: 'death',
+              playerId: eliminated.id,
+              title: 'ELIMINATED (TIE-BREAKER)',
+              subtitle: eliminated.name,
+              revealRole: true,
+            },
+          };
+        }
+
+        // Trigger runoff
         return {
           success: true,
-          outcome: 'tie',
-          message: 'The vote was tied.',
-          tiedPlayers: frontrunners.map(id => game.getPlayer(id)),
+          runoff: true,
+          frontrunners,
           tally,
-          slide: { type: 'voteTally', tally, title: 'DEADLOCK', subtitle: 'No majority reached.' },
+          message: `Vote tied. Starting runoff with ${frontrunners.length} candidates.`,
         };
       }
-      
+
       const eliminated = game.getPlayer(frontrunners[0]);
       game.killPlayer(eliminated.id, 'eliminated');
-      
+
       return {
         success: true,
         outcome: 'eliminated',
         eliminated,
         tally,
         message: `${eliminated.name} was eliminated.`,
-        slide: { 
-          type: 'death', 
-          playerId: eliminated.id, 
+        slide: {
+          type: 'death',
+          playerId: eliminated.id,
           title: 'ELIMINATED',
           subtitle: eliminated.name,
           revealRole: true,
@@ -405,7 +439,159 @@ const events = {
       };
     },
   },
+
+  customVote: {
+    id: 'customVote',
+    name: 'Custom Vote',
+    description: 'Vote for a custom reward.',
+    phase: [GamePhase.DAY],
+    priority: 45, // Before vote (50), after shoot (40)
+
+    participants: (game) => game.getAlivePlayers(),
+
+    validTargets: (actor, game) => {
+      const instance = game.activeEvents.get('customVote');
+
+      // Check for runoff voting - only show runoff candidates
+      if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
+        return instance.runoffCandidates
+          .map(id => game.getPlayer(id))
+          .filter(p => p);
+      }
+
+      // Check reward type from config
+      if (instance?.config?.rewardType === 'resurrection') {
+        // Only dead players are valid targets for resurrection
+        return [...game.players.values()].filter(p => !p.isAlive);
+      }
+
+      // For item/role rewards, all alive players INCLUDING SELF
+      return game.getAlivePlayers();
+    },
+
+    aggregation: 'majority',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const instance = game.activeEvents.get('customVote');
+      const config = instance?.config;
+      const runoffRound = instance?.runoffRound || 0;
+
+      if (!config) {
+        return {
+          success: false,
+          message: 'Custom vote configuration missing',
+        };
+      }
+
+      // Count votes
+      const tally = {};
+      for (const [voterId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue; // Abstained
+        tally[targetId] = (tally[targetId] || 0) + 1;
+      }
+
+      if (Object.keys(tally).length === 0) {
+        return {
+          success: true,
+          outcome: 'no-winner',
+          message: 'No votes were cast.',
+          slide: {
+            type: 'title',
+            title: 'NO WINNER',
+            subtitle: config.description,
+          },
+        };
+      }
+
+      // Find winner
+      const maxVotes = Math.max(...Object.values(tally));
+      const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
+
+      if (frontrunners.length > 1) {
+        // Tie detected
+        if (runoffRound >= 3) {
+          // After 3 runoffs, pick randomly
+          const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)];
+          return resolveCustomVoteReward(winnerId, config, game, tally, true);
+        }
+
+        // Trigger runoff
+        return {
+          success: true,
+          runoff: true,
+          frontrunners,
+          tally,
+          message: `Custom vote tied. Starting runoff with ${frontrunners.length} candidates.`,
+        };
+      }
+
+      return resolveCustomVoteReward(frontrunners[0], config, game, tally, false);
+    },
+  },
 };
+
+/**
+ * Helper function to resolve custom vote rewards
+ */
+function resolveCustomVoteReward(winnerId, config, game, tally, wasTie) {
+  const winner = game.getPlayer(winnerId);
+
+  if (!winner) {
+    return {
+      success: false,
+      message: 'Winner not found',
+    };
+  }
+
+  let message = '';
+  let slideSubtitle = winner.name;
+
+  switch (config.rewardType) {
+    case 'item':
+      game.giveItem(winner.id, config.rewardParam);
+      message = `${winner.name} received ${config.rewardParam}!`;
+      slideSubtitle = `${winner.name} received ${config.rewardParam}`;
+      break;
+
+    case 'role':
+      const newRole = getRole(config.rewardParam);
+      if (newRole) {
+        winner.assignRole(newRole);
+        message = `${winner.name} became ${newRole.name}!`;
+        slideSubtitle = `${winner.name} is now ${newRole.name}`;
+      }
+      break;
+
+    case 'resurrection':
+      if (!winner.isAlive) {
+        game.revivePlayer(winner.id, 'vote');
+        message = `${winner.name} was resurrected!`;
+        slideSubtitle = `${winner.name} returns from the dead`;
+      } else {
+        message = `${winner.name} was chosen but is already alive.`;
+      }
+      break;
+  }
+
+  if (wasTie) {
+    message = `After multiple runoffs, tie broken randomly. ${message}`;
+  }
+
+  return {
+    success: true,
+    outcome: 'reward-given',
+    winner,
+    tally,
+    message,
+    slide: {
+      type: 'voteTally',
+      tally,
+      title: 'CUSTOM VOTE RESULT',
+      subtitle: slideSubtitle,
+    },
+  };
+}
 
 export function getEvent(eventId) {
   return events[eventId] || null;
