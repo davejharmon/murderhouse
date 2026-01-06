@@ -58,6 +58,26 @@
   color: var(--color-accent-blue);
 }
 
+.eventActions {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.debugBtn {
+  padding: var(--space-xs);
+  font-size: 1rem;
+  min-width: 32px;
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+}
+
+.debugBtn:hover {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  transform: scale(1.1);
+}
+
 .resolveBtn {
   padding: var(--space-xs) var(--space-sm);
   font-size: 0.75rem;

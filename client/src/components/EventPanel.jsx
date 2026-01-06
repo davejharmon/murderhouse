@@ -1,5 +1,6 @@
 // client/src/components/EventPanel.jsx
 import { useState } from 'react';
+import { DEBUG_MODE } from '@shared/constants.js';
 import CustomVoteModal from './CustomVoteModal';
 import styles from './EventPanel.module.css';
 
@@ -14,6 +15,7 @@ export default function EventPanel({
   onResolveEvent,
   onResolveAllEvents,
   onSkipEvent,
+  onDebugAutoSelectAll,
   onStartCustomVote,
 }) {
   const [showCustomVoteModal, setShowCustomVoteModal] = useState(false);
@@ -94,6 +96,7 @@ export default function EventPanel({
               const progress = eventProgress[eventId] || {};
               const metadata = eventMetadata[eventId] || {};
               const isPlayerResolved = metadata.playerResolved || false;
+              const hasUncommitted = (progress.total || 0) > (progress.responded || 0);
 
               return (
                 <div key={eventId} className={styles.activeEvent}>
@@ -101,21 +104,32 @@ export default function EventPanel({
                   <div className={styles.progress}>
                     {progress.responded || 0}/{progress.total || 0}
                   </div>
-                  {isPlayerResolved ? (
-                    <button
-                      className={`${styles.resolveBtn} ${styles.skipBtn}`}
-                      onClick={() => onSkipEvent(eventId)}
-                    >
-                      Skip
-                    </button>
-                  ) : (
-                    <button
-                      className={styles.resolveBtn}
-                      onClick={() => onResolveEvent(eventId)}
-                    >
-                      Resolve
-                    </button>
-                  )}
+                  <div className={styles.eventActions}>
+                    {DEBUG_MODE && hasUncommitted && onDebugAutoSelectAll && (
+                      <button
+                        className={`${styles.debugBtn}`}
+                        onClick={() => onDebugAutoSelectAll(eventId)}
+                        title="Debug: Auto-select all remaining players"
+                      >
+                        🎲
+                      </button>
+                    )}
+                    {isPlayerResolved ? (
+                      <button
+                        className={`${styles.resolveBtn} ${styles.skipBtn}`}
+                        onClick={() => onSkipEvent(eventId)}
+                      >
+                        Skip
+                      </button>
+                    ) : (
+                      <button
+                        className={styles.resolveBtn}
+                        onClick={() => onResolveEvent(eventId)}
+                      >
+                        Resolve
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

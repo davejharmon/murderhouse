@@ -68,6 +68,8 @@ export default function Host() {
     send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
+  const handleDebugAutoSelectAll = (eventId) =>
+    send(ClientMsg.DEBUG_AUTO_SELECT_ALL, { eventId });
 
   return (
     <div className={styles.container}>
@@ -140,6 +142,7 @@ export default function Host() {
               onResolveEvent={handleResolveEvent}
               onResolveAllEvents={handleResolveAllEvents}
               onSkipEvent={handleSkipEvent}
+              onDebugAutoSelectAll={handleDebugAutoSelectAll}
             />
           )}
 

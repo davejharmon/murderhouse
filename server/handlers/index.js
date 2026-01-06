@@ -440,6 +440,51 @@ export function createHandlers(game) {
 
       return { success: true, action: 'selected', targetId: randomTarget.id };
     },
+
+    [ClientMsg.DEBUG_AUTO_SELECT_ALL]: (ws, payload) => {
+      if (!DEBUG_MODE) {
+        return { success: false, error: 'Debug mode not enabled' };
+      }
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+
+      const { eventId } = payload;
+      const instance = game.activeEvents.get(eventId);
+      if (!instance) {
+        return { success: false, error: 'Event not active' };
+      }
+
+      const { event, participants, results } = instance;
+      let autoSelectedCount = 0;
+
+      // Auto-select for all participants who haven't locked in a selection
+      for (const playerId of participants) {
+        const player = game.getPlayer(playerId);
+        if (!player) continue;
+
+        // Skip if player already has confirmed selection or abstained
+        if (player.confirmedSelection || player.abstained) continue;
+
+        const targets = event.validTargets(player, game);
+
+        if (targets.length === 0) {
+          // No targets, abstain
+          player.abstain();
+          game.recordSelection(player.id, null);
+          autoSelectedCount++;
+        } else {
+          // Pick random target
+          const randomTarget = targets[Math.floor(Math.random() * targets.length)];
+          player.currentSelection = randomTarget.id;
+          player.confirmSelection();
+          game.recordSelection(player.id, randomTarget.id);
+          autoSelectedCount++;
+        }
+      }
+
+      return { success: true, autoSelectedCount };
+    },
   };
 
   return handlers;

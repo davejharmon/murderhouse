@@ -80,6 +80,7 @@ export const ClientMsg = {
 
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',
+  DEBUG_AUTO_SELECT_ALL: 'debugAutoSelectAll',
 };
 
 export const SlideType = {
