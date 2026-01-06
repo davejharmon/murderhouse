@@ -214,7 +214,7 @@ Messages follow the format: `{ type: string, payload: object }`
 **Server → Client:**
 
 - `gameState` - Full game state update
-- `playerState` - Private player state
+- `playerState` - Private player state (for host and individual players)
 - `slide` - Current slide for big screen
 - `eventPrompt` - Event details for participant
 - `eventResult` - Private result (e.g., seer investigation)
@@ -225,7 +225,7 @@ React context (`GameContext`) manages all WebSocket communication and state. Com
 
 ### Styling
 
-CSS Modules with a Severance-inspired aesthetic:
+CSS Modules:
 
 - Dark backgrounds (#0a0c0f, #141820)
 - IBM Plex Mono for headings/UI
@@ -234,4 +234,4 @@ CSS Modules with a Severance-inspired aesthetic:
 
 ## License
 
-MIT
+None
