@@ -162,6 +162,17 @@ export function createHandlers(game) {
       return { success: true };
     },
 
+    [ClientMsg.ABSTAIN]: (ws) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+
+      player.abstain();
+      const result = game.recordSelection(player.id, null);
+      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+
+      return result;
+    },
+
     [ClientMsg.USE_ITEM]: (ws, payload) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };

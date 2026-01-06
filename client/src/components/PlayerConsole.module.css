@@ -72,6 +72,11 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
+.tinyScreen.ability {
+  border-color: rgba(255, 193, 7, 0.5);
+  background: rgba(255, 193, 7, 0.05);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -100,6 +105,15 @@
   padding: var(--space-lg) 0;
 }
 
+/* Button Grid - 2x2 layout: UP | YES / DOWN | NO */
+.buttonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-md);
+  min-height: 200px;
+}
+
 .navButton {
   display: flex;
   flex-direction: column;
@@ -122,6 +136,11 @@
   transform: scale(0.98);
 }
 
+.navButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .arrow {
   font-size: 1.5rem;
   line-height: 1;
@@ -133,38 +152,90 @@
   letter-spacing: 0.2em;
 }
 
-.confirmButton {
+/* YES Button */
+.yesButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-xl);
-  font-size: 1.25rem;
-  font-weight: 600;
   background: var(--color-bg-elevated);
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   color: var(--color-text-muted);
   transition: all var(--transition-fast);
+  font-weight: 600;
 }
 
-.confirmButton.active {
+.yesButton.active {
   background: var(--color-accent-green);
   border-color: var(--color-accent-green);
   color: var(--color-bg-dark);
 }
 
-.confirmButton.active:hover:not(:disabled) {
+.yesButton.active:hover:not(:disabled) {
   background: #5eeb99;
   border-color: #5eeb99;
+  transform: translateY(-2px);
 }
 
-.cancelButton {
-  padding: var(--space-md);
-  background: transparent;
-  border: 1px solid var(--color-text-muted);
-  color: var(--color-text-secondary);
+.yesButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
-.cancelButton:hover:not(:disabled) {
+.yesIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.yesLabel {
+  font-size: 0.875rem;
+  margin-top: var(--space-xs);
+  letter-spacing: 0.2em;
+}
+
+/* NO Button */
+.noButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+  font-weight: 600;
+}
+
+.noButton.active {
+  background: var(--color-accent-red);
   border-color: var(--color-accent-red);
-  color: var(--color-accent-red);
+  color: var(--color-bg-dark);
+}
+
+.noButton.active:hover:not(:disabled) {
+  background: #ff6b6b;
+  border-color: #ff6b6b;
+  transform: translateY(-2px);
+}
+
+.noButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.noIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.noLabel {
+  font-size: 0.875rem;
+  margin-top: var(--space-xs);
+  letter-spacing: 0.2em;
 }
 
 .spectatorMessage,
@@ -268,65 +339,3 @@
   color: var(--color-text-muted);
 }
 
-/* Item Action Buttons */
-.itemActions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg) 0;
-  border-top: 1px solid var(--border-color);
-}
-
-.itemActionBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));
-  border: 2px solid rgba(255, 193, 7, 0.5);
-  border-radius: var(--border-radius-lg);
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #ffc107;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  letter-spacing: 0.15em;
-}
-
-.itemActionBtn:hover:not(.disabled) {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.3));
-  border-color: rgba(255, 193, 7, 0.8);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-}
-
-.itemActionBtn:active:not(.disabled) {
-  transform: translateY(0);
-}
-
-.itemActionBtn.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  background: rgba(128, 128, 128, 0.1);
-  border-color: rgba(128, 128, 128, 0.3);
-  color: var(--color-text-muted);
-}
-
-.itemActionIcon {
-  font-size: 1.5rem;
-}
-
-.itemActionText {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.itemActionHint {
-  font-size: 0.625rem;
-  color: var(--color-text-muted);
-  font-weight: 400;
-  letter-spacing: 0.05em;
-}

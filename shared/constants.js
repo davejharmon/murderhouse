@@ -47,6 +47,7 @@ export const ClientMsg = {
   SELECT_DOWN: 'selectDown',
   CONFIRM: 'confirm',
   CANCEL: 'cancel',
+  ABSTAIN: 'abstain',
   USE_ITEM: 'useItem',
   
   // Host actions

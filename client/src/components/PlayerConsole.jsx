@@ -1,6 +1,18 @@
 // client/src/components/PlayerConsole.jsx
+import { useMemo, useState, useEffect } from 'react';
 import { GamePhase, PlayerStatus } from '@shared/constants.js';
 import styles from './PlayerConsole.module.css';
+
+// Helper functions for item display
+function getItemIcon(itemId) {
+  const icons = { pistol: '🔫' };
+  return icons[itemId] || '📦';
+}
+
+function getItemDescription(itemId) {
+  const descriptions = { pistol: 'Shoot a player' };
+  return descriptions[itemId] || 'Use this item';
+}
 
 export default function PlayerConsole({
   player,
@@ -8,16 +20,93 @@ export default function PlayerConsole({
   eventPrompt,
   selectedTarget,
   confirmedTarget,
+  abstained,
   hasActiveEvent,
   onSwipeUp,
   onSwipeDown,
   onConfirm,
-  onCancel,
+  onAbstain,
   onUseItem,
 }) {
   const isAlive = player?.status === PlayerStatus.ALIVE;
   const isDead = player?.status === PlayerStatus.DEAD;
   const phase = gameState?.phase;
+
+  // Build list of usable abilities from inventory
+  const abilities = useMemo(() => {
+    if (!player?.inventory) return [];
+
+    return player.inventory
+      .filter(item => item.uses !== 0 && item.uses !== undefined) // Has uses remaining
+      .map(item => ({
+        id: item.id,
+        name: item.id.toUpperCase(),
+        icon: getItemIcon(item.id),
+        description: getItemDescription(item.id),
+        uses: item.uses,
+        maxUses: item.maxUses,
+      }));
+  }, [player?.inventory]);
+
+  // Track ability selection when not in event
+  const [currentAbilityIndex, setCurrentAbilityIndex] = useState(0);
+
+  // Reset ability index when abilities change
+  useEffect(() => {
+    if (currentAbilityIndex >= abilities.length) {
+      setCurrentAbilityIndex(0);
+    }
+  }, [abilities.length, currentAbilityIndex]);
+
+  // Determine if we're in ability mode (idle with abilities available)
+  const inAbilityMode = !hasActiveEvent && isAlive && abilities.length > 0 && phase !== GamePhase.LOBBY;
+  const currentAbility = inAbilityMode ? abilities[currentAbilityIndex] : null;
+
+  // Handle UP button
+  const handleUp = () => {
+    if (inAbilityMode) {
+      // Cycle through abilities
+      setCurrentAbilityIndex((prev) =>
+        prev <= 0 ? abilities.length - 1 : prev - 1
+      );
+    } else if (hasActiveEvent) {
+      // Cycle through targets
+      onSwipeUp();
+    }
+  };
+
+  // Handle DOWN button
+  const handleDown = () => {
+    if (inAbilityMode) {
+      // Cycle through abilities
+      setCurrentAbilityIndex((prev) =>
+        prev >= abilities.length - 1 ? 0 : prev + 1
+      );
+    } else if (hasActiveEvent) {
+      // Cycle through targets
+      onSwipeDown();
+    }
+  };
+
+  // Handle YES button
+  const handleYes = () => {
+    if (inAbilityMode && currentAbility) {
+      // Trigger ability
+      onUseItem(currentAbility.id);
+    } else if (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) {
+      // Confirm selection
+      onConfirm();
+    }
+  };
+
+  // Handle NO button
+  const handleNo = () => {
+    if (hasActiveEvent && !confirmedTarget && !abstained) {
+      // Abstain from event
+      onAbstain();
+    }
+    // NO button does nothing in ability mode
+  };
 
   // Determine what to show on the tiny screen
   const getTinyScreenContent = () => {
@@ -44,6 +133,16 @@ export default function PlayerConsole({
       };
     }
 
+    // Abstained state
+    if (abstained) {
+      return {
+        primary: 'ABSTAINED',
+        secondary: 'You chose not to participate',
+        locked: true,
+      };
+    }
+
+    // Confirmed selection state
     if (confirmedTarget) {
       return {
         primary: confirmedTarget.name.toUpperCase(),
@@ -52,13 +151,15 @@ export default function PlayerConsole({
       };
     }
 
-    if (selectedTarget) {
+    // Event with selection
+    if (selectedTarget && hasActiveEvent) {
       return {
         primary: selectedTarget.name.toUpperCase(),
-        secondary: 'Swipe to change • Press to confirm',
+        secondary: 'YES to confirm • NO to abstain',
       };
     }
 
+    // Event without selection
     if (eventPrompt) {
       return {
         primary: eventPrompt.eventName.toUpperCase(),
@@ -70,7 +171,16 @@ export default function PlayerConsole({
     if (hasActiveEvent) {
       return {
         primary: 'SWIPE TO SELECT',
-        secondary: 'Choose a target',
+        secondary: 'Choose a target or abstain',
+      };
+    }
+
+    // Ability mode
+    if (inAbilityMode && currentAbility) {
+      return {
+        primary: `${currentAbility.icon} ${currentAbility.name}`,
+        secondary: `${currentAbility.description} • ${currentAbility.uses}/${currentAbility.maxUses} uses`,
+        ability: true,
       };
     }
 
@@ -93,6 +203,11 @@ export default function PlayerConsole({
   };
 
   const tinyScreen = getTinyScreenContent();
+
+  // Determine button states
+  const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || inAbilityMode;
+  const noEnabled = hasActiveEvent && !confirmedTarget && !abstained;
+  const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || inAbilityMode;
 
   return (
     <div className={`${styles.console} ${isDead ? styles.dead : ''}`}>
@@ -117,7 +232,7 @@ export default function PlayerConsole({
           <div className={styles.inventoryItems}>
             {player.inventory.map((item, idx) => (
               <div key={idx} className={styles.inventoryItem}>
-                <span className={styles.itemIcon}>🔫</span>
+                <span className={styles.itemIcon}>{getItemIcon(item.id)}</span>
                 <span className={styles.itemDetails}>
                   <span className={styles.itemName}>{item.id.toUpperCase()}</span>
                   <span className={styles.itemUses}>
@@ -131,94 +246,73 @@ export default function PlayerConsole({
       )}
 
       {/* Tiny Screen Display */}
-      <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''}`}>
+      <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''} ${tinyScreen.ability ? styles.ability : ''}`}>
         <div className={styles.screenPrimary}>{tinyScreen.primary}</div>
         <div className={styles.screenSecondary}>{tinyScreen.secondary}</div>
       </div>
 
-      {/* Navigation Controls */}
+      {/* Navigation and Action Controls */}
       <div className={styles.controls}>
-        {hasActiveEvent && isAlive && !confirmedTarget && (
-          <>
-            <button 
-              className={styles.navButton}
-              onClick={onSwipeUp}
-              aria-label="Previous target"
-            >
-              <span className={styles.arrow}>▲</span>
-              <span className={styles.navLabel}>UP</span>
-            </button>
-
-            <button 
-              className={`${styles.confirmButton} ${selectedTarget ? styles.active : ''}`}
-              onClick={onConfirm}
-              disabled={!selectedTarget}
-              aria-label="Confirm selection"
-            >
-              CONFIRM
-            </button>
-
-            <button 
-              className={styles.navButton}
-              onClick={onSwipeDown}
-              aria-label="Next target"
-            >
-              <span className={styles.arrow}>▼</span>
-              <span className={styles.navLabel}>DOWN</span>
-            </button>
-          </>
-        )}
-
-        {confirmedTarget && isAlive && (
-          <button 
-            className={styles.cancelButton}
-            onClick={onCancel}
-            aria-label="Cancel selection"
-          >
-            CHANGE SELECTION
-          </button>
-        )}
-
         {isDead && (
           <div className={styles.spectatorMessage}>
             Spectator Mode
           </div>
         )}
 
-        {!hasActiveEvent && isAlive && phase !== GamePhase.LOBBY && (
+        {isAlive && phase !== GamePhase.LOBBY && (confirmedTarget || abstained || hasActiveEvent || inAbilityMode) && (
+          <div className={styles.buttonGrid}>
+            {/* UP Button */}
+            <button
+              className={`${styles.navButton} ${styles.upButton}`}
+              onClick={handleUp}
+              disabled={!navEnabled}
+              aria-label={inAbilityMode ? "Previous ability" : "Previous target"}
+            >
+              <span className={styles.arrow}>▲</span>
+              <span className={styles.navLabel}>UP</span>
+            </button>
+
+            {/* YES Button */}
+            <button
+              className={`${styles.yesButton} ${yesEnabled ? styles.active : ''}`}
+              onClick={handleYes}
+              disabled={!yesEnabled}
+              aria-label={inAbilityMode ? "Use ability" : "Confirm selection"}
+            >
+              <span className={styles.yesIcon}>✓</span>
+              <span className={styles.yesLabel}>YES</span>
+            </button>
+
+            {/* DOWN Button */}
+            <button
+              className={`${styles.navButton} ${styles.downButton}`}
+              onClick={handleDown}
+              disabled={!navEnabled}
+              aria-label={inAbilityMode ? "Next ability" : "Next target"}
+            >
+              <span className={styles.arrow}>▼</span>
+              <span className={styles.navLabel}>DOWN</span>
+            </button>
+
+            {/* NO Button */}
+            <button
+              className={`${styles.noButton} ${noEnabled ? styles.active : ''}`}
+              onClick={handleNo}
+              disabled={!noEnabled}
+              aria-label="Abstain"
+            >
+              <span className={styles.noIcon}>✗</span>
+              <span className={styles.noLabel}>NO</span>
+            </button>
+          </div>
+        )}
+
+        {!hasActiveEvent && !inAbilityMode && isAlive && phase !== GamePhase.LOBBY && (
           <div className={styles.idleMessage}>
-            Waiting for event...
+            No abilities or events available
           </div>
         )}
       </div>
-
-      {/* Item Action Buttons */}
-      {!hasActiveEvent && isAlive && player?.inventory && player.inventory.length > 0 && (
-        <div className={styles.itemActions}>
-          {player.inventory.map((item, idx) => {
-            const canUse = item.uses > 0;
-            const isCorrectPhase =
-              (item.id === 'pistol' && phase === GamePhase.DAY);
-
-            return (
-              <button
-                key={idx}
-                className={`${styles.itemActionBtn} ${!canUse || !isCorrectPhase ? styles.disabled : ''}`}
-                onClick={() => onUseItem && onUseItem(item.id)}
-                disabled={!canUse || !isCorrectPhase}
-              >
-                <span className={styles.itemActionIcon}>🔫</span>
-                <span className={styles.itemActionText}>
-                  SHOOT
-                  {!isCorrectPhase && phase !== GamePhase.LOBBY && (
-                    <span className={styles.itemActionHint}> (day only)</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* Status bar */}
       <footer className={styles.statusBar}>

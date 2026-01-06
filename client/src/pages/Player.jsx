@@ -51,8 +51,8 @@ export default function Player() {
     send(ClientMsg.CONFIRM);
   }, [send]);
 
-  const handleCancel = useCallback(() => {
-    send(ClientMsg.CANCEL);
+  const handleAbstain = useCallback(() => {
+    send(ClientMsg.ABSTAIN);
   }, [send]);
 
   const handleUseItem = useCallback((itemId) => {
@@ -135,11 +135,12 @@ export default function Player() {
         eventPrompt={eventPrompt}
         selectedTarget={selectedTarget}
         confirmedTarget={confirmedTarget}
+        abstained={playerState.abstained}
         hasActiveEvent={hasActiveEvent}
         onSwipeUp={handleSwipeUp}
         onSwipeDown={handleSwipeDown}
         onConfirm={handleConfirm}
-        onCancel={handleCancel}
+        onAbstain={handleAbstain}
         onUseItem={handleUseItem}
       />
     </div>

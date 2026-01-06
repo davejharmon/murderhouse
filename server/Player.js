@@ -24,6 +24,7 @@ export class Player {
     // Event state
     this.currentSelection = null; // Currently highlighted target
     this.confirmedSelection = null; // Locked in choice
+    this.abstained = false; // Whether player has abstained from current event
     this.pendingEvents = new Set(); // Events waiting for this player
 
     // History
@@ -47,6 +48,7 @@ export class Player {
     this.linkedTo = null;
     this.currentSelection = null;
     this.confirmedSelection = null;
+    this.abstained = false;
     this.pendingEvents.clear();
     this.investigations = [];
     this.suspicions = [];
@@ -116,6 +118,13 @@ export class Player {
     return this.confirmedSelection;
   }
 
+  abstain() {
+    this.currentSelection = null;
+    this.confirmedSelection = null; // Explicitly set to null
+    this.abstained = true; // Mark as abstained
+    return this;
+  }
+
   cancelSelection() {
     this.confirmedSelection = null;
     return null;
@@ -124,6 +133,7 @@ export class Player {
   clearSelection() {
     this.currentSelection = null;
     this.confirmedSelection = null;
+    this.abstained = false;
   }
 
   // Get public state (safe to send to other players)
@@ -154,6 +164,7 @@ export class Player {
       team: this.role?.team,
       currentSelection: this.currentSelection,
       confirmedSelection: this.confirmedSelection,
+      abstained: this.abstained,
       pendingEvents: [...this.pendingEvents],
       investigations: this.investigations,
       linkedTo: this.linkedTo,
