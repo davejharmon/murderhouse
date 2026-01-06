@@ -339,3 +339,141 @@
   color: var(--color-text-muted);
 }
 
+/* ===== COMPACT MODE ===== */
+/* Optimized for 3x3 grid on 960x1080 (half of 1920x1080) */
+
+.console.compact {
+  height: auto;
+  padding: 4px;
+  font-size: 0.75rem;
+}
+
+.compact .header {
+  padding: 4px 0;
+  border-bottom: none;
+}
+
+.compact .seatNumber {
+  font-size: 0.6rem;
+}
+
+.compact .playerName {
+  font-size: 0.9rem;
+  margin: 2px 0;
+}
+
+.compact .role {
+  font-size: 0.65rem;
+}
+
+.compact .tinyScreen {
+  margin: 4px 0;
+  padding: 8px;
+  min-height: 60px;
+  flex: 0 1 auto;
+  border-radius: 4px;
+}
+
+.compact .screenPrimary {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.compact .screenSecondary {
+  font-size: 0.65rem;
+}
+
+.compact .controls {
+  padding: 4px 0;
+  gap: 4px;
+}
+
+.compact .buttonGrid {
+  min-height: 100px;
+  gap: 4px;
+}
+
+.compact .navButton {
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.compact .arrow {
+  font-size: 1rem;
+}
+
+.compact .navLabel {
+  font-size: 0.5rem;
+  margin-top: 2px;
+}
+
+.compact .yesButton,
+.compact .noButton {
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.compact .yesIcon,
+.compact .noIcon {
+  font-size: 1.2rem;
+}
+
+.compact .yesLabel,
+.compact .noLabel {
+  font-size: 0.6rem;
+  margin-top: 2px;
+}
+
+.compact .statusBar {
+  padding: 4px;
+}
+
+.compact .statusDot {
+  width: 6px;
+  height: 6px;
+}
+
+.compact .statusText {
+  font-size: 0.6rem;
+}
+
+.compact .phase {
+  font-size: 0.75rem;
+}
+
+.compact .inventory {
+  padding: 4px 0;
+}
+
+.compact .inventoryLabel {
+  font-size: 0.5rem;
+  margin-bottom: 4px;
+}
+
+.compact .inventoryItems {
+  gap: 2px;
+}
+
+.compact .inventoryItem {
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+
+.compact .itemIcon {
+  font-size: 1rem;
+}
+
+.compact .itemName {
+  font-size: 0.65rem;
+}
+
+.compact .itemUses {
+  font-size: 0.5rem;
+}
+
+.compact .spectatorMessage,
+.compact .idleMessage {
+  font-size: 0.7rem;
+  padding: 8px;
+}
+

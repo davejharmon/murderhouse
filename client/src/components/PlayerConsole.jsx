@@ -27,6 +27,7 @@ export default function PlayerConsole({
   onConfirm,
   onAbstain,
   onUseItem,
+  compact = false,
 }) {
   const isAlive = player?.status === PlayerStatus.ALIVE;
   const isDead = player?.status === PlayerStatus.DEAD;
@@ -210,7 +211,7 @@ export default function PlayerConsole({
   const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || inAbilityMode;
 
   return (
-    <div className={`${styles.console} ${isDead ? styles.dead : ''}`}>
+    <div className={`${styles.console} ${isDead ? styles.dead : ''} ${compact ? styles.compact : ''}`}>
       {/* Header with player identity */}
       <header className={styles.header}>
         <div className={styles.seatNumber}>#{player?.seatNumber}</div>

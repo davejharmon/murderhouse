@@ -149,6 +149,7 @@ export default function DebugGrid() {
                   confirmedTarget={confirmedTarget}
                   abstained={playerState.abstained}
                   hasActiveEvent={hasActiveEvent}
+                  compact={true}
                   {...handlers}
                 />
               ) : (
