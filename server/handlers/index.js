@@ -111,7 +111,7 @@ export function createHandlers(game) {
           const targets = event.validTargets(player, game);
           const selected = player.selectUp(targets);
 
-          player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+          player.syncState();
           return { success: true, selected };
         }
       }
@@ -129,7 +129,7 @@ export function createHandlers(game) {
           const targets = event.validTargets(player, game);
           const selected = player.selectDown(targets);
 
-          player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+          player.syncState();
           return { success: true, selected };
         }
       }
@@ -147,7 +147,7 @@ export function createHandlers(game) {
       }
 
       const result = game.recordSelection(player.id, targetId);
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
 
       return result;
     },
@@ -157,7 +157,7 @@ export function createHandlers(game) {
       if (!player) return { success: false, error: 'Not a player' };
 
       player.cancelSelection();
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
 
       return { success: true };
     },
@@ -168,7 +168,7 @@ export function createHandlers(game) {
 
       player.abstain();
       const result = game.recordSelection(player.id, null);
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
 
       return result;
     },

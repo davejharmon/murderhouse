@@ -121,7 +121,7 @@ export class Game {
 
     // Send role reveals to each player
     for (const player of this.players.values()) {
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
     }
 
     // Build pending events for this phase
@@ -250,7 +250,7 @@ export class Game {
       const targets = event.validTargets(player, this);
 
       // Send updated player state so client clears abstained/confirmed flags
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
 
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId,
@@ -346,7 +346,7 @@ export class Game {
       const targets = event.validTargets(player, this);
 
       // Send updated player state so client clears abstained/confirmed flags
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
 
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId: 'customVote',
@@ -480,7 +480,7 @@ export class Game {
         player.pendingEvents.delete(eventId);
         player.clearSelection();
         // Send updated player state so UI refreshes
-        player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+        player.syncState();
       }
     }
 
@@ -906,7 +906,7 @@ export class Game {
 
     // Each player (still needed for truly private stuff)
     for (const player of this.players.values()) {
-      player.send(ServerMsg.PLAYER_STATE, player.getPrivateState());
+      player.syncState();
     }
 
     // Host gets full player info

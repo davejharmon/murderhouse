@@ -236,6 +236,11 @@ export class Player {
     return false;
   }
 
+  // Helper: Send updated private state to this player
+  syncState() {
+    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState());
+  }
+
   // Update connection
   setConnection(ws) {
     this.ws = ws;
