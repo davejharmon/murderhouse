@@ -481,8 +481,8 @@ export class Game {
 
     // Push result slide if defined
     if (resolution.slide) {
-      // If immediateSlide flag is set, jump to it right away
-      const jumpTo = resolution.immediateSlide === true;
+      // Default to immediate unless explicitly set to false
+      const jumpTo = resolution.immediateSlide !== false;
       this.pushSlide(resolution.slide, jumpTo);
     }
 
@@ -805,7 +805,7 @@ export class Game {
 
   // === Slide Management ===
 
-  pushSlide(slide, jumpTo = false) {
+  pushSlide(slide, jumpTo = true) {
     const slideWithId = { ...slide, id: Date.now() };
     this.slideQueue.push(slideWithId);
 
