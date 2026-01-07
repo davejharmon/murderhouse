@@ -1,11 +1,12 @@
 // client/src/pages/Screen.jsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { SlideType, GamePhase, PlayerStatus } from '@shared/constants.js';
+import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus, ClientMsg } from '@shared/constants.js';
 import styles from './Screen.module.css';
 
 export default function Screen() {
-  const { connected, gameState, currentSlide, connectAsScreen } = useGame();
+  const { connected, gameState, currentSlide, slideQueue, connectAsScreen, send } = useGame();
+  const [processedSlideId, setProcessedSlideId] = useState(null);
 
   // Connect as screen on mount
   useEffect(() => {
@@ -14,8 +15,35 @@ export default function Screen() {
     }
   }, [connected, connectAsScreen]);
 
+  // Handle auto-advance slides
+  useEffect(() => {
+    if (!currentSlide?.autoAdvance || !send) return;
+
+    // Prevent processing the same slide twice
+    if (currentSlide.id === processedSlideId) return;
+
+    const { delay } = currentSlide.autoAdvance;
+
+    // Mark this slide as processed
+    setProcessedSlideId(currentSlide.id);
+
+    const timer = setTimeout(() => {
+      // Send NEXT_SLIDE to server - CSS will handle the crossfade
+      send(ClientMsg.NEXT_SLIDE);
+    }, delay);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSlide?.id, currentSlide?.autoAdvance, send]);
+
   // Get player by ID
   const getPlayer = (id) => gameState?.players?.find((p) => p.id === id);
+
+  // Get title color from slide style
+  const getSlideColor = (slide, defaultStyle = SlideStyle.NEUTRAL) => {
+    const slideStyle = slide.style || defaultStyle;
+    return SlideStyleColors[slideStyle];
+  };
 
   // Render slide based on type
   const renderSlide = () => {
@@ -89,7 +117,7 @@ export default function Screen() {
 
   const renderTitle = (slide) => (
     <div className={styles.slide}>
-      <h1 className={styles.title} style={{ color: slide.color }}>
+      <h1 className={styles.title}>
         {slide.title}
       </h1>
       {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
@@ -101,7 +129,7 @@ export default function Screen() {
     if (!player) return null;
 
     return (
-      <div className={styles.slide}>
+      <div key={slide.id} className={styles.slide}>
         <div className={styles.playerReveal}>
           <img
             src={`/images/players/${player.portrait}`}
@@ -132,7 +160,7 @@ export default function Screen() {
       .sort((a, b) => b.count - a.count);
 
     return (
-      <div className={styles.slide}>
+      <div key={slide.id} className={styles.slide}>
         <h1 className={styles.title}>{title || 'VOTE RESULTS'}</h1>
         <div className={styles.tallyList}>
           {sorted.map(({ player, count }) => (
@@ -156,7 +184,7 @@ export default function Screen() {
     const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
 
     return (
-      <div className={styles.slide}>
+      <div key={slide.id} className={styles.slide}>
         {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
         <div className={styles.gallery}>
           {players.map((p) => (
@@ -177,7 +205,7 @@ export default function Screen() {
   };
 
   const renderCountdown = (slide) => (
-    <div className={styles.slide}>
+    <div key={slide.id} className={styles.slide}>
       {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
       <div className={styles.countdown}>{slide.seconds || 0}</div>
       {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
@@ -189,8 +217,10 @@ export default function Screen() {
     if (!player) return null;
 
     return (
-      <div className={`${styles.slide} ${styles.deathSlide}`}>
-        <h1 className={styles.title}>{slide.title || 'ELIMINATED'}</h1>
+      <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
+        <h1 className={styles.title} style={{ color: getSlideColor(slide, SlideStyle.HOSTILE) }}>
+          {slide.title || 'ELIMINATED'}
+        </h1>
         <div className={styles.deathReveal}>
           <img
             src={`/images/players/${player.portrait}`}
@@ -211,14 +241,22 @@ export default function Screen() {
     );
   };
 
-  const renderVictory = (slide) => (
-    <div className={`${styles.slide} ${styles.victorySlide}`}>
-      <h1 className={styles.victoryTitle} style={{ color: slide.color }}>
-        {slide.title}
-      </h1>
-      {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+  const renderVictory = (slide) => {
+    return (
+      <div key={slide.id} className={`${styles.slide} ${styles.victorySlide}`}>
+        <h1 className={styles.victoryTitle} style={{ color: getSlideColor(slide) }}>
+          {slide.title}
+        </h1>
+        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+      </div>
+    );
+  };
+
+  return (
+    <div className={styles.container}>
+      <div key={currentSlide?.id} className={styles.slideWrapper}>
+        {renderSlide()}
+      </div>
     </div>
   );
-
-  return <div className={styles.container}>{renderSlide()}</div>;
 }

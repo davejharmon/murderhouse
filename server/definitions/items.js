@@ -38,6 +38,15 @@ const items = {
     events: {},
     passives: {},
   },
+
+  phone: {
+    id: 'phone',
+    name: 'Phone',
+    description: 'Call the governor for a one-time pardon. Use it wisely.',
+    maxUses: 1,
+    events: {},
+    passives: {},
+  },
 };
 
 /**

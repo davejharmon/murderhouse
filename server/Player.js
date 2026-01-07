@@ -1,7 +1,7 @@
 // server/Player.js
 // Player model - represents a player in the game
 
-import { PlayerStatus } from '../shared/constants.js';
+import { PlayerStatus, ServerMsg } from '../shared/constants.js';
 
 let nextSeatNumber = 1;
 
@@ -32,6 +32,9 @@ export class Player {
     this.suspicions = [];
     this.lastProtected = null;
 
+    // Role-specific state
+    this.vigilanteUsed = false;
+
     // Inventory
     this.inventory = []; // Array of { id, uses, maxUses }
 
@@ -53,6 +56,7 @@ export class Player {
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
+    this.vigilanteUsed = false;
     this.inventory = [];
   }
 
@@ -168,6 +172,7 @@ export class Player {
       pendingEvents: [...this.pendingEvents],
       investigations: this.investigations,
       linkedTo: this.linkedTo,
+      vigilanteUsed: this.vigilanteUsed,
       inventory: this.inventory,
     };
   }

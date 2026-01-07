@@ -1,5 +1,5 @@
 // client/src/components/PlayerGrid.jsx
-import { PlayerStatus, DEBUG_MODE } from '@shared/constants.js';
+import { PlayerStatus, DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
 import styles from './PlayerGrid.module.css';
 
 export default function PlayerGrid({
@@ -14,7 +14,6 @@ export default function PlayerGrid({
   onRemoveItem,
   onDebugAutoSelect,
 }) {
-  const availableItems = ['pistol']; // For now, hardcoded list
   // Get which events a player is participating in
   const getPlayerEvents = (playerId) => {
     const events = [];
@@ -162,7 +161,7 @@ export default function PlayerGrid({
                       title="Give item"
                     >
                       <option value="" disabled>+ Item</option>
-                      {availableItems.map(itemId => (
+                      {AVAILABLE_ITEMS.map(itemId => (
                         <option key={itemId} value={itemId}>
                           {itemId}
                         </option>

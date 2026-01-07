@@ -2,7 +2,7 @@
 // Declarative event definitions
 // Events are actions that players can take during specific phases
 
-import { GamePhase, Team } from '../../shared/constants.js';
+import { GamePhase, Team, SlideStyle } from '../../shared/constants.js';
 import { getRole } from './roles.js';
 
 /**
@@ -75,7 +75,12 @@ const events = {
           success: true,
           outcome: 'no-kill',
           message: 'No one was eliminated.',
-          slide: { type: 'title', title: 'NO ELIMINATION', subtitle: 'The village could not decide.' },
+          slide: {
+            type: 'title',
+            title: 'NO ELIMINATION',
+            subtitle: 'The village could not decide.',
+            style: SlideStyle.NEUTRAL,
+          },
         };
       }
 
@@ -89,7 +94,7 @@ const events = {
           // After 3 runoffs, pick randomly
           const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)];
           const eliminated = game.getPlayer(winnerId);
-          game.killPlayer(eliminated.id, 'eliminated');
+          // Don't kill yet - let Game.js handle it after checking for governor
 
           return {
             success: true,
@@ -103,6 +108,7 @@ const events = {
               title: 'ELIMINATED (TIE-BREAKER)',
               subtitle: eliminated.name,
               revealRole: true,
+              style: SlideStyle.HOSTILE,
             },
           };
         }
@@ -118,7 +124,7 @@ const events = {
       }
 
       const eliminated = game.getPlayer(frontrunners[0]);
-      game.killPlayer(eliminated.id, 'eliminated');
+      // Don't kill yet - let Game.js handle it after checking for governor
 
       return {
         success: true,
@@ -132,7 +138,201 @@ const events = {
           title: 'ELIMINATED',
           subtitle: eliminated.name,
           revealRole: true,
+          style: SlideStyle.HOSTILE,
         },
+      };
+    },
+  },
+
+  governorPardon: {
+    id: 'governorPardon',
+    name: 'Governor Pardon',
+    description: 'Will you pardon this player from elimination?',
+    phase: [GamePhase.DAY],
+    priority: 100,
+    isInterrupt: true, // Triggered when vote condemns someone
+    playerResolved: true, // Player's selection auto-resolves the event
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter(p => {
+        return p.role.id === 'governor' || (p.hasItem('phone') && p.canUseItem('phone'));
+      });
+    },
+
+    validTargets: (actor, game) => {
+      const condemnedId = game.interruptData?.condemnedPlayerId;
+      if (!condemnedId) return [];
+      const condemned = game.getPlayer(condemnedId);
+      return condemned ? [condemned] : [];
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    // Immediate action on selection - pardon or execute
+    onSelection: (governorId, targetId, game) => {
+      const governor = game.getPlayer(governorId);
+      const condemnedId = game.interruptData?.condemnedPlayerId;
+      const condemned = game.getPlayer(condemnedId);
+      const voteEventId = game.interruptData?.voteEventId || 'vote';
+
+      if (!condemned || !governor) return null;
+
+      // Consume phone if used
+      if (governor.hasItem('phone') && governor.canUseItem('phone')) {
+        game.consumeItem(governorId, 'phone');
+      }
+
+      // Check if governor pardoned (selected the condemned player)
+      if (targetId === condemnedId) {
+        // PARDON GRANTED
+        game.pendingResolutions.delete(voteEventId);
+
+        return {
+          message: `${governor.name} pardoned ${condemned.name}`,
+          slide: {
+            type: 'death',
+            playerId: condemned.id,
+            title: 'PARDONED',
+            subtitle: `${condemned.name} was not eliminated`,
+            revealRole: false,
+            style: SlideStyle.POSITIVE,
+          },
+        };
+      } else {
+        // PARDON DENIED - execute elimination
+        const pending = game.pendingResolutions.get(voteEventId);
+
+        // Push "no pardon" slide with auto-advance
+        game.pushSlide({
+          type: 'title',
+          title: 'NO PARDON',
+          subtitle: `${condemned.name}'s fate is sealed`,
+          style: SlideStyle.HOSTILE,
+          autoAdvance: {
+            delay: 1000, // 1 second (crossfade handled by CSS)
+          },
+        }, false);
+
+        // Push execution slide
+        if (pending?.resolution?.slide) {
+          game.pushSlide({
+            ...pending.resolution.slide,
+            pendingEventId: voteEventId,
+          }, false);
+        }
+
+        // Execute the elimination
+        game.killPlayer(condemnedId, 'eliminated');
+
+        // Jump to "no pardon" slide
+        game.currentSlideIndex = game.slideQueue.length - 2;
+        game.broadcastSlides();
+
+        return {
+          message: `${governor.name} denied the pardon for ${condemned.name}`,
+          slide: null, // Already pushed slides manually
+        };
+      }
+    },
+
+    resolve: (results, game) => {
+      // All actions already executed in onSelection, just clean up
+      game.interruptData = null;
+      return {
+        success: true,
+        silent: true, // No new slides or messages needed
+      };
+    },
+  },
+
+  vigilanteKill: {
+    id: 'vigilanteKill',
+    name: 'Vigilante Kill',
+    description: 'Choose someone to eliminate. This is your only shot.',
+    phase: [GamePhase.NIGHT],
+    priority: 55,
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter(p =>
+        p.role.id === 'vigilante' && !p.vigilanteUsed
+      );
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const kills = [];
+
+      for (const [vigilanteId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue; // Abstain = keep ability
+
+        const vigilante = game.getPlayer(vigilanteId);
+        const target = game.getPlayer(targetId);
+
+        if (!vigilante || !target) continue;
+
+        // Mark as used
+        vigilante.vigilanteUsed = true;
+
+        // Check protection
+        if (target.isProtected) {
+          target.isProtected = false;
+          kills.push({
+            vigilanteId,
+            targetId,
+            protected: true,
+          });
+          continue;
+        }
+
+        // Kill the target
+        game.killPlayer(target.id, 'vigilante');
+
+        kills.push({
+          vigilanteId,
+          targetId,
+          killed: true,
+          victim: target,
+          slide: {
+            type: 'death',
+            playerId: target.id,
+            title: 'VIGILANTE JUSTICE',
+            subtitle: `${target.name} was killed in the night`,
+            revealRole: true,
+            style: SlideStyle.HOSTILE,
+          },
+        });
+      }
+
+      if (kills.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const kill = kills[0];
+      if (kill.protected) {
+        return {
+          success: true,
+          outcome: 'protected',
+          slide: {
+            type: 'title',
+            title: 'PROTECTED',
+            subtitle: 'Someone survived an attack tonight.',
+            style: SlideStyle.POSITIVE,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        outcome: 'killed',
+        victim: kill.victim,
+        slide: kill.slide,
       };
     },
   },
@@ -143,9 +343,14 @@ const events = {
     description: 'Who do you think is a werewolf?',
     phase: [GamePhase.NIGHT],
     priority: 80, // Low priority - just tracking
-    
+
     participants: (game) => {
-      return game.getAlivePlayers().filter(p => p.role.id === 'villager' || p.role.id === 'hunter');
+      return game.getAlivePlayers().filter(p =>
+        p.role.id === 'villager' ||
+        p.role.id === 'hunter' ||
+        p.role.id === 'vigilante' ||
+        p.role.id === 'governor'
+      );
     },
     
     validTargets: (actor, game) => {
@@ -220,7 +425,12 @@ const events = {
           outcome: 'protected',
           targetId: victimId,
           message: `The werewolves attacked ${victim.name}, but they were protected!`,
-          slide: { type: 'title', title: 'PROTECTED', subtitle: 'Someone was saved tonight.' },
+          slide: {
+            type: 'title',
+            title: 'PROTECTED',
+            subtitle: 'Someone was saved tonight.',
+            style: SlideStyle.POSITIVE,
+          },
         };
       }
       
@@ -237,6 +447,7 @@ const events = {
           title: 'MURDERED',
           subtitle: victim.name,
           revealRole: true,
+          style: SlideStyle.HOSTILE,
         },
       };
     },
@@ -368,6 +579,7 @@ const events = {
           title: 'REVENGE',
           subtitle: `${victim.name} was shot by the Hunter`,
           revealRole: true,
+          style: SlideStyle.HOSTILE,
         },
       };
     },
@@ -407,6 +619,7 @@ const events = {
             type: 'title',
             title: 'NO SHOTS FIRED',
             subtitle: `${shooter.name} is keeping their powder dry... for now.`,
+            style: SlideStyle.NEUTRAL,
           },
         };
       }
@@ -430,6 +643,7 @@ const events = {
           title: 'GUNSHOT',
           subtitle: `${shooter.name} shot ${victim.name}!`,
           revealRole: true,
+          style: SlideStyle.HOSTILE,
         },
       };
     },
@@ -503,6 +717,7 @@ const events = {
             type: 'title',
             title: 'NO WINNER',
             subtitle: config.description,
+            style: SlideStyle.NEUTRAL,
           },
         };
       }
@@ -592,6 +807,7 @@ function resolveCustomVoteReward(winnerId, config, game, tally, wasTie) {
       tally,
       title: 'CUSTOM VOTE RESULT',
       subtitle: slideSubtitle,
+      style: SlideStyle.NEUTRAL,
     },
   };
 }

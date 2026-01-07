@@ -192,6 +192,7 @@ export function createHandlers(game) {
       // Map items to their events
       const itemEventMap = {
         pistol: 'shoot',
+        phone: 'governorPardon',
       };
 
       const eventId = itemEventMap[itemId];
@@ -290,9 +291,18 @@ export function createHandlers(game) {
     // === Slide Controls ===
 
     [ClientMsg.NEXT_SLIDE]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
+      // Allow screens to advance if current slide has autoAdvance
+      const currentSlide = game.slideQueue[game.currentSlideIndex];
+      const isAutoAdvance = currentSlide?.autoAdvance;
+
+      if (ws.clientType !== 'host' && ws.clientType !== 'screen') {
+        return { success: false, error: 'Not host or screen' };
       }
+
+      if (ws.clientType === 'screen' && !isAutoAdvance) {
+        return { success: false, error: 'Screen can only advance auto-advance slides' };
+      }
+
       game.nextSlide();
       return { success: true };
     },

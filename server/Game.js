@@ -6,6 +6,7 @@ import {
   Team,
   PlayerStatus,
   ServerMsg,
+  SlideStyle,
   MIN_PLAYERS,
   MAX_PLAYERS,
 } from '../shared/constants.js';
@@ -18,6 +19,7 @@ export class Game {
   constructor(broadcast) {
     this.broadcast = broadcast; // Function to send to all clients
     this.host = null;
+    this.slideIdCounter = 0; // Unique ID counter for slides
     this.screen = null;
     this.reset();
   }
@@ -132,6 +134,7 @@ export class Game {
       type: 'title',
       title: 'DAY 1',
       subtitle: 'The game begins.',
+      style: SlideStyle.NEUTRAL,
     });
 
     this.broadcastGameState();
@@ -181,6 +184,7 @@ export class Game {
         type: 'title',
         title: `NIGHT ${this.dayCount}`,
         subtitle: 'Close your eyes... just kidding.',
+        style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.NIGHT) {
       this.phase = GamePhase.DAY;
@@ -190,6 +194,7 @@ export class Game {
         type: 'title',
         title: `DAY ${this.dayCount}`,
         subtitle: 'The sun rises.',
+        style: SlideStyle.NEUTRAL,
       });
     }
 
@@ -249,6 +254,11 @@ export class Game {
 
       const targets = event.validTargets(player, this);
 
+      // Auto-select if only one target (e.g., governor pardon)
+      if (targets.length === 1) {
+        player.currentSelection = targets[0].id;
+      }
+
       // Send updated player state so client clears abstained/confirmed flags
       player.syncState();
 
@@ -269,6 +279,7 @@ export class Game {
         type: 'title',
         title: 'DRAW!',
         subtitle: `${shooter.name} is searching for a target...`,
+        style: SlideStyle.WARNING,
       }, true); // Jump to this slide immediately
     }
 
@@ -278,6 +289,7 @@ export class Game {
         type: 'title',
         title: 'ELIMINATION VOTE',
         subtitle: 'Choose who to eliminate',
+        style: SlideStyle.NEUTRAL,
       }, true);
     }
 
@@ -363,6 +375,7 @@ export class Game {
       type: 'title',
       title: 'CUSTOM VOTE',
       subtitle: config.description,
+      style: SlideStyle.NEUTRAL,
     }, true);
 
     this.broadcastGameState();
@@ -472,6 +485,8 @@ export class Game {
       this.addLog(resolution.message);
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
+
+    // Governor pardon is handled in the event's onSelection callback
 
     // Clear player event state
     for (const pid of participants) {
@@ -602,6 +617,67 @@ export class Game {
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
+    // Check if governor pardon should be triggered
+    if (resolution.outcome === 'eliminated' && resolution.eliminated) {
+      const governors = this.getAlivePlayers().filter(p => {
+        return p.role.id === 'governor' || (p.hasItem('phone') && p.canUseItem('phone'));
+      });
+
+      if (governors.length > 0) {
+        // Set interrupt data for pardon event
+        this.interruptData = {
+          condemnedPlayerId: resolution.eliminated.id,
+          voteEventId: eventId,
+        };
+
+        // Jump to tally slide
+        this.currentSlideIndex = this.slideQueue.length - 1;
+        this.broadcastSlides();
+
+        // Store pending resolution (may be cancelled by pardon)
+        this.pendingResolutions.set(eventId, {
+          eventId,
+          instance,
+          resolution,
+          tallySlideIndex: this.slideQueue.length - 1,
+          resultSlideIndex: this.slideQueue.length, // Will be pushed later
+        });
+
+        // Remove vote from active events before starting pardon
+        // This ensures the client doesn't see both events simultaneously
+        this.activeEvents.delete(eventId);
+
+        // Remove vote from governors' pending events
+        // (other players keep it since they're not participating in pardon)
+        for (const governor of governors) {
+          governor.pendingEvents.delete(eventId);
+        }
+
+        // Broadcast state so clients know vote is done
+        this.broadcastGameState();
+
+        // Start governor pardon event (this will clear governor's selection and send EVENT_PROMPT)
+        this.startEvent('governorPardon');
+
+        // Push condemned slide (queued, not auto-play)
+        this.pushSlide({
+          type: 'death',
+          playerId: resolution.eliminated.id,
+          title: 'CONDEMNED',
+          subtitle: 'Calling the governor...',
+          revealRole: false,
+          style: SlideStyle.WARNING,
+        }, false);
+
+        this.addLog(`${resolution.eliminated.name} awaits the governor's decision...`);
+
+        return { success: true, showingTally: true, awaitingPardon: true };
+      } else {
+        // No governor available - execute elimination immediately
+        this.killPlayer(resolution.eliminated.id, 'eliminated');
+      }
+    }
+
     // Push result slide (but mark it as pending execution)
     if (resolution.slide) {
       const resultSlide = {
@@ -713,6 +789,11 @@ export class Game {
     for (const player of runoffParticipants) {
       const targets = event.validTargets(player, this);
 
+      // Auto-select if only one target
+      if (targets.length === 1) {
+        player.currentSelection = targets[0].id;
+      }
+
       // Get description (use custom description if available)
       const baseDescription = instance.config?.description || event.description;
       const description = `RUNOFF VOTE (Round ${instance.runoffRound}): ${baseDescription}`;
@@ -753,7 +834,6 @@ export class Game {
     this.phase = GamePhase.GAME_OVER;
 
     const winnerName = winner === Team.VILLAGE ? 'VILLAGERS' : 'WEREWOLVES';
-    const color = winner === Team.VILLAGE ? '#7eb8da' : '#c94c4c';
 
     this.addLog(`Game over - ${winnerName} win!`);
 
@@ -765,7 +845,7 @@ export class Game {
         winner === Team.VILLAGE
           ? 'All werewolves have been eliminated.'
           : 'The werewolves have taken over.',
-      color,
+      style: winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
     });
 
     this.broadcastGameState();
@@ -846,7 +926,7 @@ export class Game {
   // === Slide Management ===
 
   pushSlide(slide, jumpTo = true) {
-    const slideWithId = { ...slide, id: Date.now() };
+    const slideWithId = { ...slide, id: `slide-${++this.slideIdCounter}` };
     this.slideQueue.push(slideWithId);
 
     if (this.currentSlideIndex === -1 || jumpTo) {

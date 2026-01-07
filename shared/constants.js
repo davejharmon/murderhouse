@@ -93,8 +93,26 @@ export const SlideType = {
   VICTORY: 'victory',
 };
 
+export const SlideStyle = {
+  HOSTILE: 'hostile',     // Red - werewolf actions, eliminations, attacks
+  POSITIVE: 'positive',   // Green - saves, pardons, protections, village benefits
+  NEUTRAL: 'neutral',     // Blue/default - generic game info, phase changes
+  WARNING: 'warning',     // Yellow - mysterious actions, third faction (future use)
+};
+
+// Slide style color mappings
+export const SlideStyleColors = {
+  [SlideStyle.HOSTILE]: '#c94c4c',   // Red (werewolf color)
+  [SlideStyle.POSITIVE]: '#7ed9a6',  // Green (doctor color)
+  [SlideStyle.NEUTRAL]: '#7eb8da',   // Blue (village color)
+  [SlideStyle.WARNING]: '#d4af37',   // Gold/yellow (governor color)
+};
+
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 9;
 
 // Debug mode - enables testing tools
 export const DEBUG_MODE = true;
+
+// Available items (for host UI)
+export const AVAILABLE_ITEMS = ['pistol', 'phone'];
