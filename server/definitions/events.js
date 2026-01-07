@@ -189,7 +189,7 @@ const events = {
         game.pendingResolutions.delete(voteEventId);
 
         return {
-          message: `${governor.name} pardoned ${condemned.name}`,
+          message: `${governor.getNameWithEmoji()} pardoned ${condemned.getNameWithEmoji()}`,
           slide: {
             type: 'death',
             playerId: condemned.id,
@@ -230,7 +230,7 @@ const events = {
         game.broadcastSlides();
 
         return {
-          message: `${governor.name} denied the pardon for ${condemned.name}`,
+          message: `${governor.getNameWithEmoji()} denied the pardon for ${condemned.getNameWithEmoji()}`,
           slide: null, // Already pushed slides manually
         };
       }
@@ -285,7 +285,9 @@ const events = {
           target.isProtected = false;
           kills.push({
             vigilanteId,
+            vigilante,
             targetId,
+            target,
             protected: true,
           });
           continue;
@@ -296,7 +298,9 @@ const events = {
 
         kills.push({
           vigilanteId,
+          vigilante,
           targetId,
+          target,
           killed: true,
           victim: target,
           slide: {
@@ -319,6 +323,7 @@ const events = {
         return {
           success: true,
           outcome: 'protected',
+          message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}, but they were protected!`,
           slide: {
             type: 'title',
             title: 'PROTECTED',
@@ -332,6 +337,7 @@ const events = {
         success: true,
         outcome: 'killed',
         victim: kill.victim,
+        message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}.`,
         slide: kill.slide,
       };
     },
@@ -352,28 +358,43 @@ const events = {
         p.role.id === 'governor'
       );
     },
-    
+
     validTargets: (actor, game) => {
       return game.getAlivePlayers().filter(p => p.id !== actor.id);
     },
-    
+
     aggregation: 'individual',
     allowAbstain: true,
-    
+
     resolve: (results, game) => {
-      // Just record suspicions for potential scoring
+      const suspicions = [];
+
+      // Record suspicions for potential scoring
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
         const actor = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
+
         if (!actor.suspicions) actor.suspicions = [];
         actor.suspicions.push({
           day: game.dayCount,
           targetId,
           wasCorrect: target.role.team === Team.WEREWOLF,
         });
+
+        suspicions.push({ actor, target });
       }
-      return { success: true, silent: true };
+
+      if (suspicions.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const messages = suspicions.map(s => `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}.`);
+
+      return {
+        success: true,
+        message: messages.join(' '),
+      };
     },
   },
 
@@ -424,7 +445,7 @@ const events = {
           success: true,
           outcome: 'protected',
           targetId: victimId,
-          message: `The werewolves attacked ${victim.name}, but they were protected!`,
+          message: `The werewolves attacked ${victim.getNameWithEmoji()}, but they were protected!`,
           slide: {
             type: 'title',
             title: 'PROTECTED',
@@ -433,14 +454,14 @@ const events = {
           },
         };
       }
-      
+
       game.killPlayer(victim.id, 'werewolf');
-      
+
       return {
         success: true,
         outcome: 'killed',
         victim,
-        message: `${victim.name} was killed by werewolves.`,
+        message: `${victim.getNameWithEmoji()} was killed by werewolves.`,
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -459,27 +480,27 @@ const events = {
     description: 'Choose someone to investigate.',
     phase: [GamePhase.NIGHT],
     priority: 30,
-    
+
     participants: (game) => {
       return game.getAlivePlayers().filter(p => p.role.id === 'seer');
     },
-    
+
     validTargets: (actor, game) => {
       return game.getAlivePlayers().filter(p => p.id !== actor.id);
     },
-    
+
     aggregation: 'individual',
     allowAbstain: true,
-    
+
     resolve: (results, game) => {
       const investigations = [];
-      
+
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
         const seer = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
         const isEvil = target.role.team === Team.WEREWOLF;
-        
+
         if (!seer.investigations) seer.investigations = [];
         seer.investigations.push({
           day: game.dayCount,
@@ -487,20 +508,30 @@ const events = {
           targetName: target.name,
           isEvil,
         });
-        
+
         investigations.push({
           seerId: actorId,
+          seer,
           targetId,
-          targetName: target.name,
+          target,
           isEvil,
           privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}.`,
         });
       }
-      
+
+      if (investigations.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      // Log investigations publicly (without revealing results)
+      const messages = investigations.map(inv =>
+        `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'}.`
+      );
+
       return {
         success: true,
+        message: messages.join(' '),
         investigations,
-        // Each seer gets a private result - handled by game
       };
     },
   },
@@ -511,33 +542,45 @@ const events = {
     description: 'Choose someone to protect tonight.',
     phase: [GamePhase.NIGHT],
     priority: 10, // First to resolve
-    
+
     participants: (game) => {
       return game.getAlivePlayers().filter(p => p.role.id === 'doctor');
     },
-    
+
     validTargets: (actor, game) => {
       // Can protect anyone alive, including self
       // Optional: prevent protecting same person twice
       return game.getAlivePlayers();
     },
-    
+
     aggregation: 'individual',
     allowAbstain: true,
-    
+
     resolve: (results, game) => {
+      const protections = [];
+
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
         const target = game.getPlayer(targetId);
-        target.isProtected = true;
-        
         const doctor = game.getPlayer(actorId);
+
+        target.isProtected = true;
         doctor.lastProtected = targetId;
+
+        protections.push({ doctor, target });
       }
-      
+
+      if (protections.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      // Log protections without revealing who was protected (for privacy)
+      const messages = protections.map(p => `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}.`);
+
       return {
         success: true,
-        silent: true, // No public announcement
+        message: messages.join(' '),
+        silent: false,
       };
     },
   },
@@ -572,7 +615,7 @@ const events = {
       return {
         success: true,
         victim,
-        message: `${hunter.name} took ${victim.name} down with them!`,
+        message: `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them!`,
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -614,7 +657,7 @@ const events = {
       // Player abstained
       if (targetId === null) {
         return {
-          message: `${shooter.name} chose not to shoot.`,
+          message: `${shooter.getNameWithEmoji()} chose not to shoot.`,
           slide: {
             type: 'title',
             title: 'NO SHOTS FIRED',
@@ -635,7 +678,7 @@ const events = {
       game.consumeItem(shooterId, 'pistol');
 
       return {
-        message: `${shooter.name} shot ${victim.name} with a pistol!`,
+        message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()} with a pistol!`,
         slide: {
           type: 'death',
           playerId: victim.id,

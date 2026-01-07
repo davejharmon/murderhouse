@@ -43,6 +43,14 @@ export class Player {
     this.lastSeen = Date.now();
   }
 
+  // Get player name with role emoji
+  getNameWithEmoji() {
+    if (this.role && this.role.emoji) {
+      return `${this.role.emoji} ${this.name}`;
+    }
+    return this.name;
+  }
+
   // Reset for new game
   reset() {
     this.role = null;

@@ -426,6 +426,18 @@ export class Game {
         instance.results[playerId] = targetId;
         player.confirmedSelection = targetId;
 
+        // Log the selection (skip for player-resolved events as they log in onSelection)
+        if (!instance.event.playerResolved) {
+          if (targetId === null) {
+            this.addLog(`${player.getNameWithEmoji()} abstained from ${eventId}`);
+          } else {
+            const target = this.getPlayer(targetId);
+            if (target) {
+              this.addLog(`${player.getNameWithEmoji()} ${eventId} -> ${target.getNameWithEmoji()}`);
+            }
+          }
+        }
+
         // Check if event has immediate slide generation on selection
         if (instance.event.onSelection) {
           const result = instance.event.onSelection(playerId, targetId, this);

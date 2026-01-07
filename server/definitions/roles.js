@@ -41,6 +41,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'A simple villager trying to survive.',
     color: '#7eb8da',
+    emoji: '👨‍🌾',
     events: {
       vote: {},
       suspect: {},
@@ -54,6 +55,7 @@ const roles = {
     team: Team.WEREWOLF,
     description: 'A creature of the night who hunts the innocent.',
     color: '#c94c4c',
+    emoji: '🐺',
     events: {
       vote: {},
       kill: {
@@ -73,6 +75,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'Blessed with visions, you can peer into souls.',
     color: '#9b7ed9',
+    emoji: '🔮',
     events: {
       vote: {},
       investigate: {
@@ -101,6 +104,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'Your medical expertise can save lives.',
     color: '#7ed9a6',
+    emoji: '🧑‍⚕️',
     events: {
       vote: {},
       protect: {
@@ -130,6 +134,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'When you die, you take someone with you.',
     color: '#d9a67e',
+    emoji: '🔫',
     events: {
       vote: {},
       suspect: {},
@@ -152,6 +157,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'You can kill one person during the night. Choose wisely.',
     color: '#8b7355',
+    emoji: '🤠',
     events: {
       vote: {},
       vigilanteKill: {
@@ -169,6 +175,7 @@ const roles = {
     description:
       'You can pardon someone from elimination after votes are cast.',
     color: '#d4af37',
+    emoji: '🎩',
     events: {
       vote: {},
     },
@@ -181,6 +188,7 @@ const roles = {
     team: Team.VILLAGE,
     description: 'You bind two souls together in love.',
     color: '#e991c9',
+    emoji: '💘',
     events: {
       vote: {},
       link: {
