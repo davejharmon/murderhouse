@@ -13,22 +13,22 @@ import { getRole } from './roles.js';
  *   description: string,     // Shown to player when event is active
  *   phase: GamePhase[],      // Which phases this event can occur in
  *   priority: number,        // Resolution order (lower = earlier)
- *   
+ *
  *   // Who participates in this event
  *   participants: (game) => Player[],
- *   
+ *
  *   // Who can be targeted
  *   validTargets: (actor, game) => Player[],
- *   
+ *
  *   // How votes are aggregated
  *   aggregation: 'majority' | 'individual' | 'all',
- *   
+ *
  *   // Can the event resolve with no/partial responses?
  *   allowAbstain: boolean,
- *   
+ *
  *   // Resolution logic
  *   resolve: (results, game) => ResolveResult,
- *   
+ *
  *   // Slide to show when event resolves (optional)
  *   resultSlide?: (result, game) => Slide,
  * }
@@ -51,11 +51,11 @@ const events = {
       const instance = game.activeEvents.get('vote');
       if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
         return instance.runoffCandidates
-          .map(id => game.getPlayer(id))
-          .filter(p => p && p.id !== actor.id);
+          .map((id) => game.getPlayer(id))
+          .filter((p) => p && p.id !== actor.id);
       }
 
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'majority',
@@ -88,13 +88,16 @@ const events = {
 
       // Find max votes
       const maxVotes = Math.max(...Object.values(tally));
-      const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
+      const frontrunners = Object.keys(tally).filter(
+        (id) => tally[id] === maxVotes
+      );
 
       if (frontrunners.length > 1) {
         // Tie detected
         if (runoffRound >= 3) {
           // After 3 runoffs, pick randomly
-          const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)];
+          const winnerId =
+            frontrunners[Math.floor(Math.random() * frontrunners.length)];
           const eliminated = game.getPlayer(winnerId);
           // Don't kill yet - let Game.js handle it after checking for governor
 
@@ -146,8 +149,8 @@ const events = {
     },
   },
 
-  governorPardon: {
-    id: 'governorPardon',
+  pardon: {
+    id: 'pardon',
     name: 'Governor Pardon',
     description: 'Will you pardon this player from elimination?',
     verb: 'pardon',
@@ -158,8 +161,11 @@ const events = {
     playerResolved: true, // Player's selection auto-resolves the event
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p => {
-        return p.role.id === 'governor' || (p.hasItem('phone') && p.canUseItem('phone'));
+      return game.getAlivePlayers().filter((p) => {
+        return (
+          p.role.id === 'governor' ||
+          (p.hasItem('phone') && p.canUseItem('phone'))
+        );
       });
     },
 
@@ -208,22 +214,28 @@ const events = {
         const pending = game.pendingResolutions.get(voteEventId);
 
         // Push "no pardon" slide with auto-advance
-        game.pushSlide({
-          type: 'title',
-          title: 'NO PARDON',
-          subtitle: `${condemned.name}'s fate is sealed`,
-          style: SlideStyle.HOSTILE,
-          autoAdvance: {
-            delay: 1000, // 1 second (crossfade handled by CSS)
+        game.pushSlide(
+          {
+            type: 'title',
+            title: 'NO PARDON',
+            subtitle: `${condemned.name}'s fate is sealed`,
+            style: SlideStyle.HOSTILE,
+            autoAdvance: {
+              delay: 1000, // 1 second (crossfade handled by CSS)
+            },
           },
-        }, false);
+          false
+        );
 
         // Push execution slide
         if (pending?.resolution?.slide) {
-          game.pushSlide({
-            ...pending.resolution.slide,
-            pendingEventId: voteEventId,
-          }, false);
+          game.pushSlide(
+            {
+              ...pending.resolution.slide,
+              pendingEventId: voteEventId,
+            },
+            false
+          );
         }
 
         // Execute the elimination
@@ -260,13 +272,13 @@ const events = {
     priority: 55,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p =>
-        p.role.id === 'vigilante' && !p.vigilanteUsed
-      );
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.id === 'vigilante' && !p.vigilanteUsed);
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'individual',
@@ -359,16 +371,19 @@ const events = {
     priority: 80, // Low priority - just tracking
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p =>
-        p.role.id === 'villager' ||
-        p.role.id === 'hunter' ||
-        p.role.id === 'vigilante' ||
-        p.role.id === 'governor'
-      );
+      return game
+        .getAlivePlayers()
+        .filter(
+          (p) =>
+            p.role.id === 'villager' ||
+            p.role.id === 'hunter' ||
+            p.role.id === 'vigilante' ||
+            p.role.id === 'governor'
+        );
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'individual',
@@ -397,7 +412,10 @@ const events = {
         return { success: true, silent: true };
       }
 
-      const messages = suspicions.map(s => `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`);
+      const messages = suspicions.map(
+        (s) =>
+          `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`
+      );
 
       return {
         success: true,
@@ -416,16 +434,20 @@ const events = {
     priority: 60,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p => p.role.team === Team.WEREWOLF);
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.team === Team.WEREWOLF);
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.role.team !== Team.WEREWOLF);
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.team !== Team.WEREWOLF);
     },
 
     aggregation: 'majority', // Werewolves vote together
     allowAbstain: false,
-    
+
     resolve: (results, game) => {
       // Count werewolf votes
       const tally = {};
@@ -433,7 +455,7 @@ const events = {
         if (targetId === null) continue;
         tally[targetId] = (tally[targetId] || 0) + 1;
       }
-      
+
       if (Object.keys(tally).length === 0) {
         return {
           success: true,
@@ -441,13 +463,16 @@ const events = {
           message: 'The werewolves chose not to kill.',
         };
       }
-      
+
       // Find victim (ties resolved randomly)
       const maxVotes = Math.max(...Object.values(tally));
-      const candidates = Object.keys(tally).filter(id => tally[id] === maxVotes);
-      const victimId = candidates[Math.floor(Math.random() * candidates.length)];
+      const candidates = Object.keys(tally).filter(
+        (id) => tally[id] === maxVotes
+      );
+      const victimId =
+        candidates[Math.floor(Math.random() * candidates.length)];
       const victim = game.getPlayer(victimId);
-      
+
       // Check protection
       if (victim.isProtected) {
         victim.isProtected = false;
@@ -494,11 +519,11 @@ const events = {
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p => p.role.id === 'seer');
+      return game.getAlivePlayers().filter((p) => p.role.id === 'seer');
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'individual',
@@ -536,8 +561,11 @@ const events = {
       }
 
       // Log investigations
-      const messages = investigations.map(inv =>
-        `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'}`
+      const messages = investigations.map(
+        (inv) =>
+          `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${
+            inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'
+          }`
       );
 
       return {
@@ -558,7 +586,7 @@ const events = {
     priority: 10, // First to resolve
 
     participants: (game) => {
-      return game.getAlivePlayers().filter(p => p.role.id === 'doctor');
+      return game.getAlivePlayers().filter((p) => p.role.id === 'doctor');
     },
 
     validTargets: (actor, game) => {
@@ -589,7 +617,10 @@ const events = {
       }
 
       // Log protections
-      const messages = protections.map(p => `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`);
+      const messages = protections.map(
+        (p) =>
+          `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`
+      );
 
       return {
         success: true,
@@ -601,7 +632,7 @@ const events = {
 
   hunterRevenge: {
     id: 'hunterRevenge',
-    name: 'Hunter\'s Revenge',
+    name: "Hunter's Revenge",
     description: 'Choose who to take with you.',
     verb: 'shoot',
     verbPastTense: 'shot',
@@ -615,7 +646,7 @@ const events = {
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'individual',
@@ -657,11 +688,13 @@ const events = {
 
     participants: (game) => {
       // Players with a pistol that has uses remaining
-      return game.getAlivePlayers().filter(p => p.hasItem('pistol') && p.canUseItem('pistol'));
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.hasItem('pistol') && p.canUseItem('pistol'));
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter(p => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
     },
 
     aggregation: 'individual',
@@ -735,14 +768,14 @@ const events = {
       // Check for runoff voting - only show runoff candidates
       if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
         return instance.runoffCandidates
-          .map(id => game.getPlayer(id))
-          .filter(p => p);
+          .map((id) => game.getPlayer(id))
+          .filter((p) => p);
       }
 
       // Check reward type from config
       if (instance?.config?.rewardType === 'resurrection') {
         // Only dead players are valid targets for resurrection
-        return [...game.players.values()].filter(p => !p.isAlive);
+        return [...game.players.values()].filter((p) => !p.isAlive);
       }
 
       // For item/role rewards, all alive players INCLUDING SELF
@@ -787,13 +820,16 @@ const events = {
 
       // Find winner
       const maxVotes = Math.max(...Object.values(tally));
-      const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
+      const frontrunners = Object.keys(tally).filter(
+        (id) => tally[id] === maxVotes
+      );
 
       if (frontrunners.length > 1) {
         // Tie detected
         if (runoffRound >= 3) {
           // After 3 runoffs, pick randomly
-          const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)];
+          const winnerId =
+            frontrunners[Math.floor(Math.random() * frontrunners.length)];
           return resolveCustomVoteReward(winnerId, config, game, tally, true);
         }
 
@@ -807,7 +843,13 @@ const events = {
         };
       }
 
-      return resolveCustomVoteReward(frontrunners[0], config, game, tally, false);
+      return resolveCustomVoteReward(
+        frontrunners[0],
+        config,
+        game,
+        tally,
+        false
+      );
     },
   },
 };
@@ -881,7 +923,7 @@ export function getEvent(eventId) {
 
 export function getEventsForPhase(phase) {
   return Object.values(events)
-    .filter(e => e.phase.includes(phase) && !e.isInterrupt)
+    .filter((e) => e.phase.includes(phase) && !e.isInterrupt)
     .sort((a, b) => a.priority - b.priority);
 }
 

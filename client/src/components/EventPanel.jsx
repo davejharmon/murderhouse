@@ -1,6 +1,6 @@
 // client/src/components/EventPanel.jsx
 import { useState } from 'react';
-import { DEBUG_MODE } from '@shared/constants.js';
+import { DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
 import CustomVoteModal from './CustomVoteModal';
 import styles from './EventPanel.module.css';
 
@@ -27,7 +27,8 @@ export default function EventPanel({
 
   // Hardcoded for now - could be fetched from server
   const availableItems = [
-    { id: 'pistol', name: 'Pistol' }
+    { id: 'pistol', name: 'Pistol' },
+    { id: 'phone', name: 'Phone' },
   ];
 
   const availableRoles = [
@@ -63,100 +64,101 @@ export default function EventPanel({
 
         {/* Pending Events */}
         {hasPending && (
-        <div className={styles.group}>
-          <div className={styles.label}>Pending</div>
-          <div className={styles.eventList}>
-            {pendingEvents.map(eventId => (
+          <div className={styles.group}>
+            <div className={styles.label}>Pending</div>
+            <div className={styles.eventList}>
+              {pendingEvents.map((eventId) => (
+                <button
+                  key={eventId}
+                  className={styles.eventBtn}
+                  onClick={() => onStartEvent(eventId)}
+                >
+                  Start {eventId}
+                </button>
+              ))}
+            </div>
+            {pendingEvents.length > 1 && (
               <button
-                key={eventId}
-                className={styles.eventBtn}
-                onClick={() => onStartEvent(eventId)}
+                className={`${styles.eventBtn} primary`}
+                onClick={onStartAllEvents}
               >
-                Start {eventId}
+                Start All
               </button>
-            ))}
+            )}
           </div>
-          {pendingEvents.length > 1 && (
-            <button
-              className={`${styles.eventBtn} primary`}
-              onClick={onStartAllEvents}
-            >
-              Start All
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* Active Events */}
-      {hasActive && (
-        <div className={styles.group}>
-          <div className={styles.label}>Active</div>
-          <div className={styles.eventList}>
-            {activeEvents.map(eventId => {
-              const progress = eventProgress[eventId] || {};
-              const metadata = eventMetadata[eventId] || {};
-              const isPlayerResolved = metadata.playerResolved || false;
-              const hasUncommitted = (progress.total || 0) > (progress.responded || 0);
+        {/* Active Events */}
+        {hasActive && (
+          <div className={styles.group}>
+            <div className={styles.label}>Active</div>
+            <div className={styles.eventList}>
+              {activeEvents.map((eventId) => {
+                const progress = eventProgress[eventId] || {};
+                const metadata = eventMetadata[eventId] || {};
+                const isPlayerResolved = metadata.playerResolved || false;
+                const hasUncommitted =
+                  (progress.total || 0) > (progress.responded || 0);
 
-              return (
-                <div key={eventId} className={styles.activeEvent}>
-                  <div className={styles.eventName}>{eventId}</div>
-                  <div className={styles.progress}>
-                    {progress.responded || 0}/{progress.total || 0}
+                return (
+                  <div key={eventId} className={styles.activeEvent}>
+                    <div className={styles.eventName}>{eventId}</div>
+                    <div className={styles.progress}>
+                      {progress.responded || 0}/{progress.total || 0}
+                    </div>
+                    <div className={styles.eventActions}>
+                      {DEBUG_MODE && hasUncommitted && onDebugAutoSelectAll && (
+                        <button
+                          className={`${styles.debugBtn}`}
+                          onClick={() => onDebugAutoSelectAll(eventId)}
+                          title='Debug: Auto-select all remaining players'
+                        >
+                          🎲
+                        </button>
+                      )}
+                      {isPlayerResolved ? (
+                        <button
+                          className={`${styles.debugBtn} ${styles.skipBtn}`}
+                          onClick={() => onSkipEvent(eventId)}
+                        >
+                          ❌
+                        </button>
+                      ) : (
+                        <button
+                          className={styles.debugBtn}
+                          onClick={() => onResolveEvent(eventId)}
+                        >
+                          ✔️
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className={styles.eventActions}>
-                    {DEBUG_MODE && hasUncommitted && onDebugAutoSelectAll && (
-                      <button
-                        className={`${styles.debugBtn}`}
-                        onClick={() => onDebugAutoSelectAll(eventId)}
-                        title="Debug: Auto-select all remaining players"
-                      >
-                        🎲
-                      </button>
-                    )}
-                    {isPlayerResolved ? (
-                      <button
-                        className={`${styles.resolveBtn} ${styles.skipBtn}`}
-                        onClick={() => onSkipEvent(eventId)}
-                      >
-                        Skip
-                      </button>
-                    ) : (
-                      <button
-                        className={styles.resolveBtn}
-                        onClick={() => onResolveEvent(eventId)}
-                      >
-                        Resolve
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            {activeEvents.length > 1 && (
+              <button
+                className={`${styles.eventBtn} success`}
+                onClick={onResolveAllEvents}
+              >
+                Resolve All
+              </button>
+            )}
           </div>
-          {activeEvents.length > 1 && (
-            <button
-              className={`${styles.eventBtn} success`}
-              onClick={onResolveAllEvents}
-            >
-              Resolve All
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      {!hasPending && !hasActive && !isDayPhase && (
-        <div className={styles.empty}>No events available</div>
-      )}
-    </section>
+        {!hasPending && !hasActive && !isDayPhase && (
+          <div className={styles.empty}>No events available</div>
+        )}
+      </section>
 
-    <CustomVoteModal
-      isOpen={showCustomVoteModal}
-      onClose={() => setShowCustomVoteModal(false)}
-      onSubmit={handleCustomVoteSubmit}
-      availableItems={availableItems}
-      availableRoles={availableRoles}
-    />
-  </>
+      <CustomVoteModal
+        isOpen={showCustomVoteModal}
+        onClose={() => setShowCustomVoteModal(false)}
+        onSubmit={handleCustomVoteSubmit}
+        availableItems={availableItems}
+        availableRoles={availableRoles}
+      />
+    </>
   );
 }

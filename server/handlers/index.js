@@ -192,7 +192,7 @@ export function createHandlers(game) {
       // Map items to their events
       const itemEventMap = {
         pistol: 'shoot',
-        phone: 'governorPardon',
+        phone: 'pardon',
       };
 
       const eventId = itemEventMap[itemId];
@@ -300,7 +300,10 @@ export function createHandlers(game) {
       }
 
       if (ws.clientType === 'screen' && !isAutoAdvance) {
-        return { success: false, error: 'Screen can only advance auto-advance slides' };
+        return {
+          success: false,
+          error: 'Screen can only advance auto-advance slides',
+        };
       }
 
       game.nextSlide();
@@ -485,7 +488,8 @@ export function createHandlers(game) {
           autoSelectedCount++;
         } else {
           // Pick random target
-          const randomTarget = targets[Math.floor(Math.random() * targets.length)];
+          const randomTarget =
+            targets[Math.floor(Math.random() * targets.length)];
           player.currentSelection = randomTarget.id;
           player.confirmSelection();
           game.recordSelection(player.id, randomTarget.id);

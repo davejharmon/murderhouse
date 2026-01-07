@@ -689,7 +689,7 @@ export class Game {
         this.broadcastGameState();
 
         // Start governor pardon event (this will clear governor's selection and send EVENT_PROMPT)
-        this.startEvent('governorPardon');
+        this.startEvent('pardon');
 
         // Push condemned slide (queued, not auto-play)
         this.pushSlide(
