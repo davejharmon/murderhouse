@@ -275,22 +275,28 @@ export class Game {
     // Special handling for shoot event - show immediate slide
     if (eventId === 'shoot' && participants.length > 0) {
       const shooter = participants[0];
-      this.pushSlide({
-        type: 'title',
-        title: 'DRAW!',
-        subtitle: `${shooter.name} is searching for a target...`,
-        style: SlideStyle.WARNING,
-      }, true); // Jump to this slide immediately
+      this.pushSlide(
+        {
+          type: 'title',
+          title: 'DRAW!',
+          subtitle: `${shooter.name} is searching for a target...`,
+          style: SlideStyle.WARNING,
+        },
+        true
+      ); // Jump to this slide immediately
     }
 
     // Show slide when vote events start
     if (eventId === 'vote') {
-      this.pushSlide({
-        type: 'title',
-        title: 'ELIMINATION VOTE',
-        subtitle: 'Choose who to eliminate',
-        style: SlideStyle.NEUTRAL,
-      }, true);
+      this.pushSlide(
+        {
+          type: 'title',
+          title: 'ELIMINATION VOTE',
+          subtitle: 'Choose who to eliminate',
+          style: SlideStyle.NEUTRAL,
+        },
+        true
+      );
     }
 
     this.broadcastGameState();
@@ -318,7 +324,10 @@ export class Game {
 
     // Check phase
     if (this.phase !== GamePhase.DAY) {
-      return { success: false, error: 'Custom votes only available during DAY phase' };
+      return {
+        success: false,
+        error: 'Custom votes only available during DAY phase',
+      };
     }
 
     // Check if customVote already active
@@ -340,7 +349,7 @@ export class Game {
     const eventInstance = {
       event,
       results: {},
-      participants: participants.map(p => p.id),
+      participants: participants.map((p) => p.id),
       startedAt: Date.now(),
       config, // Store configuration
       runoffCandidates: [],
@@ -348,7 +357,7 @@ export class Game {
     };
 
     this.activeEvents.set('customVote', eventInstance);
-    this.pendingEvents = this.pendingEvents.filter(id => id !== 'customVote');
+    this.pendingEvents = this.pendingEvents.filter((id) => id !== 'customVote');
 
     // Notify participants with custom description
     for (const player of participants) {
@@ -364,19 +373,22 @@ export class Game {
         eventId: 'customVote',
         eventName: event.name,
         description: config.description,
-        targets: targets.map(t => t.getPublicState()),
+        targets: targets.map((t) => t.getPublicState()),
       });
     }
 
     this.addLog(`Custom Vote started: ${config.description}`);
 
     // Show slide when custom vote starts
-    this.pushSlide({
-      type: 'title',
-      title: 'CUSTOM VOTE',
-      subtitle: config.description,
-      style: SlideStyle.NEUTRAL,
-    }, true);
+    this.pushSlide(
+      {
+        type: 'title',
+        title: 'CUSTOM VOTE',
+        subtitle: config.description,
+        style: SlideStyle.NEUTRAL,
+      },
+      true
+    );
 
     this.broadcastGameState();
 
@@ -428,12 +440,17 @@ export class Game {
 
         // Log the selection (skip for player-resolved events as they log in onSelection)
         if (!instance.event.playerResolved) {
+          const verb = instance.event.verbPastTense || eventId;
           if (targetId === null) {
-            this.addLog(`${player.getNameWithEmoji()} abstained from ${eventId}`);
+            this.addLog(
+              `${player.getNameWithEmoji()} abstained from ${eventId}`
+            );
           } else {
             const target = this.getPlayer(targetId);
             if (target) {
-              this.addLog(`${player.getNameWithEmoji()} ${eventId} -> ${target.getNameWithEmoji()}`);
+              this.addLog(
+                `${player.getNameWithEmoji()} ${verb} ${target.getNameWithEmoji()}`
+              );
             }
           }
         }
@@ -631,8 +648,11 @@ export class Game {
 
     // Check if governor pardon should be triggered
     if (resolution.outcome === 'eliminated' && resolution.eliminated) {
-      const governors = this.getAlivePlayers().filter(p => {
-        return p.role.id === 'governor' || (p.hasItem('phone') && p.canUseItem('phone'));
+      const governors = this.getAlivePlayers().filter((p) => {
+        return (
+          p.role.id === 'governor' ||
+          (p.hasItem('phone') && p.canUseItem('phone'))
+        );
       });
 
       if (governors.length > 0) {
@@ -672,16 +692,21 @@ export class Game {
         this.startEvent('governorPardon');
 
         // Push condemned slide (queued, not auto-play)
-        this.pushSlide({
-          type: 'death',
-          playerId: resolution.eliminated.id,
-          title: 'CONDEMNED',
-          subtitle: 'Calling the governor...',
-          revealRole: false,
-          style: SlideStyle.WARNING,
-        }, false);
+        this.pushSlide(
+          {
+            type: 'death',
+            playerId: resolution.eliminated.id,
+            title: 'CONDEMNED',
+            subtitle: 'Calling the governor...',
+            revealRole: false,
+            style: SlideStyle.WARNING,
+          },
+          false
+        );
 
-        this.addLog(`${resolution.eliminated.name} awaits the governor's decision...`);
+        this.addLog(
+          `${resolution.eliminated.name} awaits the governor's decision...`
+        );
 
         return { success: true, showingTally: true, awaitingPardon: true };
       } else {
@@ -795,8 +820,8 @@ export class Game {
 
     // Re-notify participants with updated targets
     const runoffParticipants = participants
-      .map(pid => this.getPlayer(pid))
-      .filter(p => p);
+      .map((pid) => this.getPlayer(pid))
+      .filter((p) => p);
 
     for (const player of runoffParticipants) {
       const targets = event.validTargets(player, this);
@@ -1060,7 +1085,6 @@ export class Game {
       eventMetadata: this.getEventMetadataMap(),
     };
   }
-
 
   getEventParticipantMap() {
     const map = {};

@@ -39,6 +39,8 @@ const events = {
     id: 'vote',
     name: 'Vote',
     description: 'Choose who to eliminate.',
+    verb: 'vote for',
+    verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
     priority: 50,
 
@@ -148,6 +150,8 @@ const events = {
     id: 'governorPardon',
     name: 'Governor Pardon',
     description: 'Will you pardon this player from elimination?',
+    verb: 'pardon',
+    verbPastTense: 'pardoned',
     phase: [GamePhase.DAY],
     priority: 100,
     isInterrupt: true, // Triggered when vote condemns someone
@@ -250,6 +254,8 @@ const events = {
     id: 'vigilanteKill',
     name: 'Vigilante Kill',
     description: 'Choose someone to eliminate. This is your only shot.',
+    verb: 'shoot',
+    verbPastTense: 'shot',
     phase: [GamePhase.NIGHT],
     priority: 55,
 
@@ -323,7 +329,7 @@ const events = {
         return {
           success: true,
           outcome: 'protected',
-          message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}, but they were protected!`,
+          message: `${kill.target.getNameWithEmoji()} was protected`,
           slide: {
             type: 'title',
             title: 'PROTECTED',
@@ -337,7 +343,7 @@ const events = {
         success: true,
         outcome: 'killed',
         victim: kill.victim,
-        message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}.`,
+        message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}`,
         slide: kill.slide,
       };
     },
@@ -347,6 +353,8 @@ const events = {
     id: 'suspect',
     name: 'Suspect',
     description: 'Who do you think is a werewolf?',
+    verb: 'suspect',
+    verbPastTense: 'suspected',
     phase: [GamePhase.NIGHT],
     priority: 80, // Low priority - just tracking
 
@@ -389,7 +397,7 @@ const events = {
         return { success: true, silent: true };
       }
 
-      const messages = suspicions.map(s => `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}.`);
+      const messages = suspicions.map(s => `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`);
 
       return {
         success: true,
@@ -402,17 +410,19 @@ const events = {
     id: 'kill',
     name: 'Kill',
     description: 'Choose your victim.',
+    verb: 'target',
+    verbPastTense: 'targeted',
     phase: [GamePhase.NIGHT],
     priority: 60,
-    
+
     participants: (game) => {
       return game.getAlivePlayers().filter(p => p.role.team === Team.WEREWOLF);
     },
-    
+
     validTargets: (actor, game) => {
       return game.getAlivePlayers().filter(p => p.role.team !== Team.WEREWOLF);
     },
-    
+
     aggregation: 'majority', // Werewolves vote together
     allowAbstain: false,
     
@@ -445,7 +455,7 @@ const events = {
           success: true,
           outcome: 'protected',
           targetId: victimId,
-          message: `The werewolves attacked ${victim.getNameWithEmoji()}, but they were protected!`,
+          message: `${victim.getNameWithEmoji()} was protected`,
           slide: {
             type: 'title',
             title: 'PROTECTED',
@@ -461,7 +471,7 @@ const events = {
         success: true,
         outcome: 'killed',
         victim,
-        message: `${victim.getNameWithEmoji()} was killed by werewolves.`,
+        message: `${victim.getNameWithEmoji()} was killed by werewolves`,
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -478,6 +488,8 @@ const events = {
     id: 'investigate',
     name: 'Investigate',
     description: 'Choose someone to investigate.',
+    verb: 'investigate',
+    verbPastTense: 'investigated',
     phase: [GamePhase.NIGHT],
     priority: 30,
 
@@ -523,9 +535,9 @@ const events = {
         return { success: true, silent: true };
       }
 
-      // Log investigations publicly (without revealing results)
+      // Log investigations
       const messages = investigations.map(inv =>
-        `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'}.`
+        `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'}`
       );
 
       return {
@@ -540,6 +552,8 @@ const events = {
     id: 'protect',
     name: 'Protect',
     description: 'Choose someone to protect tonight.',
+    verb: 'protect',
+    verbPastTense: 'protected',
     phase: [GamePhase.NIGHT],
     priority: 10, // First to resolve
 
@@ -574,8 +588,8 @@ const events = {
         return { success: true, silent: true };
       }
 
-      // Log protections without revealing who was protected (for privacy)
-      const messages = protections.map(p => `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}.`);
+      // Log protections
+      const messages = protections.map(p => `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`);
 
       return {
         success: true,
@@ -589,6 +603,8 @@ const events = {
     id: 'hunterRevenge',
     name: 'Hunter\'s Revenge',
     description: 'Choose who to take with you.',
+    verb: 'shoot',
+    verbPastTense: 'shot',
     phase: [GamePhase.DAY, GamePhase.NIGHT], // Can trigger in either
     priority: 100, // Immediate
     isInterrupt: true, // Pauses normal flow
@@ -615,7 +631,7 @@ const events = {
       return {
         success: true,
         victim,
-        message: `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them!`,
+        message: `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them`,
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -632,6 +648,8 @@ const events = {
     id: 'shoot',
     name: 'Shoot',
     description: 'Use your pistol to shoot someone.',
+    verb: 'shoot',
+    verbPastTense: 'shot',
     phase: [GamePhase.DAY],
     priority: 40, // Before vote (50)
     playerInitiated: true, // Player triggers this event, not host
@@ -657,7 +675,7 @@ const events = {
       // Player abstained
       if (targetId === null) {
         return {
-          message: `${shooter.getNameWithEmoji()} chose not to shoot.`,
+          message: `${shooter.getNameWithEmoji()} chose not to shoot`,
           slide: {
             type: 'title',
             title: 'NO SHOTS FIRED',
@@ -678,7 +696,7 @@ const events = {
       game.consumeItem(shooterId, 'pistol');
 
       return {
-        message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()} with a pistol!`,
+        message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()}`,
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -704,6 +722,8 @@ const events = {
     id: 'customVote',
     name: 'Custom Vote',
     description: 'Vote for a custom reward.',
+    verb: 'vote for',
+    verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
     priority: 45, // Before vote (50), after shoot (40)
 
