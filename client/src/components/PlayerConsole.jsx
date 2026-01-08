@@ -256,6 +256,37 @@ export default function PlayerConsole({
         </div>
       )}
 
+      {/* Pack Info Display (for werewolves) */}
+      {player?.packInfo && player.packInfo.packMembers.length > 0 && (
+        <div className={styles.packInfo}>
+          <div className={styles.packLabel}>
+            🐺 PACK {player.packInfo.isAlpha ? '(ALPHA)' : '(WEREWOLF)'}
+          </div>
+          <div className={styles.packMembers}>
+            {player.packInfo.packMembers.map((member) => {
+              const isConfirmed = member.currentSelection &&
+                                   member.currentSelection === member.confirmedSelection;
+              const targetName = member.currentSelection
+                ? gameState?.players?.find(p => p.id === member.currentSelection)?.name || 'Unknown'
+                : null;
+
+              return (
+                <div key={member.id} className={styles.packMember}>
+                  <div className={styles.packName}>
+                    {member.isAlpha ? '👑 ' : '🐺 '}{member.name}
+                  </div>
+                  {targetName && (
+                    <div className={`${styles.packSelection} ${isConfirmed ? styles.confirmed : styles.considering}`}>
+                      {isConfirmed ? '✓ ' : '? '}→ {targetName}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Tiny Screen Display */}
       <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''} ${tinyScreen.ability ? styles.ability : ''} ${tinyScreen.result ? styles.result : ''}`}>
         <div className={styles.screenPrimary}>{tinyScreen.primary}</div>

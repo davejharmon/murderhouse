@@ -1,7 +1,12 @@
 // server/handlers/index.js
 // WebSocket message handlers
 
-import { ClientMsg, ServerMsg, DEBUG_MODE } from '../../shared/constants.js';
+import {
+  ClientMsg,
+  ServerMsg,
+  DEBUG_MODE,
+  Team,
+} from '../../shared/constants.js';
 import { getEvent } from '../definitions/events.js';
 
 export function createHandlers(game) {
@@ -111,7 +116,17 @@ export function createHandlers(game) {
           const targets = event.validTargets(player, game);
           const selected = player.selectUp(targets);
 
-          player.syncState();
+          player.syncState(game);
+
+          // Broadcast pack state for werewolf events (real-time selection sharing)
+          if (
+            (eventId === 'hunt' || eventId === 'kill') &&
+            player.role &&
+            player.role.team === Team.WEREWOLF
+          ) {
+            game.broadcastPackState();
+          }
+
           return { success: true, selected };
         }
       }
@@ -129,7 +144,17 @@ export function createHandlers(game) {
           const targets = event.validTargets(player, game);
           const selected = player.selectDown(targets);
 
-          player.syncState();
+          player.syncState(game);
+
+          // Broadcast pack state for werewolf events (real-time selection sharing)
+          if (
+            (eventId === 'hunt' || eventId === 'kill') &&
+            player.role &&
+            player.role.team === Team.WEREWOLF
+          ) {
+            game.broadcastPackState();
+          }
+
           return { success: true, selected };
         }
       }
@@ -147,7 +172,7 @@ export function createHandlers(game) {
       }
 
       const result = game.recordSelection(player.id, targetId);
-      player.syncState();
+      player.syncState(game);
 
       return result;
     },
@@ -157,7 +182,7 @@ export function createHandlers(game) {
       if (!player) return { success: false, error: 'Not a player' };
 
       player.cancelSelection();
-      player.syncState();
+      player.syncState(game);
 
       return { success: true };
     },
@@ -168,7 +193,7 @@ export function createHandlers(game) {
 
       player.abstain();
       const result = game.recordSelection(player.id, null);
-      player.syncState();
+      player.syncState(game);
 
       return result;
     },

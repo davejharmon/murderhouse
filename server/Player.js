@@ -1,7 +1,7 @@
 // server/Player.js
 // Player model - represents a player in the game
 
-import { PlayerStatus, ServerMsg } from '../shared/constants.js';
+import { PlayerStatus, ServerMsg, Team } from '../shared/constants.js';
 
 let nextSeatNumber = 1;
 
@@ -166,7 +166,7 @@ export class Player {
   }
 
   // Get private state (only for this player)
-  getPrivateState() {
+  getPrivateState(game) {
     return {
       ...this.getPublicState(),
       role: this.role?.id,
@@ -182,6 +182,34 @@ export class Player {
       linkedTo: this.linkedTo,
       vigilanteUsed: this.vigilanteUsed,
       inventory: this.inventory,
+      packInfo: game ? this.getPackInfo(game) : null,
+    };
+  }
+
+  // Get pack info (for werewolf team members)
+  getPackInfo(game) {
+    if (!this.role || this.role.team !== Team.WEREWOLF) {
+      return null;
+    }
+
+    const packMembers = game
+      .getAlivePlayers()
+      .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        portrait: p.portrait,
+        role: p.role.id,
+        roleName: p.role.name,
+        isAlpha: p.role.id === 'alpha',
+        currentSelection: p.currentSelection,
+        confirmedSelection: p.confirmedSelection,
+      }));
+
+    return {
+      packMembers,
+      playerRole: this.role.id,
+      isAlpha: this.role.id === 'alpha',
     };
   }
 
@@ -250,8 +278,8 @@ export class Player {
   }
 
   // Helper: Send updated private state to this player
-  syncState() {
-    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState());
+  syncState(game) {
+    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
   }
 
   // Update connection

@@ -49,17 +49,56 @@ const roles = {
     passives: {},
   },
 
-  werewolf: {
-    id: 'werewolf',
-    name: 'Werewolf',
+  alpha: {
+    id: 'alpha',
+    name: 'Alpha',
     team: Team.WEREWOLF,
-    description: 'A creature of the night who hunts the innocent.',
+    description: 'The pack leader who makes the final kill.',
     color: '#c94c4c',
-    emoji: '🐺',
+    emoji: '🐺👑',
     events: {
       vote: {},
       kill: {
         priority: 60, // Kills happen after protection
+        canTarget: (player, target, game) => {
+          // Can't target self or other werewolves
+          return target.id !== player.id && target.role.team !== Team.WEREWOLF;
+        },
+      },
+    },
+    passives: {
+      onDeath: (player, killer, game) => {
+        // Find living werewolves to promote
+        const werewolves = game
+          .getAlivePlayers()
+          .filter((p) => p.role.id === 'werewolf');
+
+        if (werewolves.length === 0) return null;
+
+        // Promote random werewolf to alpha
+        const promoted =
+          werewolves[Math.floor(Math.random() * werewolves.length)];
+        const alphaRole = getRole('alpha');
+        promoted.assignRole(alphaRole);
+
+        return {
+          message: `${promoted.name} becomes the new Alpha!`,
+        };
+      },
+    },
+  },
+
+  werewolf: {
+    id: 'werewolf',
+    name: 'Werewolf',
+    team: Team.WEREWOLF,
+    description: 'A member of the pack who hunts for the Alpha.',
+    color: '#c94c4c',
+    emoji: '🐺',
+    events: {
+      vote: {},
+      hunt: {
+        priority: 55, // Suggest targets before kill happens
         canTarget: (player, target, game) => {
           // Can't target self or other werewolves
           return target.id !== player.id && target.role.team !== Team.WEREWOLF;
@@ -221,11 +260,11 @@ const roles = {
 
 // Role distribution by player count
 export const roleDistribution = {
-  4: ['werewolf', 'seer', 'villager', 'villager'],
-  5: ['werewolf', 'seer', 'villager', 'villager', 'villager'],
-  6: ['werewolf', 'seer', 'doctor', 'villager', 'villager', 'villager'],
+  4: ['alpha', 'seer', 'villager', 'villager'],
+  5: ['alpha', 'seer', 'villager', 'villager', 'villager'],
+  6: ['alpha', 'seer', 'doctor', 'villager', 'villager', 'villager'],
   7: [
-    'werewolf',
+    'alpha',
     'werewolf',
     'seer',
     'doctor',
@@ -234,7 +273,7 @@ export const roleDistribution = {
     'villager',
   ],
   8: [
-    'werewolf',
+    'alpha',
     'werewolf',
     'seer',
     'doctor',
@@ -244,7 +283,7 @@ export const roleDistribution = {
     'villager',
   ],
   9: [
-    'werewolf',
+    'alpha',
     'werewolf',
     'seer',
     'doctor',
@@ -255,7 +294,7 @@ export const roleDistribution = {
     'villager',
   ],
   10: [
-    'werewolf',
+    'alpha',
     'werewolf',
     'seer',
     'doctor',

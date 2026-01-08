@@ -123,7 +123,7 @@ export class Game {
 
     // Send role reveals to each player
     for (const player of this.players.values()) {
-      player.syncState();
+      player.syncState(this);
     }
 
     // Build pending events for this phase
@@ -260,7 +260,7 @@ export class Game {
       }
 
       // Send updated player state so client clears abstained/confirmed flags
-      player.syncState();
+      player.syncState(this);
 
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId,
@@ -367,7 +367,7 @@ export class Game {
       const targets = event.validTargets(player, this);
 
       // Send updated player state so client clears abstained/confirmed flags
-      player.syncState();
+      player.syncState(this);
 
       player.send(ServerMsg.EVENT_PROMPT, {
         eventId: 'customVote',
@@ -437,6 +437,15 @@ export class Game {
       if (instance.participants.includes(playerId)) {
         instance.results[playerId] = targetId;
         player.confirmedSelection = targetId;
+
+        // Broadcast pack state for werewolf events
+        if (
+          (eventId === 'hunt' || eventId === 'kill') &&
+          player.role &&
+          player.role.team === Team.WEREWOLF
+        ) {
+          this.broadcastPackState();
+        }
 
         // Log the selection (skip for player-resolved events as they log in onSelection)
         if (!instance.event.playerResolved) {
@@ -524,7 +533,7 @@ export class Game {
         player.pendingEvents.delete(eventId);
         player.clearSelection();
         // Send updated player state so UI refreshes
-        player.syncState();
+        player.syncState(this);
       }
     }
 
@@ -897,12 +906,23 @@ export class Game {
     player.kill(cause);
     this.addLog(`${player.name} died (${cause})`);
 
-    // Check for Hunter passive
-    if (player.role.id === 'hunter' && player.role.passives?.onDeath) {
+    // Check for onDeath passives
+    if (player.role.passives?.onDeath) {
       const result = player.role.passives.onDeath(player, cause, this);
+
+      // Handle Hunter interrupt
       if (result?.interrupt) {
         this.interruptData = { hunter: player };
         this.startEvent('hunterRevenge');
+      }
+
+      // Handle Alpha promotion
+      if (result?.message) {
+        this.addLog(result.message);
+        // Broadcast pack state so all werewolves see new roles
+        if (result.message.includes('Alpha')) {
+          this.broadcastPackState();
+        }
       }
     }
 
@@ -1023,7 +1043,7 @@ export class Game {
 
     // Each player (still needed for truly private stuff)
     for (const player of this.players.values()) {
-      player.syncState();
+      player.syncState(this);
     }
 
     // Host gets full player info
@@ -1036,6 +1056,17 @@ export class Game {
   broadcastPlayerList() {
     const players = this.getPlayersBySeat().map((p) => p.getPublicState());
     this.broadcast(ServerMsg.PLAYER_LIST, players);
+  }
+
+  // Broadcast pack state to all werewolves (for real-time hunt updates)
+  broadcastPackState() {
+    const werewolves = this.getAlivePlayers().filter(
+      (p) => p.role && p.role.team === Team.WEREWOLF
+    );
+
+    for (const werewolf of werewolves) {
+      werewolf.syncState(this);
+    }
   }
 
   broadcastSlides() {

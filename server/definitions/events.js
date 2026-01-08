@@ -509,6 +509,58 @@ const events = {
     },
   },
 
+  hunt: {
+    id: 'hunt',
+    name: 'Hunt',
+    description: 'Suggest a target for the Alpha to hunt.',
+    verb: 'suggest',
+    verbPastTense: 'suggested',
+    phase: [GamePhase.NIGHT],
+    priority: 55, // Before kill (60)
+
+    participants: (game) => {
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.id === 'werewolf'); // Only regular werewolves
+    },
+
+    validTargets: (actor, game) => {
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.team !== Team.WEREWOLF);
+    },
+
+    aggregation: 'individual', // Each werewolf suggests independently
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const suggestions = [];
+
+      for (const [werewolfId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+        const werewolf = game.getPlayer(werewolfId);
+        const target = game.getPlayer(targetId);
+
+        suggestions.push({ werewolf, target });
+      }
+
+      if (suggestions.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const messages = suggestions.map(
+        (s) =>
+          `${s.werewolf.getNameWithEmoji()} suggested ${s.target.getNameWithEmoji()}`
+      );
+
+      return {
+        success: true,
+        silent: true, // Don't show slides
+        message: messages.join(' '),
+      };
+    },
+  },
+
   investigate: {
     id: 'investigate',
     name: 'Investigate',
