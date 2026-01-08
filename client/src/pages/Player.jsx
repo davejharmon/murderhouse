@@ -15,6 +15,7 @@ export default function Player() {
     gameState,
     playerState,
     eventPrompt,
+    eventResult,
     notifications,
     send,
     joinAsPlayer,
@@ -133,6 +134,7 @@ export default function Player() {
         player={playerState}
         gameState={gameState}
         eventPrompt={eventPrompt}
+        eventResult={eventResult}
         selectedTarget={selectedTarget}
         confirmedTarget={confirmedTarget}
         abstained={playerState.abstained}

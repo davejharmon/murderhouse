@@ -77,6 +77,11 @@
   background: rgba(255, 193, 7, 0.05);
 }
 
+.tinyScreen.result {
+  border-color: rgba(155, 126, 217, 0.5);
+  background: rgba(155, 126, 217, 0.05);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }

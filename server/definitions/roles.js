@@ -141,8 +141,6 @@ const roles = {
     },
     passives: {
       onDeath: (player, killer, game) => {
-        // Queue a hunter revenge event
-        game.queueEvent('hunterRevenge', player);
         return {
           interrupt: true, // Pause for hunter to choose
           message: `${player.name} was the Hunter and gets a revenge shot!`,

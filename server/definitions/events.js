@@ -246,7 +246,7 @@ const events = {
         game.broadcastSlides();
 
         return {
-          message: `${governor.getNameWithEmoji()} denied the pardon for ${condemned.getNameWithEmoji()}`,
+          message: `${governor.getNameWithEmoji()} condemned ${condemned.getNameWithEmoji()}`,
           slide: null, // Already pushed slides manually
         };
       }

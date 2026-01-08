@@ -18,8 +18,9 @@ export function GameProvider({ children }) {
   const [currentSlide, setCurrentSlide] = useState(null);
   const [log, setLog] = useState([]);
   const [eventPrompt, setEventPrompt] = useState(null);
+  const [eventResult, setEventResult] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  
+
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
@@ -98,10 +99,12 @@ export function GameProvider({ children }) {
 
       case ServerMsg.EVENT_PROMPT:
         setEventPrompt(payload);
+        setEventResult(null); // Clear previous event results when new event starts
         break;
 
       case ServerMsg.EVENT_RESULT:
         addNotification(payload.message, 'info');
+        setEventResult(payload);
         setEventPrompt(null);
         break;
 
@@ -163,7 +166,7 @@ export function GameProvider({ children }) {
   const value = {
     // Connection state
     connected,
-    
+
     // Game state
     gameState,
     playerState,
@@ -171,8 +174,9 @@ export function GameProvider({ children }) {
     currentSlide,
     log,
     eventPrompt,
+    eventResult,
     notifications,
-    
+
     // Actions
     send,
     joinAsPlayer,

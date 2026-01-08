@@ -13,6 +13,7 @@ export default function DebugGrid() {
   const [playerStates, setPlayerStates] = useState({});
   const [gameStates, setGameStates] = useState({});
   const [eventPrompts, setEventPrompts] = useState({});
+  const [eventResults, setEventResults] = useState({});
   const [connections, setConnections] = useState({});
   const wsRefs = useRef({});
 
@@ -56,6 +57,12 @@ export default function DebugGrid() {
 
           case ServerMsg.EVENT_PROMPT:
             setEventPrompts(prev => ({ ...prev, [playerId]: payload }));
+            setEventResults(prev => ({ ...prev, [playerId]: null })); // Clear previous results
+            break;
+
+          case ServerMsg.EVENT_RESULT:
+            setEventResults(prev => ({ ...prev, [playerId]: payload }));
+            setEventPrompts(prev => ({ ...prev, [playerId]: null }));
             break;
 
           case ServerMsg.ERROR:
@@ -145,6 +152,7 @@ export default function DebugGrid() {
                   player={playerState}
                   gameState={gameState}
                   eventPrompt={eventPrompt}
+                  eventResult={eventResults[playerId]}
                   selectedTarget={selectedTarget}
                   confirmedTarget={confirmedTarget}
                   abstained={playerState.abstained}

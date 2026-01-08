@@ -18,6 +18,7 @@ export default function PlayerConsole({
   player,
   gameState,
   eventPrompt,
+  eventResult,
   selectedTarget,
   confirmedTarget,
   abstained,
@@ -185,6 +186,15 @@ export default function PlayerConsole({
       };
     }
 
+    // Event result (investigation results, etc.)
+    if (eventResult && eventResult.message) {
+      return {
+        primary: '🔮 INVESTIGATION',
+        secondary: eventResult.message,
+        result: true,
+      };
+    }
+
     // Idle state
     if (phase === GamePhase.DAY) {
       return {
@@ -247,7 +257,7 @@ export default function PlayerConsole({
       )}
 
       {/* Tiny Screen Display */}
-      <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''} ${tinyScreen.ability ? styles.ability : ''}`}>
+      <div className={`${styles.tinyScreen} ${tinyScreen.locked ? styles.locked : ''} ${tinyScreen.waiting ? styles.waiting : ''} ${tinyScreen.ability ? styles.ability : ''} ${tinyScreen.result ? styles.result : ''}`}>
         <div className={styles.screenPrimary}>{tinyScreen.primary}</div>
         <div className={styles.screenSecondary}>{tinyScreen.secondary}</div>
       </div>
