@@ -21,10 +21,21 @@ export class Game {
     this.host = null;
     this.slideIdCounter = 0; // Unique ID counter for slides
     this.screen = null;
+    this.playerCustomizations = new Map(); // Persist player names/portraits across resets
     this.reset();
   }
 
   reset() {
+    // Save player customizations before clearing (if players exist)
+    if (this.players) {
+      for (const [playerId, player] of this.players) {
+        this.playerCustomizations.set(playerId, {
+          name: player.name,
+          portrait: player.portrait,
+        });
+      }
+    }
+
     resetSeatCounter();
     this.players = new Map(); // id -> Player
     // NOTE: We keep host and screen connections alive during reset
@@ -61,12 +72,29 @@ export class Game {
     }
 
     const player = new Player(id, ws);
+
+    // Restore customizations if they exist from previous games
+    const customization = this.playerCustomizations.get(id);
+    if (customization) {
+      player.name = customization.name;
+      player.portrait = customization.portrait;
+    }
+
     this.players.set(id, player);
 
     this.addLog(`${player.name} joined the game`);
     this.broadcastPlayerList();
 
     return { success: true, player };
+  }
+
+  persistPlayerCustomization(player) {
+    const customization = this.playerCustomizations.get(player.id) || {};
+    this.playerCustomizations.set(player.id, {
+      ...customization,
+      name: player.name,
+      portrait: player.portrait,
+    });
   }
 
   removePlayer(id) {
@@ -131,9 +159,10 @@ export class Game {
 
     this.addLog('Game started - Day 1');
     this.pushSlide({
-      type: 'title',
+      type: 'gallery',
       title: 'DAY 1',
       subtitle: 'The game begins.',
+      playerIds: this.getAlivePlayers().map(p => p.id),
       style: SlideStyle.NEUTRAL,
     });
 
@@ -181,9 +210,10 @@ export class Game {
       this.phase = GamePhase.NIGHT;
       this.addLog(`Night ${this.dayCount} begins`);
       this.pushSlide({
-        type: 'title',
+        type: 'gallery',
         title: `NIGHT ${this.dayCount}`,
         subtitle: 'Close your eyes... just kidding.',
+        playerIds: this.getAlivePlayers().map(p => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.NIGHT) {
@@ -191,9 +221,10 @@ export class Game {
       this.dayCount++;
       this.addLog(`Day ${this.dayCount} begins`);
       this.pushSlide({
-        type: 'title',
+        type: 'gallery',
         title: `DAY ${this.dayCount}`,
         subtitle: 'The sun rises.',
+        playerIds: this.getAlivePlayers().map(p => p.id),
         style: SlideStyle.NEUTRAL,
       });
     }
@@ -556,8 +587,8 @@ export class Game {
     }
 
     // If a hunter revenge event was just triggered, push its slide now (after the kill slide)
-    if (this.activeEvents.has('hunterRevenge')) {
-      const hunterInstance = this.activeEvents.get('hunterRevenge');
+    const hunterInstance = this.activeEvents.get('hunterRevenge');
+    if (hunterInstance?.participants?.[0]) {
       const hunter = this.getPlayer(hunterInstance.participants[0]);
       if (hunter) {
         this.pushSlide({
@@ -1036,7 +1067,33 @@ export class Game {
   clearSlides() {
     this.slideQueue = [];
     this.currentSlideIndex = -1;
-    this.broadcastSlides();
+
+    // Push current phase slide
+    if (this.phase === GamePhase.DAY) {
+      this.pushSlide({
+        type: 'gallery',
+        title: `DAY ${this.dayCount}`,
+        subtitle: 'The sun rises.',
+        playerIds: this.getAlivePlayers().map(p => p.id),
+        style: SlideStyle.NEUTRAL,
+      });
+    } else if (this.phase === GamePhase.NIGHT) {
+      this.pushSlide({
+        type: 'gallery',
+        title: `NIGHT ${this.dayCount}`,
+        subtitle: 'Close your eyes... just kidding.',
+        playerIds: this.getAlivePlayers().map(p => p.id),
+        style: SlideStyle.NEUTRAL,
+      });
+    } else if (this.phase === GamePhase.LOBBY) {
+      this.pushSlide({
+        type: 'gallery',
+        title: 'LOBBY',
+        subtitle: 'Waiting for game to start',
+        playerIds: [...this.players.values()].map(p => p.id),
+        style: SlideStyle.NEUTRAL,
+      });
+    }
   }
 
   getCurrentSlide() {
@@ -1122,10 +1179,16 @@ export class Game {
       return p.getPublicState();
     });
 
+    // Count total werewolves (both alive and dead)
+    const totalWerewolves = [...this.players.values()].filter(
+      (p) => p.role && p.role.team === Team.WEREWOLF
+    ).length;
+
     return {
       phase: this.phase,
       dayCount: this.dayCount,
       players,
+      totalWerewolves,
       pendingEvents: this.pendingEvents,
       activeEvents: [...this.activeEvents.keys()],
       eventParticipants: this.getEventParticipantMap(),

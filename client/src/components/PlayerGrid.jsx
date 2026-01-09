@@ -1,5 +1,7 @@
 // client/src/components/PlayerGrid.jsx
+import { useState } from 'react';
 import { PlayerStatus, DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
+import PortraitSelectorModal from './PortraitSelectorModal';
 import styles from './PlayerGrid.module.css';
 
 export default function PlayerGrid({
@@ -13,7 +15,43 @@ export default function PlayerGrid({
   onGiveItem,
   onRemoveItem,
   onDebugAutoSelect,
+  onSetName,
+  onSetPortrait,
 }) {
+  const [editingPlayerId, setEditingPlayerId] = useState(null);
+  const [editedName, setEditedName] = useState('');
+  const [portraitModalPlayer, setPortraitModalPlayer] = useState(null);
+
+  // Handle name edit start
+  const handleNameClick = (player) => {
+    if (onSetName) {
+      setEditingPlayerId(player.id);
+      setEditedName(player.name);
+    }
+  };
+
+  // Handle name edit save
+  const handleNameSave = (playerId) => {
+    if (editedName.trim() && editedName !== players.find(p => p.id === playerId)?.name) {
+      onSetName(playerId, editedName.trim());
+    }
+    setEditingPlayerId(null);
+    setEditedName('');
+  };
+
+  // Handle name edit cancel
+  const handleNameCancel = () => {
+    setEditingPlayerId(null);
+    setEditedName('');
+  };
+
+  // Handle portrait selection
+  const handlePortraitSelect = (portrait) => {
+    if (portraitModalPlayer && onSetPortrait) {
+      onSetPortrait(portraitModalPlayer.id, portrait);
+    }
+  };
+
   // Get which events a player is participating in
   const getPlayerEvents = (playerId) => {
     const events = [];
@@ -48,8 +86,12 @@ export default function PlayerGrid({
             className={`${styles.card} ${!isAlive ? styles.dead : ''} ${isActive ? styles.active : ''}`}
           >
             {/* Portrait */}
-            <div className={styles.portrait}>
-              <img 
+            <div
+              className={`${styles.portrait} ${onSetPortrait ? styles.clickable : ''}`}
+              onClick={() => onSetPortrait && setPortraitModalPlayer(player)}
+              title={onSetPortrait ? "Click to change portrait" : undefined}
+            >
+              <img
                 src={`/images/players/${player.portrait}`}
                 alt={player.name}
                 className={styles.portraitImage}
@@ -57,12 +99,37 @@ export default function PlayerGrid({
               {!player.connected && (
                 <div className={styles.disconnected}>●</div>
               )}
+              {onSetPortrait && (
+                <div className={styles.editIcon}>✎</div>
+              )}
             </div>
 
             {/* Info */}
             <div className={styles.info}>
               <div className={styles.seat}>#{player.seatNumber}</div>
-              <div className={styles.name}>{player.name}</div>
+              {editingPlayerId === player.id ? (
+                <input
+                  type="text"
+                  className={styles.nameInput}
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onBlur={() => handleNameSave(player.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleNameSave(player.id);
+                    if (e.key === 'Escape') handleNameCancel();
+                  }}
+                  autoFocus
+                  maxLength={20}
+                />
+              ) : (
+                <div
+                  className={`${styles.name} ${onSetName ? styles.editable : ''}`}
+                  onClick={() => handleNameClick(player)}
+                  title={onSetName ? "Click to edit name" : undefined}
+                >
+                  {player.name}
+                </div>
+              )}
               {player.role && (
                 <div
                   className={styles.role}
@@ -181,6 +248,17 @@ export default function PlayerGrid({
           </div>
         );
       })}
+
+      {/* Portrait Selector Modal */}
+      {portraitModalPlayer && (
+        <PortraitSelectorModal
+          isOpen={!!portraitModalPlayer}
+          onClose={() => setPortraitModalPlayer(null)}
+          onSelect={handlePortraitSelect}
+          currentPortrait={portraitModalPlayer.portrait}
+          playerName={portraitModalPlayer.name}
+        />
+      )}
     </div>
   );
 }

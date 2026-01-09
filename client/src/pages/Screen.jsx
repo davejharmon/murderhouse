@@ -1,12 +1,11 @@
 // client/src/pages/Screen.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
-import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus, ClientMsg } from '@shared/constants.js';
+import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus } from '@shared/constants.js';
 import styles from './Screen.module.css';
 
 export default function Screen() {
-  const { connected, gameState, currentSlide, slideQueue, connectAsScreen, send } = useGame();
-  const [processedSlideId, setProcessedSlideId] = useState(null);
+  const { connected, gameState, currentSlide, slideQueue, connectAsScreen } = useGame();
 
   // Connect as screen on mount
   useEffect(() => {
@@ -15,26 +14,7 @@ export default function Screen() {
     }
   }, [connected, connectAsScreen]);
 
-  // Handle auto-advance slides
-  useEffect(() => {
-    if (!currentSlide?.autoAdvance || !send) return;
-
-    // Prevent processing the same slide twice
-    if (currentSlide.id === processedSlideId) return;
-
-    const { delay } = currentSlide.autoAdvance;
-
-    // Mark this slide as processed
-    setProcessedSlideId(currentSlide.id);
-
-    const timer = setTimeout(() => {
-      // Send NEXT_SLIDE to server - CSS will handle the crossfade
-      send(ClientMsg.NEXT_SLIDE);
-    }, delay);
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlide?.id, currentSlide?.autoAdvance, send]);
+  // Auto-advance is now controlled by host, no per-slide auto-advance
 
   // Get player by ID
   const getPlayer = (id) => gameState?.players?.find((p) => p.id === id);
@@ -183,23 +163,80 @@ export default function Screen() {
   const renderGallery = (slide) => {
     const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
 
+    // Filter out dead werewolves from main gallery
+    const playersWithoutDeadWerewolves = players.filter(p =>
+      p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf'
+    );
+
+    // Get werewolf info from game state
+    const totalWerewolves = gameState?.totalWerewolves || 0;
+    const allPlayers = gameState?.players || [];
+
+    // Sort dead werewolves by death order (earliest first) - memoized for performance
+    const deadWerewolves = useMemo(() =>
+      allPlayers
+        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf')
+        .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
+      [allPlayers]
+    );
+
     return (
       <div key={slide.id} className={styles.slide}>
         {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+
+        {/* Main player gallery */}
         <div className={styles.gallery}>
-          {players.map((p) => (
-            <div
-              key={p.id}
-              className={`${styles.playerThumb} ${
-                p.status !== PlayerStatus.ALIVE ? styles.dead : ''
-              }`}
-            >
-              <img src={`/images/players/${p.portrait}`} alt={p.name} />
-              <span className={styles.thumbName}>{p.name}</span>
-            </div>
-          ))}
+          {playersWithoutDeadWerewolves.map((p) => {
+            const isDead = p.status !== PlayerStatus.ALIVE;
+
+            return (
+              <div
+                key={p.id}
+                className={`${styles.playerThumb} ${isDead ? styles.dead : ''}`}
+              >
+                <img src={`/images/players/${p.portrait}`} alt={p.name} />
+                <span className={styles.thumbName}>{p.name}</span>
+              </div>
+            );
+          })}
         </div>
+
         {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+
+        {/* Werewolf tracker section - only show during active game */}
+        {totalWerewolves > 0 && gameState?.phase !== GamePhase.LOBBY && (
+          <div className={styles.werewolfTracker}>
+            <div className={styles.gallery}>
+              {Array.from({ length: totalWerewolves }).map((_, index) => {
+                const deadWerewolf = deadWerewolves[index];
+
+                if (deadWerewolf) {
+                  // Show revealed dead werewolf
+                  return (
+                    <div
+                      key={`werewolf-${index}`}
+                      className={`${styles.playerThumb} ${styles.deadWerewolf}`}
+                    >
+                      <img src={`/images/players/${deadWerewolf.portrait}`} alt={deadWerewolf.name} />
+                      <span className={styles.thumbName}>{deadWerewolf.name}</span>
+                    </div>
+                  );
+                } else {
+                  // Show anonymous placeholder
+                  return (
+                    <div
+                      key={`werewolf-${index}`}
+                      className={`${styles.playerThumb} ${styles.anonWerewolf}`}
+                    >
+                      <img src="/images/players/anon.png" alt="Unknown Werewolf" />
+                      <span className={styles.thumbName}>WEREWOLF</span>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

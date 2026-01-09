@@ -111,6 +111,9 @@ export const SlideStyleColors = {
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 9;
 
+// Auto-advance delay for slides (in milliseconds)
+export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
+
 // Debug mode - enables testing tools
 export const DEBUG_MODE = true;
 

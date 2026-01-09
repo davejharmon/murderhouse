@@ -1,0 +1,89 @@
+/* client/src/components/PortraitSelectorModal.module.css */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.portraitOption {
+  position: relative;
+  aspect-ratio: 1;
+  cursor: pointer;
+  border: 3px solid transparent;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.portraitOption:hover {
+  border-color: #666;
+  transform: scale(1.05);
+}
+
+.portraitOption.selected {
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 12px rgba(126, 184, 218, 0.5);
+}
+
+.portraitImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.checkmark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--color-accent-blue);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+  padding-top: var(--space-md);
+  border-top: 1px solid #333;
+}
+
+.actions button {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid #333;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.actions button:hover:not(:disabled) {
+  background: #333;
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actions button.primary {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: white;
+}
+
+.actions button.primary:hover:not(:disabled) {
+  background: #5a9fc4;
+}

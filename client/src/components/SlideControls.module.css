@@ -40,3 +40,38 @@
   border-color: var(--color-accent-red);
   color: var(--color-accent-red);
 }
+
+.clearBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.autoAdvanceToggle {
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.autoAdvanceToggle label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.autoAdvanceToggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-accent-blue);
+}
+
+.autoAdvanceToggle label:hover span {
+  color: var(--color-accent-blue);
+}

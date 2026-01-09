@@ -6,6 +6,8 @@ export default function SlideControls({
   onNext,
   onPrev,
   onClear,
+  autoAdvanceEnabled,
+  onToggleAutoAdvance,
 }) {
   const { queue = [], currentIndex = -1 } = slideQueue;
   const total = queue.length;
@@ -40,14 +42,24 @@ export default function SlideControls({
         </button>
       </div>
 
-      {hasSlides && (
-        <button
-          className={styles.clearBtn}
-          onClick={onClear}
-        >
-          Clear All
-        </button>
-      )}
+      <button
+        className={styles.clearBtn}
+        onClick={onClear}
+        disabled={!hasSlides}
+      >
+        Clear All
+      </button>
+
+      <div className={styles.autoAdvanceToggle}>
+        <label>
+          <input
+            type="checkbox"
+            checked={autoAdvanceEnabled}
+            onChange={(e) => onToggleAutoAdvance(e.target.checked)}
+          />
+          <span>AUTO-ADVANCE</span>
+        </label>
+      </div>
     </section>
   );
 }

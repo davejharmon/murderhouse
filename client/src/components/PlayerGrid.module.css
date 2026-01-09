@@ -57,6 +57,19 @@
   width: 80px;
   height: 80px;
   margin: 0 auto var(--space-md);
+  transition: transform 0.2s ease;
+}
+
+.portrait.clickable {
+  cursor: pointer;
+}
+
+.portrait.clickable:hover {
+  transform: scale(1.05);
+}
+
+.portrait.clickable:hover .portraitImage {
+  border-color: var(--color-accent-blue);
 }
 
 .portraitImage {
@@ -65,6 +78,23 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border-color);
+  transition: border-color 0.2s ease;
+}
+
+.editIcon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--color-accent-blue);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border: 2px solid var(--color-bg-medium);
 }
 
 .disconnected {
@@ -92,6 +122,34 @@
   font-size: 1rem;
   font-weight: 500;
   text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.name.editable {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: -4px -8px;
+}
+
+.name.editable:hover {
+  color: var(--color-accent-blue);
+  background: rgba(126, 184, 218, 0.1);
+}
+
+.nameInput {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  background: var(--color-bg-dark);
+  border: 2px solid var(--color-accent-blue);
+  color: var(--color-text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+  width: 100%;
+  max-width: 180px;
 }
 
 .role {

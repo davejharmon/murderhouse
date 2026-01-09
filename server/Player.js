@@ -77,6 +77,7 @@ export class Player {
   kill(cause = 'unknown') {
     this.status = PlayerStatus.DEAD;
     this.deathCause = cause;
+    this.deathTimestamp = Date.now(); // Track when they died for ordering
     this.isProtected = false;
     return this;
   }
@@ -162,6 +163,8 @@ export class Player {
       role: this.status === PlayerStatus.DEAD ? this.role?.id : null,
       roleName: this.status === PlayerStatus.DEAD ? this.role?.name : null,
       roleColor: this.status === PlayerStatus.DEAD ? this.role?.color : null,
+      roleTeam: this.status === PlayerStatus.DEAD ? this.role?.team : null,
+      deathTimestamp: this.status === PlayerStatus.DEAD ? this.deathTimestamp : null,
     };
   }
 

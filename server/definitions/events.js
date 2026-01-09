@@ -220,9 +220,6 @@ const events = {
             title: 'NO PARDON',
             subtitle: `${condemned.name}'s fate is sealed`,
             style: SlideStyle.HOSTILE,
-            autoAdvance: {
-              delay: 1000, // 1 second (crossfade handled by CSS)
-            },
           },
           false
         );

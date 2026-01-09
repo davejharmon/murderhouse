@@ -1,7 +1,7 @@
 // client/src/pages/Host.jsx
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase } from '@shared/constants.js';
+import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
@@ -19,12 +19,52 @@ export default function Host() {
     connectAsHost,
   } = useGame();
 
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(() => {
+    // Load auto-advance preference from localStorage
+    const saved = localStorage.getItem('autoAdvanceEnabled');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const autoAdvanceTimerRef = useRef(null);
+
   // Connect as host on mount
   useEffect(() => {
     if (connected) {
       connectAsHost();
     }
   }, [connected, connectAsHost]);
+
+  // Persist auto-advance preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('autoAdvanceEnabled', JSON.stringify(autoAdvanceEnabled));
+  }, [autoAdvanceEnabled]);
+
+  // Auto-advance logic
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+
+    // Only auto-advance if enabled and there are more slides to show
+    if (!autoAdvanceEnabled || !slideQueue) return;
+
+    const { currentIndex = -1, queue = [] } = slideQueue;
+    const canAdvance = currentIndex < queue.length - 1;
+
+    if (canAdvance) {
+      autoAdvanceTimerRef.current = setTimeout(() => {
+        send(ClientMsg.NEXT_SLIDE);
+      }, AUTO_ADVANCE_DELAY);
+    }
+
+    // Cleanup timer on unmount or when dependencies change
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+    };
+  }, [autoAdvanceEnabled, slideQueue, send]);
 
   const phase = gameState?.phase || GamePhase.LOBBY;
   const isLobby = phase === GamePhase.LOBBY;
@@ -62,6 +102,10 @@ export default function Host() {
       send(ClientMsg.KICK_PLAYER, { playerId });
     }
   };
+  const handleSetName = (playerId, name) =>
+    send(ClientMsg.SET_NAME, { playerId, name });
+  const handleSetPortrait = (playerId, portrait) =>
+    send(ClientMsg.SET_PLAYER_PORTRAIT, { playerId, portrait });
   const handleGiveItem = (playerId, itemId) =>
     send(ClientMsg.GIVE_ITEM, { playerId, itemId });
   const handleRemoveItem = (playerId, itemId) =>
@@ -152,6 +196,8 @@ export default function Host() {
             onNext={handleNextSlide}
             onPrev={handlePrevSlide}
             onClear={handleClearSlides}
+            autoAdvanceEnabled={autoAdvanceEnabled}
+            onToggleAutoAdvance={setAutoAdvanceEnabled}
           />
         </aside>
 
@@ -165,6 +211,8 @@ export default function Host() {
             onKill={handleKillPlayer}
             onRevive={handleRevivePlayer}
             onKick={handleKickPlayer}
+            onSetName={handleSetName}
+            onSetPortrait={handleSetPortrait}
             onGiveItem={handleGiveItem}
             onRemoveItem={handleRemoveItem}
             onDebugAutoSelect={handleDebugAutoSelect}

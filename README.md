@@ -91,3 +91,59 @@ Game rules are declarative - roles and events defined in `/server/definitions/`.
 Set `DEBUG_MODE = true` in `shared/constants.js`:
 - Access `/debug` for 9-player grid view
 - Auto-select buttons on host dashboard
+
+## Known Technical Debt & Refactoring Opportunities
+
+### Complex Logic Consolidation
+
+**Hunter Revenge Logic** (Priority: High)
+- Currently scattered across 4 files: `Game.js` (death handling + slide queueing), `events.js` (event definition), `handlers/index.js` (selection)
+- Flow: `onDeath` passive → interrupt flag → event start → special slide logic → resolution
+- **Refactor Goal**: Create `HunterRevengeManager` class or consolidate into single `handleHunterRevenge()` method
+
+**Governor Pardon State Machine** (Priority: High)
+- Complex flow: Vote → Check eligibility → Set interrupt → Remove active event → Store pending resolution → Start pardon → onSelection resolves or queues execution
+- Multiple state transitions make execution flow hard to trace
+- **Refactor Goal**: Explicit state machine with states: `VOTE_RESOLVED` → `CHECK_PARDON` → `PARDON_EVENT` → `PARDON_DECISION` → `EXECUTION`
+
+### Pattern Inconsistencies
+
+**Event Outcome Naming** (Priority: Medium)
+- Some events return `victim`, others `eliminated`, some neither
+- Example: `vigil` uses `victim`, `vote` uses `eliminated`, `hunt` has neither
+- **Refactor Goal**: Standardize on single naming convention (recommend: `victim` for kills, `target` for non-lethal)
+
+**Silent Event Results** (Priority: Medium)
+- Some events use `silent: true` for "nothing happened" cases, others return full messages
+- Inconsistent handling across ~7 different event types
+- **Refactor Goal**: Document pattern or enforce consistent "no-op" handling
+
+**Pack State Broadcasting** (Priority: Medium)
+- Werewolf pack state broadcast logic duplicated 3 times in `handlers/index.js` and `Game.js`
+- Same conditional check: `(eventId === 'hunt' || eventId === 'kill') && player.role.team === Team.WEREWOLF`
+- **Refactor Goal**: Extract helper `shouldBroadcastPackState(eventId, player)`
+
+### Performance Optimizations
+
+**Player Events Lookup** (Priority: Medium)
+- `PlayerGrid.jsx` calls `getPlayerEvents()` for every player card with nested loops over eventParticipants
+- Runs on every render
+- **Refactor Goal**: Pre-compute reverse participant map or use `useMemo`
+
+**Vote Tally Sorting** (Priority: Low)
+- `Screen.jsx` converts and sorts tally on every render
+- Small dataset, but easy win with `useMemo`
+
+### Missing Validations
+
+**Custom Vote Description Length** (Priority: Medium)
+- `Game.js` validates description exists but no max length check
+- Could cause UI overflow issues
+
+**Runoff Round Limits** (Priority: Low)
+- Hard-coded limit of 3 runoff rounds with no validation or configurability
+- Consider making configurable constant
+
+---
+
+*This section tracks identified technical debt for future improvement. The codebase is well-structured overall; these are polish items, not critical issues.*

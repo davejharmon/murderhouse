@@ -97,10 +97,20 @@ export function createHandlers(game) {
     // === Player Actions ===
 
     [ClientMsg.SET_NAME]: (ws, payload) => {
-      const player = game.getPlayer(ws.playerId);
-      if (!player) return { success: false, error: 'Not a player' };
+      // Allow both players to set their own name and hosts to set any player's name
+      let player;
+      if (ws.clientType === 'host' && payload.playerId) {
+        // Host setting a player's name
+        player = game.getPlayer(payload.playerId);
+      } else {
+        // Player setting their own name
+        player = game.getPlayer(ws.playerId);
+      }
+
+      if (!player) return { success: false, error: 'Player not found' };
 
       player.name = payload.name.slice(0, 20); // Max 20 chars
+      game.persistPlayerCustomization(player);
       game.broadcastPlayerList();
       return { success: true };
     },
@@ -316,19 +326,9 @@ export function createHandlers(game) {
     // === Slide Controls ===
 
     [ClientMsg.NEXT_SLIDE]: (ws) => {
-      // Allow screens to advance if current slide has autoAdvance
-      const currentSlide = game.slideQueue[game.currentSlideIndex];
-      const isAutoAdvance = currentSlide?.autoAdvance;
-
-      if (ws.clientType !== 'host' && ws.clientType !== 'screen') {
-        return { success: false, error: 'Not host or screen' };
-      }
-
-      if (ws.clientType === 'screen' && !isAutoAdvance) {
-        return {
-          success: false,
-          error: 'Screen can only advance auto-advance slides',
-        };
+      // Only host can advance slides (screens no longer auto-advance)
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
       }
 
       game.nextSlide();
@@ -394,13 +394,26 @@ export function createHandlers(game) {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
-      const player = game.getPlayer(payload.playerId);
-      if (player) {
-        player.portrait = payload.portrait;
-        game.broadcastPlayerList();
-        return { success: true };
+
+      // Validate portrait filename
+      const validPortraits = [
+        'player1.png', 'player2.png', 'player3.png',
+        'player4.png', 'player5.png', 'player6.png',
+        'player7.png', 'player8.png', 'player9.png', 'anon.png'
+      ];
+      if (!validPortraits.includes(payload.portrait)) {
+        return { success: false, error: 'Invalid portrait' };
       }
-      return { success: false, error: 'Player not found' };
+
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
+      }
+
+      player.portrait = payload.portrait;
+      game.persistPlayerCustomization(player);
+      game.broadcastPlayerList();
+      return { success: true };
     },
 
     [ClientMsg.GIVE_ITEM]: (ws, payload) => {
