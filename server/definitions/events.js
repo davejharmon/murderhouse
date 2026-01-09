@@ -262,8 +262,8 @@ const events = {
     },
   },
 
-  vigilanteKill: {
-    id: 'vigilanteKill',
+  vigil: {
+    id: 'vigil',
     name: 'Vigilante Kill',
     description: 'Choose someone to eliminate. This is your only shot.',
     verb: 'shoot',
@@ -436,7 +436,7 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team === Team.WEREWOLF);
+        .filter((p) => p.role.id === 'alpha'); // Only alphas
     },
 
     validTargets: (actor, game) => {
@@ -711,6 +711,7 @@ const events = {
 
       game.killPlayer(victim.id, 'hunter');
 
+      const isNight = game.phase === GamePhase.NIGHT;
       return {
         success: true,
         victim,
@@ -718,8 +719,8 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: 'REVENGE',
-          subtitle: `${victim.name} was shot by the Hunter`,
+          title: 'HUNTER JUSTICE',
+          subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
           revealRole: true,
           style: SlideStyle.HOSTILE,
         },

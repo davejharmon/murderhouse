@@ -128,7 +128,8 @@ export default function PlayerConsole({
       };
     }
 
-    if (isDead) {
+    // Show eliminated message only if dead AND no active event (hunter revenge exception)
+    if (isDead && !hasActiveEvent) {
       return {
         primary: 'ELIMINATED',
         secondary: 'You are now a spectator',
@@ -295,13 +296,13 @@ export default function PlayerConsole({
 
       {/* Navigation and Action Controls */}
       <div className={styles.controls}>
-        {isDead && (
+        {isDead && !hasActiveEvent && (
           <div className={styles.spectatorMessage}>
             Spectator Mode
           </div>
         )}
 
-        {isAlive && phase !== GamePhase.LOBBY && (confirmedTarget || abstained || hasActiveEvent || inAbilityMode) && (
+        {(isAlive || hasActiveEvent) && phase !== GamePhase.LOBBY && (confirmedTarget || abstained || hasActiveEvent || inAbilityMode) && (
           <div className={styles.buttonGrid}>
             {/* UP Button */}
             <button

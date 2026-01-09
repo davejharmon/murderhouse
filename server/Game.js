@@ -299,6 +299,9 @@ export class Game {
       );
     }
 
+    // Don't show slide for hunter revenge here - it will be handled after the kill slide
+    // in resolveEvent
+
     this.broadcastGameState();
 
     return { success: true };
@@ -550,6 +553,20 @@ export class Game {
       // Default to immediate unless explicitly set to false
       const jumpTo = resolution.immediateSlide !== false;
       this.pushSlide(resolution.slide, jumpTo);
+    }
+
+    // If a hunter revenge event was just triggered, push its slide now (after the kill slide)
+    if (this.activeEvents.has('hunterRevenge')) {
+      const hunterInstance = this.activeEvents.get('hunterRevenge');
+      const hunter = this.getPlayer(hunterInstance.participants[0]);
+      if (hunter) {
+        this.pushSlide({
+          type: 'title',
+          title: "HUNTER'S REVENGE",
+          subtitle: `${hunter.name} is choosing a target with their dying breath...`,
+          style: SlideStyle.HOSTILE,
+        }, false); // Queue after the kill slide, don't jump to it
+      }
     }
 
     // Send private results (e.g., seer investigations)
@@ -892,7 +909,7 @@ export class Game {
           ? 'All werewolves have been eliminated.'
           : 'The werewolves have taken over.',
       style: winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
-    });
+    }, false); // Queue after death slide, don't jump to it
 
     this.broadcastGameState();
   }

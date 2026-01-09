@@ -197,7 +197,7 @@ const roles = {
     emoji: '🤠',
     events: {
       vote: {},
-      vigilanteKill: {
+      vigil: {
         priority: 55,
         canTarget: (player, target, game) => target.id !== player.id,
       },

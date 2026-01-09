@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ClientMsg, ServerMsg } from '@shared/constants.js';
 import PlayerConsole from '../components/PlayerConsole';
 import styles from './DebugGrid.module.css';
+import { Link } from 'react-router-dom';
 
 const PLAYER_COUNT = 9;
 const WS_URL = import.meta.env.DEV
@@ -27,10 +28,12 @@ export default function DebugGrid() {
 
       ws.onopen = () => {
         console.log(`[Player ${playerId}] Connected`);
-        ws.send(JSON.stringify({
-          type: ClientMsg.JOIN,
-          payload: { playerId }
-        }));
+        ws.send(
+          JSON.stringify({
+            type: ClientMsg.JOIN,
+            payload: { playerId },
+          })
+        );
         newConnections[playerId] = true;
         setConnections({ ...newConnections });
       };
@@ -44,25 +47,37 @@ export default function DebugGrid() {
             break;
 
           case ServerMsg.GAME_STATE:
-            setGameStates(prev => ({ ...prev, [playerId]: payload }));
+            setGameStates((prev) => ({ ...prev, [playerId]: payload }));
+
+            // Auto-rejoin if game was reset (in lobby and player not in player list)
+            if (payload.phase === 'lobby' && payload.players) {
+              const playerExists = payload.players.some(p => p.id === playerId);
+              if (!playerExists && ws.readyState === WebSocket.OPEN) {
+                console.log(`[Player ${playerId}] Auto-rejoining after reset`);
+                ws.send(JSON.stringify({
+                  type: ClientMsg.JOIN,
+                  payload: { playerId }
+                }));
+              }
+            }
             break;
 
           case ServerMsg.PLAYER_STATE:
-            setPlayerStates(prev => ({ ...prev, [playerId]: payload }));
+            setPlayerStates((prev) => ({ ...prev, [playerId]: payload }));
             // Clear event prompt if no pending events
             if (payload.pendingEvents && payload.pendingEvents.length === 0) {
-              setEventPrompts(prev => ({ ...prev, [playerId]: null }));
+              setEventPrompts((prev) => ({ ...prev, [playerId]: null }));
             }
             break;
 
           case ServerMsg.EVENT_PROMPT:
-            setEventPrompts(prev => ({ ...prev, [playerId]: payload }));
-            setEventResults(prev => ({ ...prev, [playerId]: null })); // Clear previous results
+            setEventPrompts((prev) => ({ ...prev, [playerId]: payload }));
+            setEventResults((prev) => ({ ...prev, [playerId]: null })); // Clear previous results
             break;
 
           case ServerMsg.EVENT_RESULT:
-            setEventResults(prev => ({ ...prev, [playerId]: payload }));
-            setEventPrompts(prev => ({ ...prev, [playerId]: null }));
+            setEventResults((prev) => ({ ...prev, [playerId]: payload }));
+            setEventPrompts((prev) => ({ ...prev, [playerId]: null }));
             break;
 
           case ServerMsg.ERROR:
@@ -89,7 +104,7 @@ export default function DebugGrid() {
 
     // Cleanup on unmount
     return () => {
-      Object.values(wsRefs.current).forEach(ws => ws.close());
+      Object.values(wsRefs.current).forEach((ws) => ws.close());
     };
   }, []);
 
@@ -114,8 +129,12 @@ export default function DebugGrid() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>DEBUG: 9-Player Grid</h1>
+        <Link to='/host' className={styles.controlLink}>
+          Host Dashboard
+        </Link>
         <div className={styles.info}>
-          Connected: {Object.values(connections).filter(Boolean).length}/{PLAYER_COUNT}
+          Connected: {Object.values(connections).filter(Boolean).length}/
+          {PLAYER_COUNT}
         </div>
       </div>
 
@@ -130,23 +149,16 @@ export default function DebugGrid() {
 
           // Determine selected and confirmed targets
           const selectedTarget = eventPrompt?.targets?.find(
-            t => t.id === playerState?.currentSelection
+            (t) => t.id === playerState?.currentSelection
           );
           const confirmedTarget = eventPrompt?.targets?.find(
-            t => t.id === playerState?.confirmedSelection
+            (t) => t.id === playerState?.confirmedSelection
           );
 
           const hasActiveEvent = (playerState?.pendingEvents?.length || 0) > 0;
 
           return (
             <div key={playerId} className={styles.playerCell}>
-              <div className={styles.playerHeader}>
-                <span className={styles.playerId}>Player {playerId}</span>
-                <span className={`${styles.status} ${connected ? styles.online : styles.offline}`}>
-                  {connected ? '●' : '○'}
-                </span>
-              </div>
-
               {playerState ? (
                 <PlayerConsole
                   player={playerState}

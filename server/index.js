@@ -8,7 +8,10 @@ import { createHandlers, handleMessage } from './handlers/index.js';
 const PORT = process.env.PORT || 8080;
 
 // Create WebSocket server
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({
+  port: PORT,
+  perMessageDeflate: false // Disable compression for faster connections
+});
 
 // Track all connected clients
 const clients = new Set();
