@@ -75,6 +75,10 @@ murderhouse/
 │   │   ├── roles.js        # Role definitions
 │   │   ├── events.js       # Event definitions
 │   │   └── items.js        # Item definitions
+│   ├── flows/              # Complex multi-step flows
+│   │   ├── InterruptFlow.js       # Base class for interrupt flows
+│   │   ├── HunterRevengeFlow.js   # Hunter death revenge logic
+│   │   └── GovernorPardonFlow.js  # Vote pardon logic
 │   ├── Game.js             # Game state machine
 │   ├── Player.js           # Player model
 │   └── index.js            # WebSocket server
@@ -84,7 +88,7 @@ murderhouse/
         └── components/     # Reusable UI components
 ```
 
-Game rules are declarative - roles and events defined in `/server/definitions/`. Events resolve by priority order (protect, investigate, shoot, vote, kill, suspect). See code for extension examples.
+Game rules are declarative - roles and events defined in `/server/definitions/`. Events resolve by priority order (protect, investigate, shoot, vote, kill, suspect). Complex interrupt-based features (Hunter revenge, Governor pardon) are consolidated in `/server/flows/` with explicit state machines.
 
 ## Debug Mode
 
@@ -94,24 +98,26 @@ Set `DEBUG_MODE = true` in `shared/constants.js`:
 
 ## Known Technical Debt & Refactoring Opportunities
 
-### Complex Logic Consolidation
+### Complex Logic Consolidation (COMPLETED)
 
-**Hunter Revenge Logic** (Priority: High)
-- Currently scattered across 4 files: `Game.js` (death handling + slide queueing), `events.js` (event definition), `handlers/index.js` (selection)
-- Flow: `onDeath` passive → interrupt flag → event start → special slide logic → resolution
-- **Refactor Goal**: Create `HunterRevengeManager` class or consolidate into single `handleHunterRevenge()` method
+Complex interrupt-based flows are now consolidated into self-contained Flow classes in `server/flows/`:
 
-**Governor Pardon State Machine** (Priority: High)
-- Complex flow: Vote → Check eligibility → Set interrupt → Remove active event → Store pending resolution → Start pardon → onSelection resolves or queues execution
-- Multiple state transitions make execution flow hard to trace
-- **Refactor Goal**: Explicit state machine with states: `VOTE_RESOLVED` → `CHECK_PARDON` → `PARDON_EVENT` → `PARDON_DECISION` → `EXECUTION`
+**Hunter Revenge** - `server/flows/HunterRevengeFlow.js`
+- State machine: `idle` -> `active` (hunter dies) -> `resolving` (target selected) -> `idle`
+- All logic in one file with explicit state documentation
+
+**Governor Pardon** - `server/flows/GovernorPardonFlow.js`
+- State machine: `idle` -> `active` (vote condemns) -> `pardoned` OR `executed` -> `idle`
+- Handles both governor role and phone item holders
+
+See `server/flows/InterruptFlow.js` for the base class pattern.
 
 ### Pattern Inconsistencies
 
-**Event Outcome Naming** (Priority: Medium)
-- Some events return `victim`, others `eliminated`, some neither
-- Example: `vigil` uses `victim`, `vote` uses `eliminated`, `hunt` has neither
-- **Refactor Goal**: Standardize on single naming convention (recommend: `victim` for kills, `target` for non-lethal)
+**Event Outcome Naming** (COMPLETED)
+- Standardized all lethal event outcomes to use `victim` property
+- Outcome types preserved for semantics: `eliminated` (day vote), `killed` (night kills)
+- Updated: `events.js`, `Game.js`, `GovernorPardonFlow.js`
 
 **Silent Event Results** (Priority: Medium)
 - Some events use `silent: true` for "nothing happened" cases, others return full messages

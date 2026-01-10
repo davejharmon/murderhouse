@@ -98,20 +98,20 @@ const events = {
           // After 3 runoffs, pick randomly
           const winnerId =
             frontrunners[Math.floor(Math.random() * frontrunners.length)];
-          const eliminated = game.getPlayer(winnerId);
+          const victim = game.getPlayer(winnerId);
           // Don't kill yet - let Game.js handle it after checking for governor
 
           return {
             success: true,
             outcome: 'eliminated',
-            eliminated,
+            victim,
             tally,
-            message: `After multiple runoffs, ${eliminated.name} was randomly selected for elimination.`,
+            message: `After multiple runoffs, ${victim.name} was randomly selected for elimination.`,
             slide: {
               type: 'death',
-              playerId: eliminated.id,
+              playerId: victim.id,
               title: 'ELIMINATED (TIE-BREAKER)',
-              subtitle: eliminated.name,
+              subtitle: victim.name,
               revealRole: true,
               style: SlideStyle.HOSTILE,
             },
@@ -128,20 +128,20 @@ const events = {
         };
       }
 
-      const eliminated = game.getPlayer(frontrunners[0]);
+      const victim = game.getPlayer(frontrunners[0]);
       // Don't kill yet - let Game.js handle it after checking for governor
 
       return {
         success: true,
         outcome: 'eliminated',
-        eliminated,
+        victim,
         tally,
-        message: `${eliminated.name} was eliminated.`,
+        message: `${victim.name} was eliminated.`,
         slide: {
           type: 'death',
-          playerId: eliminated.id,
+          playerId: victim.id,
           title: 'ELIMINATED',
-          subtitle: eliminated.name,
+          subtitle: victim.name,
           revealRole: true,
           style: SlideStyle.HOSTILE,
         },
@@ -149,115 +149,7 @@ const events = {
     },
   },
 
-  pardon: {
-    id: 'pardon',
-    name: 'Governor Pardon',
-    description: 'Will you pardon this player from elimination?',
-    verb: 'pardon',
-    verbPastTense: 'pardoned',
-    phase: [GamePhase.DAY],
-    priority: 100,
-    isInterrupt: true, // Triggered when vote condemns someone
-    playerResolved: true, // Player's selection auto-resolves the event
-
-    participants: (game) => {
-      return game.getAlivePlayers().filter((p) => {
-        return (
-          p.role.id === 'governor' ||
-          (p.hasItem('phone') && p.canUseItem('phone'))
-        );
-      });
-    },
-
-    validTargets: (actor, game) => {
-      const condemnedId = game.interruptData?.condemnedPlayerId;
-      if (!condemnedId) return [];
-      const condemned = game.getPlayer(condemnedId);
-      return condemned ? [condemned] : [];
-    },
-
-    aggregation: 'individual',
-    allowAbstain: true,
-
-    // Immediate action on selection - pardon or execute
-    onSelection: (governorId, targetId, game) => {
-      const governor = game.getPlayer(governorId);
-      const condemnedId = game.interruptData?.condemnedPlayerId;
-      const condemned = game.getPlayer(condemnedId);
-      const voteEventId = game.interruptData?.voteEventId || 'vote';
-
-      if (!condemned || !governor) return null;
-
-      // Consume phone if used
-      if (governor.hasItem('phone') && governor.canUseItem('phone')) {
-        game.consumeItem(governorId, 'phone');
-      }
-
-      // Check if governor pardoned (selected the condemned player)
-      if (targetId === condemnedId) {
-        // PARDON GRANTED
-        game.pendingResolutions.delete(voteEventId);
-
-        return {
-          message: `${governor.getNameWithEmoji()} pardoned ${condemned.getNameWithEmoji()}`,
-          slide: {
-            type: 'death',
-            playerId: condemned.id,
-            title: 'PARDONED',
-            subtitle: `${condemned.name} was not eliminated`,
-            revealRole: false,
-            style: SlideStyle.POSITIVE,
-          },
-        };
-      } else {
-        // PARDON DENIED - execute elimination
-        const pending = game.pendingResolutions.get(voteEventId);
-
-        // Push "no pardon" slide with auto-advance
-        game.pushSlide(
-          {
-            type: 'title',
-            title: 'NO PARDON',
-            subtitle: `${condemned.name}'s fate is sealed`,
-            style: SlideStyle.HOSTILE,
-          },
-          false
-        );
-
-        // Push execution slide
-        if (pending?.resolution?.slide) {
-          game.pushSlide(
-            {
-              ...pending.resolution.slide,
-              pendingEventId: voteEventId,
-            },
-            false
-          );
-        }
-
-        // Execute the elimination
-        game.killPlayer(condemnedId, 'eliminated');
-
-        // Jump to "no pardon" slide
-        game.currentSlideIndex = game.slideQueue.length - 2;
-        game.broadcastSlides();
-
-        return {
-          message: `${governor.getNameWithEmoji()} condemned ${condemned.getNameWithEmoji()}`,
-          slide: null, // Already pushed slides manually
-        };
-      }
-    },
-
-    resolve: (results, game) => {
-      // All actions already executed in onSelection, just clean up
-      game.interruptData = null;
-      return {
-        success: true,
-        silent: true, // No new slides or messages needed
-      };
-    },
-  },
+  // Note: pardon has been migrated to server/flows/GovernorPardonFlow.js
 
   vigil: {
     id: 'vigil',
@@ -679,51 +571,7 @@ const events = {
     },
   },
 
-  hunterRevenge: {
-    id: 'hunterRevenge',
-    name: "Hunter's Revenge",
-    description: 'Choose who to take with you.',
-    verb: 'shoot',
-    verbPastTense: 'shot',
-    phase: [GamePhase.DAY, GamePhase.NIGHT], // Can trigger in either
-    priority: 100, // Immediate
-    isInterrupt: true, // Pauses normal flow
-
-    participants: (game) => {
-      // Dynamically set when triggered
-      return game.interruptData?.hunter ? [game.interruptData.hunter] : [];
-    },
-
-    validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
-    },
-
-    aggregation: 'individual',
-    allowAbstain: false,
-
-    resolve: (results, game) => {
-      const [[hunterId, targetId]] = Object.entries(results);
-      const hunter = game.getPlayer(hunterId);
-      const victim = game.getPlayer(targetId);
-
-      game.killPlayer(victim.id, 'hunter');
-
-      const isNight = game.phase === GamePhase.NIGHT;
-      return {
-        success: true,
-        victim,
-        message: `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them`,
-        slide: {
-          type: 'death',
-          playerId: victim.id,
-          title: 'HUNTER JUSTICE',
-          subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
-          revealRole: true,
-          style: SlideStyle.HOSTILE,
-        },
-      };
-    },
-  },
+  // Note: hunterRevenge has been migrated to server/flows/HunterRevengeFlow.js
 
   shoot: {
     id: 'shoot',

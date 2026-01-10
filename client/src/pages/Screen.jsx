@@ -7,6 +7,23 @@ import styles from './Screen.module.css';
 export default function Screen() {
   const { connected, gameState, currentSlide, slideQueue, connectAsScreen } = useGame();
 
+  // Use currentSlide if available, otherwise fall back to slideQueue.current
+  // This handles timing gaps where SLIDE_QUEUE arrives but SLIDE hasn't yet
+  const effectiveSlide = currentSlide || slideQueue?.current;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[Screen] State update:', {
+      connected,
+      phase: gameState?.phase,
+      playerCount: gameState?.players?.length,
+      currentSlide: currentSlide ? { type: currentSlide.type, id: currentSlide.id } : null,
+      slideQueueCurrent: slideQueue?.current ? { type: slideQueue.current.type, id: slideQueue.current.id } : null,
+      effectiveSlide: effectiveSlide ? { type: effectiveSlide.type, id: effectiveSlide.id } : null,
+      slideQueueLen: slideQueue?.queue?.length,
+    });
+  }, [connected, gameState, currentSlide, slideQueue, effectiveSlide]);
+
   // Connect as screen on mount
   useEffect(() => {
     if (connected) {
@@ -27,34 +44,36 @@ export default function Screen() {
 
   // Render slide based on type
   const renderSlide = () => {
-    if (!currentSlide) {
+    if (!effectiveSlide) {
+      console.log('[Screen] renderSlide: no effectiveSlide, rendering fallback');
       return renderFallback();
     }
+    console.log('[Screen] renderSlide:', effectiveSlide.type);
 
-    switch (currentSlide.type) {
+    switch (effectiveSlide.type) {
       case SlideType.TITLE:
-        return renderTitle(currentSlide);
+        return renderTitle(effectiveSlide);
 
       case SlideType.PLAYER_REVEAL:
-        return renderPlayerReveal(currentSlide);
+        return renderPlayerReveal(effectiveSlide);
 
       case SlideType.VOTE_TALLY:
-        return renderVoteTally(currentSlide);
+        return renderVoteTally(effectiveSlide);
 
       case SlideType.GALLERY:
-        return renderGallery(currentSlide);
+        return renderGallery(effectiveSlide);
 
       case SlideType.COUNTDOWN:
-        return renderCountdown(currentSlide);
+        return renderCountdown(effectiveSlide);
 
       case SlideType.DEATH:
-        return renderDeath(currentSlide);
+        return renderDeath(effectiveSlide);
 
       case SlideType.VICTORY:
-        return renderVictory(currentSlide);
+        return renderVictory(effectiveSlide);
 
       default:
-        return renderTitle(currentSlide);
+        return renderTitle(effectiveSlide);
     }
   };
 
@@ -106,7 +125,10 @@ export default function Screen() {
 
   const renderPlayerReveal = (slide) => {
     const player = getPlayer(slide.playerId);
-    if (!player) return null;
+    if (!player) {
+      // Player data not yet synced - show fallback
+      return renderFallback();
+    }
 
     return (
       <div key={slide.id} className={styles.slide}>
@@ -160,6 +182,15 @@ export default function Screen() {
     );
   };
 
+  // Memoize dead werewolves at top level (hooks can't be inside render functions)
+  const allPlayers = gameState?.players || [];
+  const deadWerewolves = useMemo(() =>
+    allPlayers
+      .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf')
+      .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
+    [allPlayers]
+  );
+
   const renderGallery = (slide) => {
     const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
 
@@ -170,15 +201,6 @@ export default function Screen() {
 
     // Get werewolf info from game state
     const totalWerewolves = gameState?.totalWerewolves || 0;
-    const allPlayers = gameState?.players || [];
-
-    // Sort dead werewolves by death order (earliest first) - memoized for performance
-    const deadWerewolves = useMemo(() =>
-      allPlayers
-        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf')
-        .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
-      [allPlayers]
-    );
 
     return (
       <div key={slide.id} className={styles.slide}>
@@ -251,7 +273,10 @@ export default function Screen() {
 
   const renderDeath = (slide) => {
     const player = getPlayer(slide.playerId);
-    if (!player) return null;
+    if (!player) {
+      // Player data not yet synced - show fallback
+      return renderFallback();
+    }
 
     return (
       <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
@@ -291,7 +316,7 @@ export default function Screen() {
 
   return (
     <div className={styles.container}>
-      <div key={currentSlide?.id} className={styles.slideWrapper}>
+      <div key={effectiveSlide?.id} className={styles.slideWrapper}>
         {renderSlide()}
       </div>
     </div>

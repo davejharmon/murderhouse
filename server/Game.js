@@ -14,6 +14,7 @@ import { Player, resetSeatCounter } from './Player.js';
 import { getRole, roleDistribution } from './definitions/roles.js';
 import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
+import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
 
 export class Game {
   constructor(broadcast) {
@@ -22,6 +23,13 @@ export class Game {
     this.slideIdCounter = 0; // Unique ID counter for slides
     this.screen = null;
     this.playerCustomizations = new Map(); // Persist player names/portraits across resets
+
+    // Initialize interrupt flows (these persist across resets)
+    this.flows = new Map([
+      [HunterRevengeFlow.id, new HunterRevengeFlow(this)],
+      [GovernorPardonFlow.id, new GovernorPardonFlow(this)],
+    ]);
+
     this.reset();
   }
 
@@ -54,8 +62,16 @@ export class Game {
     this.slideQueue = [];
     this.currentSlideIndex = -1;
 
-    // Interrupt handling (e.g., Hunter)
+    // Legacy interrupt handling (flows now manage their own state)
+    // Kept for backwards compatibility during transition
     this.interruptData = null;
+
+    // Reset all flows
+    if (this.flows) {
+      for (const flow of this.flows.values()) {
+        flow.cleanup();
+      }
+    }
 
     // Log
     this.log = [];
@@ -330,8 +346,7 @@ export class Game {
       );
     }
 
-    // Don't show slide for hunter revenge here - it will be handled after the kill slide
-    // in resolveEvent
+    // Note: Flow-managed events (like hunterRevenge) are started via _startFlowEvent()
 
     this.broadcastGameState();
 
@@ -347,6 +362,83 @@ export class Game {
       }
     }
     return { success: true, started };
+  }
+
+  /**
+   * Start an event managed by an InterruptFlow
+   * This is a lightweight event creation for flows that manage their own logic.
+   *
+   * @param {string} eventId - The event/flow ID
+   * @param {Object} options - Event configuration
+   * @param {string} options.name - Display name
+   * @param {string} options.description - Description shown to players
+   * @param {string} options.verb - Action verb (e.g., 'shoot')
+   * @param {string[]} options.participants - Player IDs who can act
+   * @param {Function} options.getValidTargets - (playerId) => Player[]
+   * @param {boolean} options.allowAbstain - Whether abstaining is allowed
+   * @param {boolean} options.playerResolved - Whether to auto-resolve on selection
+   */
+  _startFlowEvent(eventId, options) {
+    const {
+      name,
+      description,
+      verb = eventId,
+      participants,
+      getValidTargets,
+      allowAbstain = false,
+      playerResolved = false,
+    } = options;
+
+    // Create a minimal event-like object for the activeEvents map
+    const eventInstance = {
+      event: {
+        id: eventId,
+        name,
+        description,
+        verb,
+        validTargets: (actor) => getValidTargets(actor.id),
+        allowAbstain,
+        playerResolved,
+      },
+      results: {},
+      participants,
+      startedAt: Date.now(),
+      managedByFlow: true, // Flag to indicate this is flow-managed
+    };
+
+    this.activeEvents.set(eventId, eventInstance);
+
+    // Notify participants
+    for (const playerId of participants) {
+      const player = this.getPlayer(playerId);
+      if (!player) continue;
+
+      player.pendingEvents.add(eventId);
+      player.clearSelection();
+
+      const targets = getValidTargets(playerId);
+
+      // Auto-select if only one target
+      if (targets.length === 1) {
+        player.currentSelection = targets[0].id;
+      }
+
+      // Send updated player state
+      player.syncState(this);
+
+      // Send event prompt
+      player.send(ServerMsg.EVENT_PROMPT, {
+        eventId,
+        eventName: name,
+        description,
+        targets: targets.map((t) => t.getPublicState()),
+      });
+    }
+
+    this.addLog(`${name} event started`);
+    this.broadcastGameState();
+
+    return { success: true };
   }
 
   startCustomVote(config) {
@@ -472,6 +564,21 @@ export class Game {
         instance.results[playerId] = targetId;
         player.confirmedSelection = targetId;
 
+        // Check if this event is managed by a flow
+        if (instance.managedByFlow) {
+          const flow = this.flows.get(eventId);
+          if (flow) {
+            const result = flow.onSelection(playerId, targetId);
+            if (result) {
+              this.broadcastGameState();
+              return { success: true, eventId, flowResult: result };
+            }
+          }
+          // Flow handled it, skip normal event processing
+          this.broadcastGameState();
+          return { success: true, eventId };
+        }
+
         // Broadcast pack state for werewolf events
         if (
           (eventId === 'hunt' || eventId === 'kill') &&
@@ -558,7 +665,7 @@ export class Game {
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
-    // Governor pardon is handled in the event's onSelection callback
+    // Note: Governor pardon is now handled by GovernorPardonFlow
 
     // Clear player event state
     for (const pid of participants) {
@@ -586,19 +693,7 @@ export class Game {
       this.pushSlide(resolution.slide, jumpTo);
     }
 
-    // If a hunter revenge event was just triggered, push its slide now (after the kill slide)
-    const hunterInstance = this.activeEvents.get('hunterRevenge');
-    if (hunterInstance?.participants?.[0]) {
-      const hunter = this.getPlayer(hunterInstance.participants[0]);
-      if (hunter) {
-        this.pushSlide({
-          type: 'title',
-          title: "HUNTER'S REVENGE",
-          subtitle: `${hunter.name} is choosing a target with their dying breath...`,
-          style: SlideStyle.HOSTILE,
-        }, false); // Queue after the kill slide, don't jump to it
-      }
-    }
+    // Note: Hunter revenge slide is now handled by HunterRevengeFlow.trigger()
 
     // Send private results (e.g., seer investigations)
     if (resolution.investigations) {
@@ -703,73 +798,26 @@ export class Game {
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
-    // Check if governor pardon should be triggered
-    if (resolution.outcome === 'eliminated' && resolution.eliminated) {
-      const governors = this.getAlivePlayers().filter((p) => {
-        return (
-          p.role.id === 'governor' ||
-          (p.hasItem('phone') && p.canUseItem('phone'))
-        );
-      });
+    // Check if governor pardon flow should trigger
+    const pardonFlow = this.flows.get('pardon');
+    if (pardonFlow.canTrigger({ voteEventId: eventId, resolution, instance })) {
+      // Jump to tally slide
+      this.currentSlideIndex = this.slideQueue.length - 1;
+      this.broadcastSlides();
 
-      if (governors.length > 0) {
-        // Set interrupt data for pardon event
-        this.interruptData = {
-          condemnedPlayerId: resolution.eliminated.id,
-          voteEventId: eventId,
-        };
+      // Remove vote from active events before starting pardon
+      this.activeEvents.delete(eventId);
 
-        // Jump to tally slide
-        this.currentSlideIndex = this.slideQueue.length - 1;
-        this.broadcastSlides();
+      // Broadcast state so clients know vote is done
+      this.broadcastGameState();
 
-        // Store pending resolution (may be cancelled by pardon)
-        this.pendingResolutions.set(eventId, {
-          eventId,
-          instance,
-          resolution,
-          tallySlideIndex: this.slideQueue.length - 1,
-          resultSlideIndex: this.slideQueue.length, // Will be pushed later
-        });
+      // Start the pardon flow (handles slides, event creation, prompts)
+      pardonFlow.trigger({ voteEventId: eventId, resolution, instance });
 
-        // Remove vote from active events before starting pardon
-        // This ensures the client doesn't see both events simultaneously
-        this.activeEvents.delete(eventId);
-
-        // Remove vote from governors' pending events
-        // (other players keep it since they're not participating in pardon)
-        for (const governor of governors) {
-          governor.pendingEvents.delete(eventId);
-        }
-
-        // Broadcast state so clients know vote is done
-        this.broadcastGameState();
-
-        // Start governor pardon event (this will clear governor's selection and send EVENT_PROMPT)
-        this.startEvent('pardon');
-
-        // Push condemned slide (queued, not auto-play)
-        this.pushSlide(
-          {
-            type: 'death',
-            playerId: resolution.eliminated.id,
-            title: 'CONDEMNED',
-            subtitle: 'Calling the governor...',
-            revealRole: false,
-            style: SlideStyle.WARNING,
-          },
-          false
-        );
-
-        this.addLog(
-          `${resolution.eliminated.name} awaits the governor's decision...`
-        );
-
-        return { success: true, showingTally: true, awaitingPardon: true };
-      } else {
-        // No governor available - execute elimination immediately
-        this.killPlayer(resolution.eliminated.id, 'eliminated');
-      }
+      return { success: true, showingTally: true, awaitingPardon: true };
+    } else if (resolution.outcome === 'eliminated' && resolution.victim) {
+      // No governor available - execute elimination immediately
+      this.killPlayer(resolution.victim.id, 'eliminated');
     }
 
     // Push result slide (but mark it as pending execution)
@@ -956,19 +1004,21 @@ export class Game {
 
     // Check for onDeath passives
     if (player.role.passives?.onDeath) {
-      const result = player.role.passives.onDeath(player, cause, this);
+      const deathResult = player.role.passives.onDeath(player, cause, this);
 
-      // Handle Hunter interrupt
-      if (result?.interrupt) {
-        this.interruptData = { hunter: player };
-        this.startEvent('hunterRevenge');
+      // Check if any flow should trigger
+      for (const flow of this.flows.values()) {
+        if (flow.canTrigger({ player, cause, deathResult })) {
+          flow.trigger({ player, cause, deathResult });
+          break; // Only one interrupt flow at a time
+        }
       }
 
-      // Handle Alpha promotion
-      if (result?.message) {
-        this.addLog(result.message);
+      // Handle non-interrupt results (like Alpha promotion message)
+      if (deathResult?.message && !deathResult.interrupt) {
+        this.addLog(deathResult.message);
         // Broadcast pack state so all werewolves see new roles
-        if (result.message.includes('Alpha')) {
+        if (deathResult.message.includes('Alpha')) {
           this.broadcastPackState();
         }
       }
@@ -1144,19 +1194,29 @@ export class Game {
   }
 
   broadcastSlides() {
+    const currentSlide = this.getCurrentSlide();
+    console.log('[Game] broadcastSlides:', {
+      queueLen: this.slideQueue.length,
+      currentIndex: this.currentSlideIndex,
+      hasCurrentSlide: !!currentSlide,
+      slideType: currentSlide?.type,
+      hasScreen: !!this.screen,
+    });
+
     const slideData = {
       queue: this.slideQueue,
       currentIndex: this.currentSlideIndex,
-      current: this.getCurrentSlide(),
+      current: currentSlide,
     };
     this.broadcast(ServerMsg.SLIDE_QUEUE, slideData);
 
     if (this.screen) {
-      this.sendToScreen(ServerMsg.SLIDE, this.getCurrentSlide());
+      this.sendToScreen(ServerMsg.SLIDE, currentSlide);
     }
   }
 
   sendToScreen(type, payload) {
+    console.log('[Game] sendToScreen:', { type, hasScreen: !!this.screen, readyState: this.screen?.readyState });
     if (this.screen && this.screen.readyState === 1) {
       this.screen.send(JSON.stringify({ type, payload }));
     }
