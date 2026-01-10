@@ -32,6 +32,19 @@ import { getRole } from './roles.js';
  *   // Slide to show when event resolves (optional)
  *   resultSlide?: (result, game) => Slide,
  * }
+ *
+ * Resolution Result Pattern:
+ * - All results must include { success: true/false }
+ * - Lethal outcomes use { outcome: 'killed'|'eliminated', victim: Player }
+ * - Non-lethal outcomes use { outcome: '...', target?: Player }
+ *
+ * Silent Flag Pattern:
+ * - { silent: true } = No logging, no eventResults, no slides
+ *   Use for: internal no-ops (player abstained, nothing happened)
+ * - { silent: false } or omitted = Log message, add to eventResults
+ *   Use for: actions that happened but don't need public display
+ * - { slide: {...} } = Show slide on big screen
+ *   Use for: public outcomes that players need to see
  */
 
 const events = {
@@ -346,11 +359,7 @@ const events = {
       }
 
       if (Object.keys(tally).length === 0) {
-        return {
-          success: true,
-          outcome: 'no-kill',
-          message: 'The werewolves chose not to kill.',
-        };
+        return { success: true, silent: true };
       }
 
       // Find victim (ties resolved randomly)

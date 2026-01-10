@@ -119,10 +119,12 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 - Outcome types preserved for semantics: `eliminated` (day vote), `killed` (night kills)
 - Updated: `events.js`, `Game.js`, `GovernorPardonFlow.js`
 
-**Silent Event Results** (Priority: Medium)
-- Some events use `silent: true` for "nothing happened" cases, others return full messages
-- Inconsistent handling across ~7 different event types
-- **Refactor Goal**: Document pattern or enforce consistent "no-op" handling
+**Silent Event Results** (COMPLETED)
+- Documented pattern in `events.js` schema comment
+- `silent: true` = internal no-ops (no logging, no slides)
+- Omit silent = log message to host
+- Include `slide` = show on big screen
+- Fixed `kill` event no-kill case to use `silent: true` for consistency
 
 **Pack State Broadcasting** (Priority: Medium)
 - Werewolf pack state broadcast logic duplicated 3 times in `handlers/index.js` and `Game.js`
