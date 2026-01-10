@@ -126,10 +126,9 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 - Include `slide` = show on big screen
 - Fixed `kill` event no-kill case to use `silent: true` for consistency
 
-**Pack State Broadcasting** (Priority: Medium)
-- Werewolf pack state broadcast logic duplicated 3 times in `handlers/index.js` and `Game.js`
-- Same conditional check: `(eventId === 'hunt' || eventId === 'kill') && player.role.team === Team.WEREWOLF`
-- **Refactor Goal**: Extract helper `shouldBroadcastPackState(eventId, player)`
+**Pack State Broadcasting** (COMPLETED)
+- Extracted `game.shouldBroadcastPackState(eventId, player)` helper method
+- Updated all 3 call sites in `Game.js` and `handlers/index.js`
 
 ### Performance Optimizations
 

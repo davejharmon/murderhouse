@@ -580,11 +580,7 @@ export class Game {
         }
 
         // Broadcast pack state for werewolf events
-        if (
-          (eventId === 'hunt' || eventId === 'kill') &&
-          player.role &&
-          player.role.team === Team.WEREWOLF
-        ) {
+        if (this.shouldBroadcastPackState(eventId, player)) {
           this.broadcastPackState();
         }
 
@@ -613,6 +609,11 @@ export class Game {
           }
           if (result?.message) {
             this.addLog(result.message);
+          }
+          // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
+          const hunterFlow = this.flows.get('hunterRevenge');
+          if (hunterFlow?.phase === 'active') {
+            hunterFlow.pushPendingSlide();
           }
         }
 
@@ -693,7 +694,11 @@ export class Game {
       this.pushSlide(resolution.slide, jumpTo);
     }
 
-    // Note: Hunter revenge slide is now handled by HunterRevengeFlow.trigger()
+    // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
+    const hunterFlow = this.flows.get('hunterRevenge');
+    if (hunterFlow?.phase === 'active') {
+      hunterFlow.pushPendingSlide();
+    }
 
     // Send private results (e.g., seer investigations)
     if (resolution.investigations) {
@@ -827,6 +832,12 @@ export class Game {
         pendingEventId: eventId, // Mark this slide as requiring execution
       };
       this.pushSlide(resultSlide, false);
+    }
+
+    // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
+    const hunterFlow = this.flows.get('hunterRevenge');
+    if (hunterFlow?.phase === 'active') {
+      hunterFlow.pushPendingSlide();
     }
 
     // Jump to tally slide
@@ -1073,6 +1084,11 @@ export class Game {
         if (linked && !linked.isAlive) {
           this.killPlayer(player.id, 'heartbreak');
           this.addLog(`${player.name} died of a broken heart`);
+          // Push hunter revenge slide if triggered (no death slide for heartbreak)
+          const hunterFlow = this.flows.get('hunterRevenge');
+          if (hunterFlow?.phase === 'active' && hunterFlow?.state?.pendingSlide) {
+            hunterFlow.pushPendingSlide();
+          }
         }
       }
     }
@@ -1180,6 +1196,14 @@ export class Game {
   broadcastPlayerList() {
     const players = this.getPlayersBySeat().map((p) => p.getPublicState());
     this.broadcast(ServerMsg.PLAYER_LIST, players);
+  }
+
+  // Check if pack state should be broadcast for this event/player combination
+  shouldBroadcastPackState(eventId, player) {
+    return (
+      (eventId === 'hunt' || eventId === 'kill') &&
+      player?.role?.team === Team.WEREWOLF
+    );
   }
 
   // Broadcast pack state to all werewolves (for real-time hunt updates)

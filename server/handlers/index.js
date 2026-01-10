@@ -129,11 +129,7 @@ export function createHandlers(game) {
           player.syncState(game);
 
           // Broadcast pack state for werewolf events (real-time selection sharing)
-          if (
-            (eventId === 'hunt' || eventId === 'kill') &&
-            player.role &&
-            player.role.team === Team.WEREWOLF
-          ) {
+          if (game.shouldBroadcastPackState(eventId, player)) {
             game.broadcastPackState();
           }
 
@@ -157,11 +153,7 @@ export function createHandlers(game) {
           player.syncState(game);
 
           // Broadcast pack state for werewolf events (real-time selection sharing)
-          if (
-            (eventId === 'hunt' || eventId === 'kill') &&
-            player.role &&
-            player.role.team === Team.WEREWOLF
-          ) {
+          if (game.shouldBroadcastPackState(eventId, player)) {
             game.broadcastPackState();
           }
 
@@ -373,6 +365,11 @@ export function createHandlers(game) {
         return { success: false, error: 'Not host' };
       }
       game.killPlayer(payload.playerId, 'host');
+      // Push hunter revenge slide if hunter flow is active (no death slide for host kills)
+      const hunterFlow = game.flows.get('hunterRevenge');
+      if (hunterFlow?.phase === 'active') {
+        hunterFlow.pushPendingSlide();
+      }
       game.broadcastGameState();
       return { success: true };
     },
