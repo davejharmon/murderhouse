@@ -1,6 +1,10 @@
 // client/src/components/PlayerGrid.jsx
 import { useState } from 'react';
-import { PlayerStatus, DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
+import {
+  PlayerStatus,
+  DEBUG_MODE,
+  AVAILABLE_ITEMS,
+} from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
 import styles from './PlayerGrid.module.css';
 
@@ -32,7 +36,10 @@ export default function PlayerGrid({
 
   // Handle name edit save
   const handleNameSave = (playerId) => {
-    if (editedName.trim() && editedName !== players.find(p => p.id === playerId)?.name) {
+    if (
+      editedName.trim() &&
+      editedName !== players.find((p) => p.id === playerId)?.name
+    ) {
       onSetName(playerId, editedName.trim());
     }
     setEditingPlayerId(null);
@@ -63,11 +70,34 @@ export default function PlayerGrid({
     return events;
   };
 
+  // Compute who is targeting each player
+  const getTargeters = (targetId) => {
+    const targeters = [];
+    for (const player of players) {
+      // Check if this player is targeting the target (either hovering or confirmed)
+      const isHovering = player.currentSelection === targetId;
+      const isConfirmed = player.confirmedSelection === targetId;
+
+      if (isHovering || isConfirmed) {
+        targeters.push({
+          playerId: player.id,
+          seatNumber: player.seatNumber,
+          roleColor: player.roleColor || '#888',
+          confirmed: isConfirmed,
+        });
+      }
+    }
+    // Sort by seat number for consistent display
+    return targeters.sort((a, b) => a.seatNumber - b.seatNumber);
+  };
+
   if (players.length === 0) {
     return (
       <div className={styles.empty}>
         <div className={styles.emptyText}>WAITING FOR PLAYERS</div>
-        <div className={styles.emptySubtext}>Players can join at /player/1 through /player/9</div>
+        <div className={styles.emptySubtext}>
+          Players can join at /player/1 through /player/9
+        </div>
       </div>
     );
   }
@@ -78,18 +108,25 @@ export default function PlayerGrid({
         const isAlive = player.status === PlayerStatus.ALIVE;
         const events = getPlayerEvents(player.id);
         const isActive = events.length > 0;
-        const hasUncommittedSelection = isActive && !player.confirmedSelection && !player.abstained;
+        const hasUncommittedSelection =
+          isActive && !player.confirmedSelection && !player.abstained;
+
+        const targeters = getTargeters(player.id);
 
         return (
-          <div 
+          <div
             key={player.id}
-            className={`${styles.card} ${!isAlive ? styles.dead : ''} ${isActive ? styles.active : ''}`}
+            className={`${styles.card} ${!isAlive ? styles.dead : ''} ${
+              isActive ? styles.active : ''
+            }`}
           >
             {/* Portrait */}
             <div
-              className={`${styles.portrait} ${onSetPortrait ? styles.clickable : ''}`}
+              className={`${styles.portrait} ${
+                onSetPortrait ? styles.clickable : ''
+              }`}
               onClick={() => onSetPortrait && setPortraitModalPlayer(player)}
-              title={onSetPortrait ? "Click to change portrait" : undefined}
+              title={onSetPortrait ? 'Click to change portrait' : undefined}
             >
               <img
                 src={`/images/players/${player.portrait}`}
@@ -99,9 +136,6 @@ export default function PlayerGrid({
               {!player.connected && (
                 <div className={styles.disconnected}>●</div>
               )}
-              {onSetPortrait && (
-                <div className={styles.editIcon}>✎</div>
-              )}
             </div>
 
             {/* Info */}
@@ -109,7 +143,7 @@ export default function PlayerGrid({
               <div className={styles.seat}>#{player.seatNumber}</div>
               {editingPlayerId === player.id ? (
                 <input
-                  type="text"
+                  type='text'
                   className={styles.nameInput}
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
@@ -123,9 +157,11 @@ export default function PlayerGrid({
                 />
               ) : (
                 <div
-                  className={`${styles.name} ${onSetName ? styles.editable : ''}`}
+                  className={`${styles.name} ${
+                    onSetName ? styles.editable : ''
+                  }`}
                   onClick={() => handleNameClick(player)}
-                  title={onSetName ? "Click to edit name" : undefined}
+                  title={onSetName ? 'Click to edit name' : undefined}
                 >
                   {player.name}
                 </div>
@@ -151,7 +187,7 @@ export default function PlayerGrid({
                         <button
                           className={styles.removeItemBtn}
                           onClick={() => onRemoveItem(player.id, item.id)}
-                          title="Remove item"
+                          title='Remove item'
                         >
                           ✕
                         </button>
@@ -165,11 +201,33 @@ export default function PlayerGrid({
             {/* Event indicators */}
             {events.length > 0 && (
               <div className={styles.events}>
-                {events.map(eventId => (
+                {events.map((eventId) => (
                   <span key={eventId} className={styles.eventBadge}>
                     {eventId}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Targeting pips - shows who is targeting this player */}
+            {targeters.length > 0 && (
+              <div className={styles.targetingPips}>
+                {targeters.map(
+                  ({ playerId, seatNumber, roleColor, confirmed }) => (
+                    <div
+                      key={playerId}
+                      className={`${styles.targetPip} ${
+                        confirmed ? styles.confirmed : styles.hovering
+                      }`}
+                      style={{ backgroundColor: roleColor }}
+                      title={`Player #${seatNumber} ${
+                        confirmed ? '(confirmed)' : '(selecting)'
+                      }`}
+                    >
+                      {seatNumber}
+                    </div>
+                  )
+                )}
               </div>
             )}
 
@@ -179,7 +237,7 @@ export default function PlayerGrid({
                 <button
                   className={styles.actionBtn}
                   onClick={() => onKick(player.id)}
-                  title="Kick player"
+                  title='Kick player'
                 >
                   ✕
                 </button>
@@ -189,7 +247,7 @@ export default function PlayerGrid({
                     <button
                       className={`${styles.actionBtn} ${styles.kill}`}
                       onClick={() => onKill(player.id)}
-                      title="Kill player"
+                      title='Kill player'
                     >
                       💀
                     </button>
@@ -197,22 +255,24 @@ export default function PlayerGrid({
                     <button
                       className={`${styles.actionBtn} ${styles.revive}`}
                       onClick={() => onRevive(player.id)}
-                      title="Revive player"
+                      title='Revive player'
                     >
                       ↺
                     </button>
                   )}
 
                   {/* Debug Auto-Select Button */}
-                  {DEBUG_MODE && hasUncommittedSelection && onDebugAutoSelect && (
-                    <button
-                      className={`${styles.actionBtn} ${styles.debug}`}
-                      onClick={() => onDebugAutoSelect(player.id)}
-                      title="Debug: Auto-select random target"
-                    >
-                      🎲
-                    </button>
-                  )}
+                  {DEBUG_MODE &&
+                    hasUncommittedSelection &&
+                    onDebugAutoSelect && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.debug}`}
+                        onClick={() => onDebugAutoSelect(player.id)}
+                        title='Debug: Auto-select random target'
+                      >
+                        🎲
+                      </button>
+                    )}
 
                   {/* Give Item Dropdown */}
                   {onGiveItem && (
@@ -224,11 +284,13 @@ export default function PlayerGrid({
                           e.target.value = '';
                         }
                       }}
-                      defaultValue=""
-                      title="Give item"
+                      defaultValue=''
+                      title='Give item'
                     >
-                      <option value="" disabled>+ Item</option>
-                      {AVAILABLE_ITEMS.map(itemId => (
+                      <option value='' disabled>
+                        + Item
+                      </option>
+                      {AVAILABLE_ITEMS.map((itemId) => (
                         <option key={itemId} value={itemId}>
                           {itemId}
                         </option>

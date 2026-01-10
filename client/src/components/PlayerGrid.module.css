@@ -285,3 +285,37 @@
   background: var(--bg-dark);
   color: #ffc107;
 }
+
+/* Targeting pips - shows who is selecting this player */
+.targetingPips {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 3;
+}
+
+.targetPip {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #000;
+  transition: all 0.2s ease;
+}
+
+.targetPip.hovering {
+  opacity: 0.5;
+}
+
+.targetPip.confirmed {
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
