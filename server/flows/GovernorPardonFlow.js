@@ -222,6 +222,9 @@ export class GovernorPardonFlow extends InterruptFlow {
   resolveExecution(governor, condemned) {
     this.phase = 'resolving';
 
+    // Remember queue position before adding slides
+    const noPardonSlideIndex = this.game.slideQueue.length;
+
     // Push "no pardon" slide
     this.game.pushSlide(
       {
@@ -233,28 +236,19 @@ export class GovernorPardonFlow extends InterruptFlow {
       false
     );
 
-    // Push execution slide from the cached vote resolution
+    // Execute the elimination (this triggers hunter revenge if applicable)
+    this.game.killPlayer(this.state.condemnedId, 'eliminated');
+
+    // Queue execution death slide (queueDeathSlide handles hunter revenge automatically)
     if (this.state.voteResolution?.slide) {
-      this.game.pushSlide(
-        {
-          ...this.state.voteResolution.slide,
-        },
+      this.game.queueDeathSlide(
+        { ...this.state.voteResolution.slide },
         false
       );
     }
 
-    // Execute the elimination
-    this.game.killPlayer(this.state.condemnedId, 'eliminated');
-
-    // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
-    const hunterFlow = this.game.flows.get('hunterRevenge');
-    const hunterRevengeTriggered = hunterFlow?.phase === 'active' && hunterFlow?.state?.pendingSlide;
-    if (hunterRevengeTriggered) {
-      hunterFlow.pushPendingSlide();
-    }
-
-    // Jump to "no pardon" slide (adjust index if hunter revenge slide was added)
-    this.game.currentSlideIndex = this.game.slideQueue.length - (hunterRevengeTriggered ? 3 : 2);
+    // Jump to "NO PARDON" slide
+    this.game.currentSlideIndex = noPardonSlideIndex;
     this.game.broadcastSlides();
 
     const result = {

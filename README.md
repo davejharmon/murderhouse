@@ -130,6 +130,15 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 - Extracted `game.shouldBroadcastPackState(eventId, player)` helper method
 - Updated all 3 call sites in `Game.js` and `handlers/index.js`
 
+**Slide Management** (COMPLETED)
+- Slides are purely presentation - they don't trigger game logic
+- All public events create slides consistently
+- Centralized `queueDeathSlide()` handles death slides + hunter revenge follow-up
+- Removed deferred execution pattern (`pendingEventId`, `pendingResolutions`)
+- Vote resolution now executes immediately, then queues tally + death slides
+- Heartbreak deaths now get their own death slides
+- Host advances through slides manually or via auto-advance
+
 ### Performance Optimizations
 
 **Player Events Lookup** (Priority: Medium)

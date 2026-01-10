@@ -92,10 +92,11 @@ export class HunterRevengeFlow extends InterruptFlow {
 
   /**
    * Push the pending announcement slide (called after death slide is pushed)
+   * Uses jumpTo=false so host sees death slide first, then advances to this
    */
   pushPendingSlide() {
     if (this.state?.pendingSlide) {
-      this.game.pushSlide(this.state.pendingSlide, true);
+      this.game.pushSlide(this.state.pendingSlide, false);
       this.state.pendingSlide = null;
     }
   }
@@ -164,8 +165,8 @@ export class HunterRevengeFlow extends InterruptFlow {
 
     const isNight = this.state.triggeredInPhase === GamePhase.NIGHT;
 
-    // Push the result slide
-    this.game.pushSlide(
+    // Queue the death slide (queueDeathSlide handles nested hunter revenge automatically)
+    this.game.queueDeathSlide(
       {
         type: 'death',
         playerId: victim.id,

@@ -56,7 +56,6 @@ export class Game {
     this.pendingEvents = []; // Events that can be started this phase
     this.activeEvents = new Map(); // eventId -> { event, results, participants }
     this.eventResults = []; // Results to reveal at end of phase
-    this.pendingResolutions = new Map(); // eventId -> { resolution, slideIndex }
 
     // Slide queue for big screen
     this.slideQueue = [];
@@ -605,15 +604,15 @@ export class Game {
         if (instance.event.onSelection) {
           const result = instance.event.onSelection(playerId, targetId, this);
           if (result?.slide) {
-            this.pushSlide(result.slide, true); // Push and jump to slide immediately
+            // Use queueDeathSlide for death slides (handles hunter revenge automatically)
+            if (result.slide.type === 'death') {
+              this.queueDeathSlide(result.slide, true);
+            } else {
+              this.pushSlide(result.slide, true);
+            }
           }
           if (result?.message) {
             this.addLog(result.message);
-          }
-          // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
-          const hunterFlow = this.flows.get('hunterRevenge');
-          if (hunterFlow?.phase === 'active') {
-            hunterFlow.pushPendingSlide();
           }
         }
 
@@ -689,15 +688,13 @@ export class Game {
 
     // Push result slide if defined
     if (resolution.slide) {
-      // Default to immediate unless explicitly set to false
       const jumpTo = resolution.immediateSlide !== false;
-      this.pushSlide(resolution.slide, jumpTo);
-    }
-
-    // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
-    const hunterFlow = this.flows.get('hunterRevenge');
-    if (hunterFlow?.phase === 'active') {
-      hunterFlow.pushPendingSlide();
+      // Use queueDeathSlide for death slides (handles hunter revenge automatically)
+      if (resolution.slide.type === 'death') {
+        this.queueDeathSlide(resolution.slide, jumpTo);
+      } else {
+        this.pushSlide(resolution.slide, jumpTo);
+      }
     }
 
     // Send private results (e.g., seer investigations)
@@ -771,7 +768,7 @@ export class Game {
   }
 
   showTallyAndDeferResolution(eventId, instance) {
-    const { event, results } = instance;
+    const { event, results, participants } = instance;
 
     // Compute tally from results
     const tally = {};
@@ -780,92 +777,43 @@ export class Game {
       tally[targetId] = (tally[targetId] || 0) + 1;
     }
 
-    // Create and push tally slide
-    const tallySlide = {
-      type: 'voteTally',
-      tally,
-      title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
-      subtitle: `${Object.keys(tally).length} candidates received votes`,
-    };
-
-    this.pushSlide(tallySlide, false); // Don't jump yet
-
-    // Pre-compute the resolution (but don't apply effects yet)
+    // Pre-compute the resolution
     const resolution = event.resolve(results, this);
 
     // If this is a runoff, handle it immediately
     if (resolution.runoff === true) {
+      // Push tally slide showing the tie
+      this.pushSlide({
+        type: 'voteTally',
+        tally,
+        title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
+        subtitle: 'Tied vote - runoff required',
+      }, true);
       this.addLog(resolution.message);
-      // Jump to tally slide to show the tie
-      this.currentSlideIndex = this.slideQueue.length - 1;
-      this.broadcastSlides();
-      // Trigger runoff
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
     // Check if governor pardon flow should trigger
     const pardonFlow = this.flows.get('pardon');
     if (pardonFlow.canTrigger({ voteEventId: eventId, resolution, instance })) {
-      // Jump to tally slide
-      this.currentSlideIndex = this.slideQueue.length - 1;
-      this.broadcastSlides();
+      // Push tally slide
+      this.pushSlide({
+        type: 'voteTally',
+        tally,
+        title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
+        subtitle: `${Object.keys(tally).length} candidates received votes`,
+      }, true);
 
       // Remove vote from active events before starting pardon
       this.activeEvents.delete(eventId);
-
-      // Broadcast state so clients know vote is done
       this.broadcastGameState();
 
-      // Start the pardon flow (handles slides, event creation, prompts)
+      // Start the pardon flow (handles execution, slides, cleanup)
       pardonFlow.trigger({ voteEventId: eventId, resolution, instance });
-
       return { success: true, showingTally: true, awaitingPardon: true };
-    } else if (resolution.outcome === 'eliminated' && resolution.victim) {
-      // No governor available - execute elimination immediately
-      this.killPlayer(resolution.victim.id, 'eliminated');
     }
 
-    // Push result slide (but mark it as pending execution)
-    if (resolution.slide) {
-      const resultSlide = {
-        ...resolution.slide,
-        pendingEventId: eventId, // Mark this slide as requiring execution
-      };
-      this.pushSlide(resultSlide, false);
-    }
-
-    // Push hunter revenge slide AFTER the death slide (if hunter flow is active)
-    const hunterFlow = this.flows.get('hunterRevenge');
-    if (hunterFlow?.phase === 'active') {
-      hunterFlow.pushPendingSlide();
-    }
-
-    // Jump to tally slide
-    this.currentSlideIndex = this.slideQueue.length - 2; // Tally is second-to-last
-    this.broadcastSlides();
-
-    // Store pending resolution
-    this.pendingResolutions.set(eventId, {
-      eventId,
-      instance,
-      resolution,
-      tallySlideIndex: this.slideQueue.length - 2,
-      resultSlideIndex: this.slideQueue.length - 1,
-    });
-
-    this.addLog(`${eventId} tally displayed, awaiting resolution`);
-
-    return { success: true, showingTally: true };
-  }
-
-  executePendingResolution(eventId) {
-    const pending = this.pendingResolutions.get(eventId);
-    if (!pending) {
-      return { success: false, error: 'No pending resolution for this event' };
-    }
-
-    const { instance, resolution } = pending;
-    const { participants } = instance;
+    // === Execute immediately (no deferred resolution) ===
 
     // Clear player event state
     for (const pid of participants) {
@@ -873,34 +821,47 @@ export class Game {
       if (player) {
         player.pendingEvents.delete(eventId);
         player.clearSelection();
+        player.syncState(this);
       }
     }
 
-    // Handle resolution
+    // Remove from active events
     this.activeEvents.delete(eventId);
-    this.pendingResolutions.delete(eventId);
 
+    // Log and record result
     if (!resolution.silent) {
       this.eventResults.push(resolution);
       this.addLog(resolution.message);
     }
 
-    // Send private results (e.g., seer investigations)
-    if (resolution.investigations) {
-      for (const inv of resolution.investigations) {
-        const seer = this.getPlayer(inv.seerId);
-        if (seer) {
-          seer.send(ServerMsg.EVENT_RESULT, {
-            eventId: 'investigate',
-            message: inv.privateMessage,
-            data: inv,
-          });
-        }
+    // Execute the kill if there's a victim
+    if (resolution.outcome === 'eliminated' && resolution.victim) {
+      this.killPlayer(resolution.victim.id, 'eliminated');
+    }
+
+    // Queue slides: tally first, then result
+    this.pushSlide({
+      type: 'voteTally',
+      tally,
+      title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
+      subtitle: `${Object.keys(tally).length} candidates received votes`,
+    }, false);
+
+    if (resolution.slide) {
+      // Use queueDeathSlide for death slides (handles hunter revenge automatically)
+      if (resolution.slide.type === 'death') {
+        this.queueDeathSlide(resolution.slide, false);
+      } else {
+        this.pushSlide(resolution.slide, false);
       }
     }
 
-    // Check for linked death (Cupid lovers)
-    this.checkLinkedDeaths();
+    // Jump to tally (host advances to see result)
+    this.currentSlideIndex = this.slideQueue.length - (resolution.slide ? 2 : 1);
+    this.broadcastSlides();
+
+    // Check for linked deaths (already handled in killPlayer, but ensure it runs)
+    // Note: killPlayer already calls checkLinkedDeaths()
 
     // Check win condition
     const winner = this.checkWinCondition();
@@ -909,7 +870,6 @@ export class Game {
     }
 
     this.broadcastGameState();
-
     return { success: true, resolution };
   }
 
@@ -1084,17 +1044,58 @@ export class Game {
         if (linked && !linked.isAlive) {
           this.killPlayer(player.id, 'heartbreak');
           this.addLog(`${player.name} died of a broken heart`);
-          // Push hunter revenge slide if triggered (no death slide for heartbreak)
-          const hunterFlow = this.flows.get('hunterRevenge');
-          if (hunterFlow?.phase === 'active' && hunterFlow?.state?.pendingSlide) {
-            hunterFlow.pushPendingSlide();
-          }
+          // Queue heartbreak death slide (queueDeathSlide handles hunter revenge automatically)
+          this.queueDeathSlide(this.createDeathSlide(player, 'heartbreak'), false);
         }
       }
     }
   }
 
   // === Slide Management ===
+
+  // Centralized death slide queuing - handles hunter revenge follow-up automatically
+  queueDeathSlide(slide, jumpTo = true) {
+    // Push the death slide
+    this.pushSlide(slide, jumpTo);
+
+    // Automatically queue hunter revenge announcement if flow is active
+    const hunterFlow = this.flows.get('hunterRevenge');
+    if (hunterFlow?.phase === 'active' && hunterFlow?.state?.pendingSlide) {
+      hunterFlow.pushPendingSlide();
+    }
+  }
+
+  // Create a death slide for a given cause (used when events don't provide custom slides)
+  createDeathSlide(player, cause) {
+    const titles = {
+      eliminated: 'ELIMINATED',
+      werewolf: 'MURDERED',
+      vigilante: 'VIGILANTE JUSTICE',
+      shot: 'GUNSHOT',
+      hunter: 'HUNTER JUSTICE',
+      heartbreak: 'HEARTBROKEN',
+      host: 'REMOVED',
+    };
+
+    const subtitles = {
+      eliminated: player.name,
+      werewolf: player.name,
+      vigilante: `${player.name} was killed in the night`,
+      shot: `${player.name} was shot`,
+      hunter: `${player.name} was killed`,
+      heartbreak: `${player.name} died of a broken heart`,
+      host: `${player.name} was removed by the host`,
+    };
+
+    return {
+      type: 'death',
+      playerId: player.id,
+      title: titles[cause] || 'DEAD',
+      subtitle: subtitles[cause] || player.name,
+      revealRole: true,
+      style: SlideStyle.HOSTILE,
+    };
+  }
 
   pushSlide(slide, jumpTo = true) {
     const slideWithId = { ...slide, id: `slide-${++this.slideIdCounter}` };
@@ -1110,15 +1111,6 @@ export class Game {
   nextSlide() {
     if (this.currentSlideIndex < this.slideQueue.length - 1) {
       this.currentSlideIndex++;
-
-      // Check if the NEW slide we just moved to has a pending resolution
-      const nextSlide = this.getCurrentSlide();
-      if (nextSlide?.pendingEventId) {
-        const eventId = nextSlide.pendingEventId;
-        // Execute the pending resolution
-        this.executePendingResolution(eventId);
-      }
-
       this.broadcastSlides();
     }
   }

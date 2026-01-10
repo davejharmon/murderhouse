@@ -364,12 +364,13 @@ export function createHandlers(game) {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
-      game.killPlayer(payload.playerId, 'host');
-      // Push hunter revenge slide if hunter flow is active (no death slide for host kills)
-      const hunterFlow = game.flows.get('hunterRevenge');
-      if (hunterFlow?.phase === 'active') {
-        hunterFlow.pushPendingSlide();
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
       }
+      game.killPlayer(payload.playerId, 'host');
+      // Queue death slide (queueDeathSlide handles hunter revenge automatically)
+      game.queueDeathSlide(game.createDeathSlide(player, 'host'), true);
       game.broadcastGameState();
       return { success: true };
     },
