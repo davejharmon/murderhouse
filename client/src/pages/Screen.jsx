@@ -130,6 +130,9 @@ export default function Screen() {
       return renderFallback();
     }
 
+    // Get voters who voted for this player (for vote elimination slides)
+    const voters = (slide.voterIds || []).map(getPlayer).filter(Boolean);
+
     return (
       <div key={slide.id} className={styles.slide}>
         <div className={styles.playerReveal}>
@@ -148,32 +151,68 @@ export default function Screen() {
             </p>
           )}
         </div>
+        {voters.length > 0 && (
+          <div className={styles.votersSection}>
+            <div className={styles.votersGallery}>
+              {voters.map((voter) => (
+                <div key={voter.id} className={styles.voterThumb}>
+                  <img src={`/images/players/${voter.portrait}`} alt={voter.name} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
   const renderVoteTally = (slide) => {
-    const { tally, title, subtitle } = slide;
+    const { tally, voters, frontrunners, anonymousVoting, title, subtitle } = slide;
 
     // Convert tally to sorted array
     const sorted = Object.entries(tally || {})
-      .map(([id, count]) => ({ player: getPlayer(id), count }))
+      .map(([id, count]) => ({
+        player: getPlayer(id),
+        count,
+        voterIds: voters?.[id] || [],
+        isFrontrunner: frontrunners?.includes(id) || false,
+      }))
       .filter((entry) => entry.player)
       .sort((a, b) => b.count - a.count);
 
     return (
       <div key={slide.id} className={styles.slide}>
-        <h1 className={styles.title}>{title || 'VOTE RESULTS'}</h1>
+        <h1 className={styles.title}>{title || 'VOTES'}</h1>
         <div className={styles.tallyList}>
-          {sorted.map(({ player, count }) => (
-            <div key={player.id} className={styles.tallyRow}>
+          {sorted.map(({ player, count, voterIds, isFrontrunner }) => (
+            <div
+              key={player.id}
+              className={`${styles.tallyRow} ${isFrontrunner ? styles.tallyRowFrontrunner : ''}`}
+            >
               <img
                 src={`/images/players/${player.portrait}`}
                 alt={player.name}
                 className={styles.tallyPortrait}
               />
               <span className={styles.tallyName}>{player.name}</span>
-              <span className={styles.tallyCount}>{count}</span>
+              {anonymousVoting ? (
+                <span className={styles.tallyCount}>{count}</span>
+              ) : (
+                <div className={styles.tallyVoters}>
+                  {voterIds.map((voterId) => {
+                    const voter = getPlayer(voterId);
+                    return voter ? (
+                      <img
+                        key={voterId}
+                        src={`/images/players/${voter.portrait}`}
+                        alt={voter.name}
+                        title={voter.name}
+                        className={styles.tallyVoterPortrait}
+                      />
+                    ) : null;
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </div>

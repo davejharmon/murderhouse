@@ -767,28 +767,64 @@ export class Game {
     return { success: true };
   }
 
-  showTallyAndDeferResolution(eventId, instance) {
-    const { event, results, participants } = instance;
-
-    // Compute tally from results
+  // Build vote tally slide data with all necessary info for rendering
+  buildTallySlide(eventId, results, event, outcome) {
+    // Compute tally counts and voter lists
     const tally = {};
+    const voters = {}; // candidateId -> [voterId, ...]
     for (const [voterId, targetId] of Object.entries(results)) {
       if (targetId === null) continue;
       tally[targetId] = (tally[targetId] || 0) + 1;
+      if (!voters[targetId]) voters[targetId] = [];
+      voters[targetId].push(voterId);
     }
+
+    // Find frontrunners (candidates with max votes)
+    const maxVotes = Math.max(...Object.values(tally), 0);
+    const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
+    const isTied = frontrunners.length > 1;
+
+    // Determine title and subtitle based on outcome
+    let title = isTied ? 'VOTES TIED' : 'VOTES';
+    let subtitle;
+    switch (outcome.type) {
+      case 'runoff':
+        subtitle = 'Tiebreaker vote starting soon';
+        break;
+      case 'random':
+        subtitle = 'Selecting random frontrunner';
+        break;
+      case 'selected':
+        subtitle = `${outcome.selectedName} has been selected`;
+        break;
+      case 'no-selection':
+        subtitle = 'No one was selected';
+        break;
+      default:
+        subtitle = `${Object.keys(tally).length} candidates received votes`;
+    }
+
+    return {
+      type: 'voteTally',
+      tally,
+      voters,
+      frontrunners,
+      anonymousVoting: event.anonymousVoting ?? false,
+      title,
+      subtitle,
+    };
+  }
+
+  showTallyAndDeferResolution(eventId, instance) {
+    const { event, results, participants } = instance;
 
     // Pre-compute the resolution
     const resolution = event.resolve(results, this);
 
     // If this is a runoff, handle it immediately
     if (resolution.runoff === true) {
-      // Push tally slide showing the tie
-      this.pushSlide({
-        type: 'voteTally',
-        tally,
-        title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
-        subtitle: 'Tied vote - runoff required',
-      }, true);
+      const tallySlide = this.buildTallySlide(eventId, results, event, { type: 'runoff' });
+      this.pushSlide(tallySlide, true);
       this.addLog(resolution.message);
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
@@ -796,13 +832,9 @@ export class Game {
     // Check if governor pardon flow should trigger
     const pardonFlow = this.flows.get('pardon');
     if (pardonFlow.canTrigger({ voteEventId: eventId, resolution, instance })) {
-      // Push tally slide
-      this.pushSlide({
-        type: 'voteTally',
-        tally,
-        title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
-        subtitle: `${Object.keys(tally).length} candidates received votes`,
-      }, true);
+      const selectedName = resolution.victim?.name || 'Unknown';
+      const tallySlide = this.buildTallySlide(eventId, results, event, { type: 'selected', selectedName });
+      this.pushSlide(tallySlide, true);
 
       // Remove vote from active events before starting pardon
       this.activeEvents.delete(eventId);
@@ -839,18 +871,29 @@ export class Game {
       this.killPlayer(resolution.victim.id, 'eliminated');
     }
 
+    // Determine outcome type for tally slide
+    let outcomeInfo;
+    if (resolution.outcome === 'eliminated' && resolution.victim) {
+      outcomeInfo = { type: 'selected', selectedName: resolution.victim.name };
+    } else if (resolution.outcome === 'no-kill') {
+      outcomeInfo = { type: 'no-selection' };
+    } else if (resolution.tally && resolution.message?.includes('randomly')) {
+      outcomeInfo = { type: 'random' };
+    } else {
+      outcomeInfo = { type: 'selected', selectedName: resolution.victim?.name || 'Unknown' };
+    }
+
     // Queue slides: tally first, then result
-    this.pushSlide({
-      type: 'voteTally',
-      tally,
-      title: eventId === 'vote' ? 'VOTE TALLY' : 'CUSTOM VOTE TALLY',
-      subtitle: `${Object.keys(tally).length} candidates received votes`,
-    }, false);
+    const tallySlide = this.buildTallySlide(eventId, results, event, outcomeInfo);
+    this.pushSlide(tallySlide, false);
 
     if (resolution.slide) {
       // Use queueDeathSlide for death slides (handles hunter revenge automatically)
       if (resolution.slide.type === 'death') {
-        this.queueDeathSlide(resolution.slide, false);
+        // Add voter IDs to death slide for vote results (shows who voted for elimination)
+        const victimId = resolution.victim?.id;
+        const voterIds = victimId ? tallySlide.voters[victimId] || [] : [];
+        this.queueDeathSlide({ ...resolution.slide, voterIds }, false);
       } else {
         this.pushSlide(resolution.slide, false);
       }
@@ -1067,14 +1110,17 @@ export class Game {
 
   // Create a death slide for a given cause (used when events don't provide custom slides)
   createDeathSlide(player, cause) {
+    const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+    const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
+
     const titles = {
-      eliminated: 'ELIMINATED',
-      werewolf: 'MURDERED',
-      vigilante: 'VIGILANTE JUSTICE',
-      shot: 'GUNSHOT',
-      hunter: 'HUNTER JUSTICE',
-      heartbreak: 'HEARTBROKEN',
-      host: 'REMOVED',
+      eliminated: `${teamName} ELIMINATED`,
+      werewolf: `${teamName} MURDERED`,
+      vigilante: `${teamName} KILLED`,
+      shot: `${teamName} KILLED`,
+      hunter: `${teamName} KILLED`,
+      heartbreak: `${teamName} HEARTBROKEN`,
+      host: `${teamName} REMOVED`,
     };
 
     const subtitles = {
@@ -1090,7 +1136,7 @@ export class Game {
     return {
       type: 'death',
       playerId: player.id,
-      title: titles[cause] || 'DEAD',
+      title: titles[cause] || `${teamName} DEAD`,
       subtitle: subtitles[cause] || player.name,
       revealRole: true,
       style: SlideStyle.HOSTILE,

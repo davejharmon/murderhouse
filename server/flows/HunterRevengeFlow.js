@@ -164,13 +164,15 @@ export class HunterRevengeFlow extends InterruptFlow {
     this.game.killPlayer(victim.id, 'hunter');
 
     const isNight = this.state.triggeredInPhase === GamePhase.NIGHT;
+    const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+    const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
 
     // Queue the death slide (queueDeathSlide handles nested hunter revenge automatically)
     this.game.queueDeathSlide(
       {
         type: 'death',
         playerId: victim.id,
-        title: 'HUNTER JUSTICE',
+        title: `${teamName} KILLED`,
         subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
         revealRole: true,
         style: SlideStyle.HOSTILE,

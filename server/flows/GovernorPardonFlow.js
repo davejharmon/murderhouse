@@ -241,8 +241,12 @@ export class GovernorPardonFlow extends InterruptFlow {
 
     // Queue execution death slide (queueDeathSlide handles hunter revenge automatically)
     if (this.state.voteResolution?.slide) {
+      // Get voter IDs from the original vote instance
+      const voterIds = Object.entries(this.state.voteInstance?.results || {})
+        .filter(([, targetId]) => targetId === this.state.condemnedId)
+        .map(([voterId]) => voterId);
       this.game.queueDeathSlide(
-        { ...this.state.voteResolution.slide },
+        { ...this.state.voteResolution.slide, voterIds },
         false
       );
     }

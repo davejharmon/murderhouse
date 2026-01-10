@@ -198,6 +198,27 @@
   color: var(--color-accent-amber);
 }
 
+.tallyRowFrontrunner {
+  border: 3px solid var(--color-accent-amber);
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
+}
+
+.tallyVoters {
+  display: flex;
+  gap: 0.5vw;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 30vw;
+}
+
+.tallyVoterPortrait {
+  width: 3.5vw;
+  height: 3.5vw;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-accent-amber);
+}
+
 /* Countdown */
 .countdown {
   font-family: var(--font-mono);
@@ -231,6 +252,34 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Voters Gallery (shown on elimination death slides) */
+.votersSection {
+  margin-top: 4vh;
+  padding-top: 2vh;
+  border-top: 2px solid rgba(201, 76, 76, 0.3);
+}
+
+.votersGallery {
+  display: flex;
+  gap: 1vw;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.voterThumb {
+  width: 5vw;
+  height: 5vw;
+}
+
+.voterThumb img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #c94c4c;
+  filter: sepia(0.3) saturate(2) hue-rotate(-30deg);
 }
 
 /* Victory Slide */

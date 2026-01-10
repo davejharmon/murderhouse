@@ -56,6 +56,7 @@ const events = {
     verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
     priority: 50,
+    anonymousVoting: false, // If true, show vote counts; if false, show voter portraits
 
     participants: (game) => game.getAlivePlayers(),
 
@@ -114,6 +115,8 @@ const events = {
           const victim = game.getPlayer(winnerId);
           // Don't kill yet - let Game.js handle it after checking for governor
 
+          const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+          const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
           return {
             success: true,
             outcome: 'eliminated',
@@ -123,7 +126,7 @@ const events = {
             slide: {
               type: 'death',
               playerId: victim.id,
-              title: 'ELIMINATED (TIE-BREAKER)',
+              title: `${teamName} ELIMINATED`,
               subtitle: victim.name,
               revealRole: true,
               style: SlideStyle.HOSTILE,
@@ -144,6 +147,8 @@ const events = {
       const victim = game.getPlayer(frontrunners[0]);
       // Don't kill yet - let Game.js handle it after checking for governor
 
+      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         success: true,
         outcome: 'eliminated',
@@ -153,7 +158,7 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: 'ELIMINATED',
+          title: `${teamName} ELIMINATED`,
           subtitle: victim.name,
           revealRole: true,
           style: SlideStyle.HOSTILE,
@@ -216,6 +221,8 @@ const events = {
         // Kill the target
         game.killPlayer(target.id, 'vigilante');
 
+        const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+        const teamName = teamDisplayNames[target.role?.team] || 'PLAYER';
         kills.push({
           vigilanteId,
           vigilante,
@@ -226,7 +233,7 @@ const events = {
           slide: {
             type: 'death',
             playerId: target.id,
-            title: 'VIGILANTE JUSTICE',
+            title: `${teamName} KILLED`,
             subtitle: `${target.name} was killed in the night`,
             revealRole: true,
             style: SlideStyle.HOSTILE,
@@ -390,6 +397,8 @@ const events = {
 
       game.killPlayer(victim.id, 'werewolf');
 
+      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         success: true,
         outcome: 'killed',
@@ -398,7 +407,7 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: 'MURDERED',
+          title: `${teamName} MURDERED`,
           subtitle: victim.name,
           revealRole: true,
           style: SlideStyle.HOSTILE,
@@ -635,13 +644,15 @@ const events = {
       // Consume the pistol use
       game.consumeItem(shooterId, 'pistol');
 
+      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()}`,
         slide: {
           type: 'death',
           playerId: victim.id,
           shooterId: shooter.id,
-          title: 'GUNSHOT',
+          title: `${teamName} KILLED`,
           subtitle: `${shooter.name} shot ${victim.name}!`,
           revealRole: true,
           style: SlideStyle.HOSTILE,
@@ -666,6 +677,7 @@ const events = {
     verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
     priority: 45, // Before vote (50), after shoot (40)
+    anonymousVoting: false, // If true, show vote counts; if false, show voter portraits
 
     participants: (game) => game.getAlivePlayers(),
 
