@@ -55,7 +55,7 @@ const roles = {
     team: Team.WEREWOLF,
     description: 'The pack leader who makes the final kill.',
     color: '#c94c4c',
-    emoji: '🐺👑',
+    emoji: '👑',
     events: {
       vote: {},
       kill: {
