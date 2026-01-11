@@ -230,6 +230,7 @@ export class Player {
         id: itemDef.id,
         uses: itemDef.maxUses,
         maxUses: itemDef.maxUses,
+        idleActivatable: itemDef.idleActivatable ?? false,
       });
     }
 

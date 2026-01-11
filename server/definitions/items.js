@@ -9,6 +9,8 @@
  *   name: string,         // Display name
  *   description: string,  // Flavor text shown to player
  *   maxUses: number,      // Maximum uses (-1 for unlimited)
+ *   idleActivatable: boolean, // If true, player can activate when idle (like pistol)
+ *                             // If false, item is situational (like phone during pardon flow)
  *
  *   // Events this item bestows (future: items could modify existing events)
  *   events: {
@@ -35,6 +37,7 @@ const items = {
     name: 'Pistol',
     description: 'A deadly weapon. One shot. Make it count.',
     maxUses: 1,
+    idleActivatable: true, // Can be used when player has no active event
     events: {},
     passives: {},
   },
@@ -44,6 +47,7 @@ const items = {
     name: 'Phone',
     description: 'Call the governor for a one-time pardon. Use it wisely.',
     maxUses: 1,
+    idleActivatable: false, // Only usable during pardon flow, not from idle
     events: {},
     passives: {},
   },

@@ -34,12 +34,16 @@ export default function PlayerConsole({
   const isDead = player?.status === PlayerStatus.DEAD;
   const phase = gameState?.phase;
 
-  // Build list of usable abilities from inventory
+  // Build list of usable abilities from inventory (only idle-activatable items)
   const abilities = useMemo(() => {
     if (!player?.inventory) return [];
 
     return player.inventory
-      .filter(item => item.uses !== 0 && item.uses !== undefined) // Has uses remaining
+      .filter(item =>
+        item.uses !== 0 &&
+        item.uses !== undefined &&
+        item.idleActivatable // Only items that can be used when idle
+      )
       .map(item => ({
         id: item.id,
         name: item.id.toUpperCase(),

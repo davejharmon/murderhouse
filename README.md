@@ -141,14 +141,37 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 
 ### Performance Optimizations
 
-**Player Events Lookup** (Priority: Medium)
-- `PlayerGrid.jsx` calls `getPlayerEvents()` for every player card with nested loops over eventParticipants
-- Runs on every render
-- **Refactor Goal**: Pre-compute reverse participant map or use `useMemo`
+**Player Events Lookup** (COMPLETED)
+- `PlayerGrid.jsx` now uses `useMemo` for `playerEvents` and `allTargeters` maps
+- Extracted `PlayerCard` as memoized component with custom comparison
+- Fixed server broadcasting duplicate state to host (public + host state)
 
 **Vote Tally Sorting** (Priority: Low)
 - `Screen.jsx` converts and sorts tally on every render
 - Small dataset, but easy win with `useMemo`
+
+### Definition Schema Cleanup
+
+**Item Schema Disconnect** (Priority: Medium)
+- Items define `events: {}` and `passives: {}` in schema but they're always empty
+- Actual item behavior is hardcoded elsewhere:
+  - Pistol shoot logic in `events.js` (checks `p.hasItem('pistol')`)
+  - Item-to-event mapping in `handlers/index.js` (`itemEventMap = { pistol: 'shoot', phone: 'pardon' }`)
+  - Phone pardon logic in `GovernorPardonFlow.js`
+- **Refactor Goal**: Either populate item events/passives declaratively OR remove the empty schema properties to avoid confusion
+
+**Role/Event Handler Duplication** (Priority: Low)
+- Roles like `seer` define `events.investigate.onResolve` which duplicates logic also in `events.js investigate.resolve`
+- Both layers compute the same investigation result
+- **Clarify**: Should roles only declare participation (`vote: {}`) while events own all resolution logic? Or should role handlers override event handlers?
+
+### Flow Migration Candidates
+
+**Shoot Event** (Priority: Low)
+- Uses `onSelection` pattern for immediate action (kill target, consume item)
+- Similar to flow pattern but not formalized as a Flow class
+- Works fine as-is, but inconsistent with hunter revenge which IS a flow
+- **Consider**: Formalize as `PistolShootFlow` if shoot gains complexity (e.g., protection, misfires)
 
 ### Missing Validations
 
