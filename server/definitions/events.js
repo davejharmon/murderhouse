@@ -550,8 +550,8 @@ const events = {
 
     validTargets: (actor, game) => {
       // Can protect anyone alive, including self
-      // Optional: prevent protecting same person twice
-      return game.getAlivePlayers();
+      // Cannot protect the same person twice in a row
+      return game.getAlivePlayers().filter((p) => p.id !== actor.lastProtected);
     },
 
     aggregation: 'individual',

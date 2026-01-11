@@ -135,13 +135,16 @@ export class GovernorPardonFlow extends InterruptFlow {
   }
 
   /**
-   * Get valid targets (only the condemned player)
+   * Get valid targets (only the condemned player, excluding self)
    * @param {string} playerId
    * @returns {Player[]}
    */
   getValidTargets(playerId) {
     if (!this.state) return [];
     if (!this.state.governorIds.includes(playerId)) return [];
+
+    // Cannot pardon yourself
+    if (this.state.condemnedId === playerId) return [];
 
     const condemned = this.game.getPlayer(this.state.condemnedId);
     return condemned ? [condemned] : [];
