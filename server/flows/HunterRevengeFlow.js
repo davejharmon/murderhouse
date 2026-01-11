@@ -70,6 +70,7 @@ export class HunterRevengeFlow extends InterruptFlow {
         type: 'title',
         title: "HUNTER'S REVENGE",
         subtitle: `${player.name} is choosing a target with their dying breath...`,
+        playerId: player.id,
         style: SlideStyle.HOSTILE,
       },
     };

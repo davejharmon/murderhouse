@@ -114,14 +114,25 @@ export default function Screen() {
     );
   };
 
-  const renderTitle = (slide) => (
-    <div className={styles.slide}>
-      <h1 className={styles.title}>
-        {slide.title}
-      </h1>
-      {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-    </div>
-  );
+  const renderTitle = (slide) => {
+    const player = slide.playerId ? getPlayer(slide.playerId) : null;
+
+    return (
+      <div className={styles.slide}>
+        {player && (
+          <img
+            src={`/images/players/${player.portrait}`}
+            alt={player.name}
+            className={styles.largePortrait}
+          />
+        )}
+        <h1 className={styles.title}>
+          {slide.title}
+        </h1>
+        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+      </div>
+    );
+  };
 
   const renderPlayerReveal = (slide) => {
     const player = getPlayer(slide.playerId);

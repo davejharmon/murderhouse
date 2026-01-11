@@ -159,7 +159,9 @@ export default function PlayerConsole({
     if (selectedTarget && hasActiveEvent) {
       return {
         primary: selectedTarget.name.toUpperCase(),
-        secondary: 'YES to confirm • NO to abstain',
+        secondary: eventPrompt?.allowAbstain === false
+          ? 'YES to confirm'
+          : 'YES to confirm • NO to abstain',
       };
     }
 
@@ -175,7 +177,9 @@ export default function PlayerConsole({
     if (hasActiveEvent) {
       return {
         primary: 'SWIPE TO SELECT',
-        secondary: 'Choose a target or abstain',
+        secondary: eventPrompt?.allowAbstain === false
+          ? 'You must choose a target'
+          : 'Choose a target or abstain',
       };
     }
 
@@ -219,7 +223,8 @@ export default function PlayerConsole({
 
   // Determine button states
   const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || inAbilityMode;
-  const noEnabled = hasActiveEvent && !confirmedTarget && !abstained;
+  const canAbstain = eventPrompt?.allowAbstain !== false;
+  const noEnabled = hasActiveEvent && !confirmedTarget && !abstained && canAbstain;
   const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || inAbilityMode;
 
   return (

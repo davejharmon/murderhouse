@@ -196,6 +196,16 @@ export function createHandlers(game) {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
 
+      // Find player's active event and check if abstaining is allowed
+      for (const [eventId, instance] of game.activeEvents) {
+        if (instance.participants.includes(player.id)) {
+          if (!instance.event.allowAbstain) {
+            return { success: false, error: 'Cannot abstain from this event' };
+          }
+          break;
+        }
+      }
+
       player.abstain();
       const result = game.recordSelection(player.id, null);
       player.syncState(game);

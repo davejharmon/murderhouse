@@ -207,10 +207,11 @@ export class Game {
   }
 
   nextPhase() {
-    // Clear protection
+    // Clear protection and player event state
     for (const player of this.players.values()) {
       player.isProtected = false;
       player.clearSelection();
+      player.pendingEvents.clear();
     }
 
     // Check win condition
@@ -343,6 +344,7 @@ export class Game {
         eventName: event.name,
         description: event.description,
         targets: targets.map((t) => t.getPublicState()),
+        allowAbstain: event.allowAbstain !== false,
       });
     }
 
@@ -461,6 +463,7 @@ export class Game {
         eventName: name,
         description,
         targets: targets.map((t) => t.getPublicState()),
+        allowAbstain,
       });
     }
 
@@ -529,6 +532,7 @@ export class Game {
         eventName: event.name,
         description: config.description,
         targets: targets.map((t) => t.getPublicState()),
+        allowAbstain: event.allowAbstain !== false,
       });
     }
 
@@ -1001,6 +1005,7 @@ export class Game {
         eventName: event.name,
         description,
         targets: targets.map((t) => t.getPublicState()),
+        allowAbstain: event.allowAbstain !== false,
       });
     }
 
