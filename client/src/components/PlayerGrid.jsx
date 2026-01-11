@@ -1,5 +1,5 @@
 // client/src/components/PlayerGrid.jsx
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
 import {
   PlayerStatus,
   DEBUG_MODE,
@@ -7,6 +7,264 @@ import {
 } from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
 import styles from './PlayerGrid.module.css';
+
+// Generate a stable key representing card state for comparison
+function getCardStateKey(props) {
+  const {
+    player,
+    isAlive,
+    isActive,
+    hasUncommittedSelection,
+    isLobby,
+    isEditing,
+    editedName,
+    events,
+    targeters,
+  } = props;
+
+  // Build a string key from all data that affects rendering
+  const invKey = (player.inventory || [])
+    .map((i) => `${i.id}:${i.uses}`)
+    .join(',');
+  const eventsKey = events.join(',');
+  const targetersKey = targeters
+    .map((t) => `${t.odId}:${t.confirmed}`)
+    .join(',');
+
+  return [
+    player.id,
+    player.name,
+    player.portrait,
+    player.seatNumber,
+    player.connected,
+    player.role,
+    player.roleName,
+    player.roleColor,
+    isAlive,
+    isActive,
+    hasUncommittedSelection,
+    isLobby,
+    isEditing,
+    isEditing ? editedName : '', // Only include editedName when editing this card
+    invKey,
+    eventsKey,
+    targetersKey,
+  ].join('|');
+}
+
+function playerCardPropsAreEqual(prevProps, nextProps) {
+  return getCardStateKey(prevProps) === getCardStateKey(nextProps);
+}
+
+// Memoized player card to prevent re-renders when other players change
+const PlayerCard = memo(function PlayerCard({
+  player,
+  isAlive,
+  isActive,
+  hasUncommittedSelection,
+  events,
+  targeters,
+  isLobby,
+  isEditing,
+  editedName,
+  onEditStart,
+  onEditChange,
+  onEditSave,
+  onEditCancel,
+  onPortraitClick,
+  canEditName,
+  canEditPortrait,
+  onKill,
+  onRevive,
+  onKick,
+  onGiveItem,
+  onRemoveItem,
+  onDebugAutoSelect,
+}) {
+  return (
+    <div
+      className={`${styles.card} ${!isAlive ? styles.dead : ''} ${
+        isActive ? styles.active : ''
+      }`}
+    >
+      {/* Portrait */}
+      <div
+        className={`${styles.portrait} ${
+          canEditPortrait ? styles.clickable : ''
+        }`}
+        onClick={() => canEditPortrait && onPortraitClick(player)}
+        title={canEditPortrait ? 'Click to change portrait' : undefined}
+      >
+        <img
+          src={`/images/players/${player.portrait}`}
+          alt={player.name}
+          className={styles.portraitImage}
+        />
+        {!player.connected && <div className={styles.disconnected}>●</div>}
+      </div>
+
+      {/* Info */}
+      <div className={styles.info}>
+        <div className={styles.seat}>#{player.seatNumber}</div>
+        {isEditing ? (
+          <input
+            type='text'
+            className={styles.nameInput}
+            value={editedName}
+            onChange={(e) => onEditChange(e.target.value)}
+            onBlur={() => onEditSave(player.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onEditSave(player.id);
+              if (e.key === 'Escape') onEditCancel();
+            }}
+            autoFocus
+            maxLength={20}
+          />
+        ) : (
+          <div
+            className={`${styles.name} ${canEditName ? styles.editable : ''}`}
+            onClick={() => canEditName && onEditStart(player)}
+            title={canEditName ? 'Click to edit name' : undefined}
+          >
+            {player.name}
+          </div>
+        )}
+        {player.role && (
+          <div className={styles.role} style={{ color: player.roleColor }}>
+            {player.roleName}
+          </div>
+        )}
+
+        {/* Inventory */}
+        {player.inventory && player.inventory.length > 0 && (
+          <div className={styles.inventory}>
+            {player.inventory.map((item, idx) => (
+              <div key={idx} className={styles.inventoryItem}>
+                <span className={styles.itemName}>
+                  {item.id} ({item.uses}/{item.maxUses})
+                </span>
+                {onRemoveItem && (
+                  <button
+                    className={styles.removeItemBtn}
+                    onClick={() => onRemoveItem(player.id, item.id)}
+                    title='Remove item'
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Event indicators */}
+      {events.length > 0 && (
+        <div className={styles.events}>
+          {events.map((eventId) => (
+            <span key={eventId} className={styles.eventBadge}>
+              {eventId}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Targeting pips - shows who is targeting this player */}
+      <div className={styles.targetingPips}>
+        {targeters.map(({ odId, seatNumber, roleColor, confirmed }) => (
+          <div
+            key={odId}
+            className={`${styles.targetPip} ${
+              confirmed ? styles.confirmed : styles.hovering
+            }`}
+            style={{ backgroundColor: roleColor }}
+            title={`Player #${seatNumber} ${
+              confirmed ? '(confirmed)' : '(selecting)'
+            }`}
+          >
+            {seatNumber}
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div className={styles.actions}>
+        {isLobby ? (
+          <button
+            className={styles.actionBtn}
+            onClick={() => onKick(player.id)}
+            title='Kick player'
+          >
+            ✕
+          </button>
+        ) : (
+          <>
+            {isAlive ? (
+              <button
+                className={`${styles.actionBtn} ${styles.kill}`}
+                onClick={() => onKill(player.id)}
+                title='Kill player'
+              >
+                💀
+              </button>
+            ) : (
+              <button
+                className={`${styles.actionBtn} ${styles.revive}`}
+                onClick={() => onRevive(player.id)}
+                title='Revive player'
+              >
+                ↺
+              </button>
+            )}
+
+            {/* Debug Auto-Select Button */}
+            {DEBUG_MODE && hasUncommittedSelection && onDebugAutoSelect && (
+              <button
+                className={`${styles.actionBtn} ${styles.debug}`}
+                onClick={() => onDebugAutoSelect(player.id)}
+                title='Debug: Auto-select random target'
+              >
+                🎲
+              </button>
+            )}
+
+            {/* Give Item Dropdown */}
+            {onGiveItem && (
+              <select
+                className={styles.itemSelect}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onGiveItem(player.id, e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                defaultValue=''
+                title='Give item'
+              >
+                <option value='' disabled>
+                  + Item
+                </option>
+                {AVAILABLE_ITEMS.map((itemId) => (
+                  <option key={itemId} value={itemId}>
+                    {itemId}
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Status overlay for dead players */}
+      {!isAlive && (
+        <div className={styles.deadOverlay}>
+          <span>DEAD</span>
+        </div>
+      )}
+    </div>
+  );
+},
+playerCardPropsAreEqual);
 
 export default function PlayerGrid({
   players,
@@ -26,70 +284,85 @@ export default function PlayerGrid({
   const [editedName, setEditedName] = useState('');
   const [portraitModalPlayer, setPortraitModalPlayer] = useState(null);
 
-  // Handle name edit start
-  const handleNameClick = (player) => {
-    if (onSetName) {
-      setEditingPlayerId(player.id);
-      setEditedName(player.name);
-    }
-  };
-
-  // Handle name edit save
-  const handleNameSave = (playerId) => {
-    if (
-      editedName.trim() &&
-      editedName !== players.find((p) => p.id === playerId)?.name
-    ) {
-      onSetName(playerId, editedName.trim());
-    }
-    setEditingPlayerId(null);
-    setEditedName('');
-  };
-
-  // Handle name edit cancel
-  const handleNameCancel = () => {
-    setEditingPlayerId(null);
-    setEditedName('');
-  };
-
-  // Handle portrait selection
-  const handlePortraitSelect = (portrait) => {
-    if (portraitModalPlayer && onSetPortrait) {
-      onSetPortrait(portraitModalPlayer.id, portrait);
-    }
-  };
-
-  // Get which events a player is participating in
-  const getPlayerEvents = (playerId) => {
-    const events = [];
-    for (const [eventId, participants] of Object.entries(eventParticipants)) {
-      if (participants.includes(playerId)) {
-        events.push(eventId);
-      }
-    }
-    return events;
-  };
-
-  // Compute who is targeting each player
-  const getTargeters = (targetId) => {
-    const targeters = [];
+  // Memoize event participation lookup
+  const playerEvents = useMemo(() => {
+    const eventsMap = {};
     for (const player of players) {
-      // Check if this player is targeting the target (either hovering or confirmed)
-      const isHovering = player.currentSelection === targetId;
-      const isConfirmed = player.confirmedSelection === targetId;
+      const events = [];
+      for (const [eventId, participants] of Object.entries(eventParticipants)) {
+        if (participants.includes(player.id)) {
+          events.push(eventId);
+        }
+      }
+      eventsMap[player.id] = events;
+    }
+    return eventsMap;
+  }, [players, eventParticipants]);
 
-      if (isHovering || isConfirmed) {
-        targeters.push({
-          playerId: player.id,
+  // Memoize targeting data for all players
+  const allTargeters = useMemo(() => {
+    const targetersMap = {};
+    for (const player of players) {
+      targetersMap[player.id] = [];
+    }
+    for (const player of players) {
+      const targetId = player.confirmedSelection || player.currentSelection;
+      if (targetId && targetersMap[targetId]) {
+        targetersMap[targetId].push({
+          odId: player.id,
           seatNumber: player.seatNumber,
           roleColor: player.roleColor || '#888',
-          confirmed: isConfirmed,
+          confirmed: !!player.confirmedSelection,
         });
       }
     }
-    // Sort by seat number for consistent display
-    return targeters.sort((a, b) => a.seatNumber - b.seatNumber);
-  };
+    // Sort each by seat number
+    for (const id of Object.keys(targetersMap)) {
+      targetersMap[id].sort((a, b) => a.seatNumber - b.seatNumber);
+    }
+    return targetersMap;
+  }, [players]);
+
+  // Stable callbacks
+  const handleNameClick = useCallback(
+    (player) => {
+      if (onSetName) {
+        setEditingPlayerId(player.id);
+        setEditedName(player.name);
+      }
+    },
+    [onSetName]
+  );
+
+  const handleNameSave = useCallback(
+    (playerId) => {
+      const player = players.find((p) => p.id === playerId);
+      if (editedName.trim() && editedName !== player?.name) {
+        onSetName(playerId, editedName.trim());
+      }
+      setEditingPlayerId(null);
+      setEditedName('');
+    },
+    [editedName, players, onSetName]
+  );
+
+  const handleNameCancel = useCallback(() => {
+    setEditingPlayerId(null);
+    setEditedName('');
+  }, []);
+
+  const handlePortraitSelect = useCallback(
+    (portrait) => {
+      if (portraitModalPlayer && onSetPortrait) {
+        onSetPortrait(portraitModalPlayer.id, portrait);
+      }
+    },
+    [portraitModalPlayer, onSetPortrait]
+  );
+
+  const handleEditChange = useCallback((value) => {
+    setEditedName(value);
+  }, []);
 
   if (players.length === 0) {
     return (
@@ -106,208 +379,38 @@ export default function PlayerGrid({
     <div className={styles.grid}>
       {players.map((player) => {
         const isAlive = player.status === PlayerStatus.ALIVE;
-        const events = getPlayerEvents(player.id);
+        const events = playerEvents[player.id] || [];
         const isActive = events.length > 0;
         const hasUncommittedSelection =
           isActive && !player.confirmedSelection && !player.abstained;
-
-        const targeters = getTargeters(player.id);
+        const targeters = allTargeters[player.id] || [];
 
         return (
-          <div
+          <PlayerCard
             key={player.id}
-            className={`${styles.card} ${!isAlive ? styles.dead : ''} ${
-              isActive ? styles.active : ''
-            }`}
-          >
-            {/* Portrait */}
-            <div
-              className={`${styles.portrait} ${
-                onSetPortrait ? styles.clickable : ''
-              }`}
-              onClick={() => onSetPortrait && setPortraitModalPlayer(player)}
-              title={onSetPortrait ? 'Click to change portrait' : undefined}
-            >
-              <img
-                src={`/images/players/${player.portrait}`}
-                alt={player.name}
-                className={styles.portraitImage}
-              />
-              {!player.connected && (
-                <div className={styles.disconnected}>●</div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className={styles.info}>
-              <div className={styles.seat}>#{player.seatNumber}</div>
-              {editingPlayerId === player.id ? (
-                <input
-                  type='text'
-                  className={styles.nameInput}
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  onBlur={() => handleNameSave(player.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleNameSave(player.id);
-                    if (e.key === 'Escape') handleNameCancel();
-                  }}
-                  autoFocus
-                  maxLength={20}
-                />
-              ) : (
-                <div
-                  className={`${styles.name} ${
-                    onSetName ? styles.editable : ''
-                  }`}
-                  onClick={() => handleNameClick(player)}
-                  title={onSetName ? 'Click to edit name' : undefined}
-                >
-                  {player.name}
-                </div>
-              )}
-              {player.role && (
-                <div
-                  className={styles.role}
-                  style={{ color: player.roleColor }}
-                >
-                  {player.roleName}
-                </div>
-              )}
-
-              {/* Inventory */}
-              {player.inventory && player.inventory.length > 0 && (
-                <div className={styles.inventory}>
-                  {player.inventory.map((item, idx) => (
-                    <div key={idx} className={styles.inventoryItem}>
-                      <span className={styles.itemName}>
-                        {item.id} ({item.uses}/{item.maxUses})
-                      </span>
-                      {onRemoveItem && (
-                        <button
-                          className={styles.removeItemBtn}
-                          onClick={() => onRemoveItem(player.id, item.id)}
-                          title='Remove item'
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Event indicators */}
-            {events.length > 0 && (
-              <div className={styles.events}>
-                {events.map((eventId) => (
-                  <span key={eventId} className={styles.eventBadge}>
-                    {eventId}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Targeting pips - shows who is targeting this player */}
-            {targeters.length > 0 && (
-              <div className={styles.targetingPips}>
-                {targeters.map(
-                  ({ playerId, seatNumber, roleColor, confirmed }) => (
-                    <div
-                      key={playerId}
-                      className={`${styles.targetPip} ${
-                        confirmed ? styles.confirmed : styles.hovering
-                      }`}
-                      style={{ backgroundColor: roleColor }}
-                      title={`Player #${seatNumber} ${
-                        confirmed ? '(confirmed)' : '(selecting)'
-                      }`}
-                    >
-                      {seatNumber}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className={styles.actions}>
-              {isLobby ? (
-                <button
-                  className={styles.actionBtn}
-                  onClick={() => onKick(player.id)}
-                  title='Kick player'
-                >
-                  ✕
-                </button>
-              ) : (
-                <>
-                  {isAlive ? (
-                    <button
-                      className={`${styles.actionBtn} ${styles.kill}`}
-                      onClick={() => onKill(player.id)}
-                      title='Kill player'
-                    >
-                      💀
-                    </button>
-                  ) : (
-                    <button
-                      className={`${styles.actionBtn} ${styles.revive}`}
-                      onClick={() => onRevive(player.id)}
-                      title='Revive player'
-                    >
-                      ↺
-                    </button>
-                  )}
-
-                  {/* Debug Auto-Select Button */}
-                  {DEBUG_MODE &&
-                    hasUncommittedSelection &&
-                    onDebugAutoSelect && (
-                      <button
-                        className={`${styles.actionBtn} ${styles.debug}`}
-                        onClick={() => onDebugAutoSelect(player.id)}
-                        title='Debug: Auto-select random target'
-                      >
-                        🎲
-                      </button>
-                    )}
-
-                  {/* Give Item Dropdown */}
-                  {onGiveItem && (
-                    <select
-                      className={styles.itemSelect}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          onGiveItem(player.id, e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      defaultValue=''
-                      title='Give item'
-                    >
-                      <option value='' disabled>
-                        + Item
-                      </option>
-                      {AVAILABLE_ITEMS.map((itemId) => (
-                        <option key={itemId} value={itemId}>
-                          {itemId}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Status overlay for dead players */}
-            {!isAlive && (
-              <div className={styles.deadOverlay}>
-                <span>DEAD</span>
-              </div>
-            )}
-          </div>
+            player={player}
+            isAlive={isAlive}
+            isActive={isActive}
+            hasUncommittedSelection={hasUncommittedSelection}
+            events={events}
+            targeters={targeters}
+            isLobby={isLobby}
+            isEditing={editingPlayerId === player.id}
+            editedName={editedName}
+            onEditStart={handleNameClick}
+            onEditChange={handleEditChange}
+            onEditSave={handleNameSave}
+            onEditCancel={handleNameCancel}
+            onPortraitClick={setPortraitModalPlayer}
+            canEditName={!!onSetName}
+            canEditPortrait={!!onSetPortrait}
+            onKill={onKill}
+            onRevive={onRevive}
+            onKick={onKick}
+            onGiveItem={onGiveItem}
+            onRemoveItem={onRemoveItem}
+            onDebugAutoSelect={onDebugAutoSelect}
+          />
         );
       })}
 

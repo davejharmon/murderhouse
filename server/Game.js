@@ -1213,21 +1213,27 @@ export class Game {
   // === Broadcasting ===
 
   broadcastGameState() {
-    // Everyone
-    this.broadcast(
-      ServerMsg.GAME_STATE,
-      this.getGameState({ audience: 'public' })
-    );
+    // Send public state to each player (not host - they get host state below)
+    const publicState = this.getGameState({ audience: 'public' });
+    for (const player of this.players.values()) {
+      player.send(ServerMsg.GAME_STATE, publicState);
+    }
 
-    // Each player (still needed for truly private stuff)
+    // Each player also gets their private state
     for (const player of this.players.values()) {
       player.syncState(this);
     }
 
-    // Host gets full player info
+    // Host gets full player info (only state update they receive)
     this.sendToHost(
       ServerMsg.GAME_STATE,
       this.getGameState({ audience: 'host' })
+    );
+
+    // Screen gets public state
+    this.sendToScreen(
+      ServerMsg.GAME_STATE,
+      publicState
     );
   }
 
