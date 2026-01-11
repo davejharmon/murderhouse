@@ -1,6 +1,7 @@
 // server/definitions/items.js
 // Declarative item definitions
-// Items can bestow events and abilities to players, similar to roles
+// Items are capabilities/modifiers - they declare what they grant,
+// and events/flows query for item holders.
 
 /**
  * Item Definition Schema:
@@ -9,26 +10,21 @@
  *   name: string,         // Display name
  *   description: string,  // Flavor text shown to player
  *   maxUses: number,      // Maximum uses (-1 for unlimited)
- *   idleActivatable: boolean, // If true, player can activate when idle (like pistol)
- *                             // If false, item is situational (like phone during pardon flow)
  *
- *   // Events this item bestows (future: items could modify existing events)
- *   events: {
- *     [eventId]: {
- *       priority?: number,    // Lower = resolves first (default: 50)
- *       canTarget?: (player, target, game) => boolean,
- *       onResolve?: (player, target, game) => ResolveResult,
- *     }
- *   },
- *
- *   // Passive abilities triggered by game events
- *   passives: {
- *     onEquip?: (player, game) => void,
- *     onDayStart?: (player, game) => void,
- *     onNightStart?: (player, game) => void,
- *     onUnequip?: (player, game) => void,
- *   },
+ *   // Activation model (mutually exclusive):
+ *   startsEvent?: string,    // Event ID to start when player activates (idle-activatable)
+ *   grantsAbility?: string,  // Ability ID that flows/events check for (situational)
  * }
+ *
+ * Idle-activatable items (startsEvent):
+ *   - Appear in player's ability selector when idle
+ *   - Player triggers the linked event directly
+ *   - Example: pistol -> starts 'shoot' event
+ *
+ * Situational items (grantsAbility):
+ *   - Don't appear in idle ability selector
+ *   - Flows/events check if player has the ability
+ *   - Example: phone -> grants 'pardon' ability, checked by GovernorPardonFlow
  */
 
 const items = {
@@ -37,9 +33,7 @@ const items = {
     name: 'Pistol',
     description: 'A deadly weapon. One shot. Make it count.',
     maxUses: 1,
-    idleActivatable: true, // Can be used when player has no active event
-    events: {},
-    passives: {},
+    startsEvent: 'shoot', // Idle-activatable: starts the shoot event
   },
 
   phone: {
@@ -47,9 +41,7 @@ const items = {
     name: 'Phone',
     description: 'Call the governor for a one-time pardon. Use it wisely.',
     maxUses: 1,
-    idleActivatable: false, // Only usable during pardon flow, not from idle
-    events: {},
-    passives: {},
+    grantsAbility: 'pardon', // Situational: GovernorPardonFlow checks for this
   },
 };
 

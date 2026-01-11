@@ -152,13 +152,12 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 
 ### Definition Schema Cleanup
 
-**Item Schema Disconnect** (Priority: Medium)
-- Items define `events: {}` and `passives: {}` in schema but they're always empty
-- Actual item behavior is hardcoded elsewhere:
-  - Pistol shoot logic in `events.js` (checks `p.hasItem('pistol')`)
-  - Item-to-event mapping in `handlers/index.js` (`itemEventMap = { pistol: 'shoot', phone: 'pardon' }`)
-  - Phone pardon logic in `GovernorPardonFlow.js`
-- **Refactor Goal**: Either populate item events/passives declaratively OR remove the empty schema properties to avoid confusion
+**Item Schema Disconnect** (COMPLETED)
+- Replaced empty `events: {}` and `passives: {}` with declarative activation model:
+  - `startsEvent: string` - Item starts this event when activated (idle-activatable)
+  - `grantsAbility: string` - Item grants this ability for flows to check (situational)
+- Handler now reads `getItem(itemId).startsEvent` instead of hardcoded map
+- Example: `pistol.startsEvent: 'shoot'`, `phone.grantsAbility: 'pardon'`
 
 **Role/Event Handler Duplication** (Priority: Low)
 - Roles like `seer` define `events.investigate.onResolve` which duplicates logic also in `events.js investigate.resolve`

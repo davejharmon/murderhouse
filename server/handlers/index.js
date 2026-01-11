@@ -8,6 +8,7 @@ import {
   Team,
 } from '../../shared/constants.js';
 import { getEvent } from '../definitions/events.js';
+import { getItem } from '../definitions/items.js';
 
 export function createHandlers(game) {
   const handlers = {
@@ -218,19 +219,14 @@ export function createHandlers(game) {
         return { success: false, error: 'Item has no uses remaining' };
       }
 
-      // Map items to their events
-      const itemEventMap = {
-        pistol: 'shoot',
-        phone: 'pardon',
-      };
-
-      const eventId = itemEventMap[itemId];
-      if (!eventId) {
-        return { success: false, error: 'Item has no usable action' };
+      // Get item definition and check if it starts an event
+      const itemDef = getItem(itemId);
+      if (!itemDef?.startsEvent) {
+        return { success: false, error: 'Item cannot be activated' };
       }
 
       // Start the event (this will check phase, participants, etc.)
-      const result = game.startEvent(eventId);
+      const result = game.startEvent(itemDef.startsEvent);
       return result;
     },
 
