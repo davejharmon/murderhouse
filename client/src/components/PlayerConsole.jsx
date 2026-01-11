@@ -5,12 +5,18 @@ import styles from './PlayerConsole.module.css';
 
 // Helper functions for item display
 function getItemIcon(itemId) {
-  const icons = { pistol: '🔫' };
+  const icons = {
+    pistol: '🔫',
+    crystalBall: '🔮',
+  };
   return icons[itemId] || '📦';
 }
 
 function getItemDescription(itemId) {
-  const descriptions = { pistol: 'Shoot a player' };
+  const descriptions = {
+    pistol: 'Shoot a player',
+    crystalBall: 'Investigate a player',
+  };
   return descriptions[itemId] || 'Use this item';
 }
 

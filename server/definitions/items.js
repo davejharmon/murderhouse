@@ -43,6 +43,14 @@ const items = {
     maxUses: 1,
     grantsAbility: 'pardon', // Situational: GovernorPardonFlow checks for this
   },
+
+  crystalBall: {
+    id: 'crystalBall',
+    name: 'Crystal Ball',
+    description: 'Peer into a soul to learn their true nature.',
+    maxUses: 1,
+    startsEvent: 'investigate', // Grants seer's investigate ability
+  },
 };
 
 /**

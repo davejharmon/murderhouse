@@ -25,11 +25,11 @@ export default function EventPanel({
   const isDayPhase = currentPhase === 'day';
   const customVoteActive = activeEvents.includes('customVote');
 
-  // Hardcoded for now - could be fetched from server
-  const availableItems = [
-    { id: 'pistol', name: 'Pistol' },
-    { id: 'phone', name: 'Phone' },
-  ];
+  // Convert AVAILABLE_ITEMS to object format for UI
+  const availableItems = AVAILABLE_ITEMS.map((id) => ({
+    id,
+    name: id.charAt(0).toUpperCase() + id.slice(1).replace(/([A-Z])/g, ' $1'), // camelCase to Title Case
+  }));
 
   const availableRoles = [
     { id: 'villager', name: 'Villager' },

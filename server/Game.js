@@ -262,7 +262,7 @@ export class Game {
       // Skip player-initiated events (like shoot) - they start when player uses ability
       if (event.playerInitiated) continue;
 
-      const participants = event.participants(this);
+      const participants = this.getEventParticipants(event.id);
       if (participants.length > 0) {
         this.pendingEvents.push(event.id);
       }
@@ -271,13 +271,43 @@ export class Game {
 
   // === Event Management ===
 
+  /**
+   * Get all participants for an event, combining:
+   * - Role-based participants (from event.participants)
+   * - Item-based participants (players with items that have startsEvent: eventId)
+   */
+  getEventParticipants(eventId) {
+    const event = getEvent(eventId);
+    if (!event) return [];
+
+    // Get role-based participants
+    const roleParticipants = event.participants(this);
+
+    // Get item-based participants (players with items granting this event)
+    const itemParticipants = this.getAlivePlayers().filter((player) => {
+      return player.inventory.some(
+        (item) => item.startsEvent === eventId && item.uses > 0
+      );
+    });
+
+    // Combine and deduplicate by player ID
+    const allParticipants = [...roleParticipants];
+    for (const player of itemParticipants) {
+      if (!allParticipants.find((p) => p.id === player.id)) {
+        allParticipants.push(player);
+      }
+    }
+
+    return allParticipants;
+  }
+
   startEvent(eventId) {
     const event = getEvent(eventId);
     if (!event) {
       return { success: false, error: 'Event not found' };
     }
 
-    const participants = event.participants(this);
+    const participants = this.getEventParticipants(eventId);
     if (participants.length === 0) {
       return { success: false, error: 'No eligible participants' };
     }
@@ -465,7 +495,7 @@ export class Game {
       return { success: false, error: 'Custom vote event not found' };
     }
 
-    const participants = event.participants(this);
+    const participants = this.getEventParticipants('customVote');
     if (participants.length === 0) {
       return { success: false, error: 'No eligible participants' };
     }
@@ -667,12 +697,24 @@ export class Game {
 
     // Note: Governor pardon is now handled by GovernorPardonFlow
 
-    // Clear player event state
+    // Clear player event state and consume items that granted event participation
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
         player.pendingEvents.delete(eventId);
         player.clearSelection();
+
+        // Check if player participated via an item (not just their role)
+        // Only consume if they actually submitted a result (not abstained)
+        if (results[pid] !== undefined && results[pid] !== null) {
+          const grantingItem = player.inventory.find(
+            (item) => item.startsEvent === eventId && item.uses > 0
+          );
+          if (grantingItem) {
+            this.consumeItem(pid, grantingItem.id);
+          }
+        }
+
         // Send updated player state so UI refreshes
         player.syncState(this);
       }

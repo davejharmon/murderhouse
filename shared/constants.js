@@ -118,4 +118,4 @@ export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
 export const DEBUG_MODE = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = ['pistol', 'phone'];
+export const AVAILABLE_ITEMS = ['pistol', 'phone', 'crystalBall'];
