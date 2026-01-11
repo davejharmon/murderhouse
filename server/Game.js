@@ -56,6 +56,7 @@ export class Game {
     this.pendingEvents = []; // Events that can be started this phase
     this.activeEvents = new Map(); // eventId -> { event, results, participants }
     this.eventResults = []; // Results to reveal at end of phase
+    this.customEventConfig = null; // Stored config for pending custom events
 
     // Slide queue for big screen
     this.slideQueue = [];
@@ -258,10 +259,14 @@ export class Game {
   buildPendingEvents() {
     const phaseEvents = getEventsForPhase(this.phase);
     this.pendingEvents = [];
+    this.customEventConfig = null; // Clear any pending custom event config on phase change
 
     for (const event of phaseEvents) {
       // Skip player-initiated events (like shoot) - they start when player uses ability
       if (event.playerInitiated) continue;
+
+      // Skip customEvent - it's only added via createCustomEvent()
+      if (event.id === 'customEvent') continue;
 
       const participants = this.getEventParticipants(event.id);
       if (participants.length > 0) {
@@ -303,6 +308,11 @@ export class Game {
   }
 
   startEvent(eventId) {
+    // Special handling for customEvent - requires stored config
+    if (eventId === 'customEvent') {
+      return this._startCustomEvent();
+    }
+
     const event = getEvent(eventId);
     if (!event) {
       return { success: false, error: 'Event not found' };
@@ -473,9 +483,13 @@ export class Game {
     return { success: true };
   }
 
-  startCustomVote(config) {
+  /**
+   * Create a custom event and add it to pending events.
+   * The event is not started until startEvent('customEvent') is called.
+   */
+  createCustomEvent(config) {
     // Validate configuration
-    const validation = this.validateCustomVoteConfig(config);
+    const validation = this.validateCustomEventConfig(config);
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
@@ -484,21 +498,50 @@ export class Game {
     if (this.phase !== GamePhase.DAY) {
       return {
         success: false,
-        error: 'Custom votes only available during DAY phase',
+        error: 'Custom events only available during DAY phase',
       };
     }
 
-    // Check if customVote already active
-    if (this.activeEvents.has('customVote')) {
-      return { success: false, error: 'Custom vote already in progress' };
+    // Check if customEvent already active
+    if (this.activeEvents.has('customEvent')) {
+      return { success: false, error: 'Custom event already in progress' };
     }
 
-    const event = getEvent('customVote');
+    // Store the config (replaces any existing pending config)
+    this.customEventConfig = config;
+
+    // Add to pending if not already there
+    if (!this.pendingEvents.includes('customEvent')) {
+      this.pendingEvents.push('customEvent');
+    }
+
+    this.addLog(`Custom event created: ${config.description}`);
+    this.broadcastGameState();
+
+    return { success: true };
+  }
+
+  /**
+   * Internal method to start the custom event using stored config.
+   * Called by startEvent('customEvent').
+   */
+  _startCustomEvent() {
+    const config = this.customEventConfig;
+    if (!config) {
+      return { success: false, error: 'No custom event config found' };
+    }
+
+    // Check if customEvent already active
+    if (this.activeEvents.has('customEvent')) {
+      return { success: false, error: 'Custom event already in progress' };
+    }
+
+    const event = getEvent('customEvent');
     if (!event) {
-      return { success: false, error: 'Custom vote event not found' };
+      return { success: false, error: 'Custom event not found' };
     }
 
-    const participants = this.getEventParticipants('customVote');
+    const participants = this.getEventParticipants('customEvent');
     if (participants.length === 0) {
       return { success: false, error: 'No eligible participants' };
     }
@@ -514,12 +557,12 @@ export class Game {
       runoffRound: 0,
     };
 
-    this.activeEvents.set('customVote', eventInstance);
-    this.pendingEvents = this.pendingEvents.filter((id) => id !== 'customVote');
+    this.activeEvents.set('customEvent', eventInstance);
+    this.pendingEvents = this.pendingEvents.filter((id) => id !== 'customEvent');
 
     // Notify participants with custom description
     for (const player of participants) {
-      player.pendingEvents.add('customVote');
+      player.pendingEvents.add('customEvent');
       player.clearSelection();
 
       const targets = event.validTargets(player, this);
@@ -528,7 +571,7 @@ export class Game {
       player.syncState(this);
 
       player.send(ServerMsg.EVENT_PROMPT, {
-        eventId: 'customVote',
+        eventId: 'customEvent',
         eventName: event.name,
         description: config.description,
         targets: targets.map((t) => t.getPublicState()),
@@ -536,25 +579,28 @@ export class Game {
       });
     }
 
-    this.addLog(`Custom Vote started: ${config.description}`);
+    this.addLog(`Custom event started: ${config.description}`);
 
-    // Show slide when custom vote starts
+    // Show slide when custom event starts
     this.pushSlide(
       {
         type: 'title',
-        title: 'CUSTOM VOTE',
+        title: 'CUSTOM EVENT',
         subtitle: config.description,
         style: SlideStyle.NEUTRAL,
       },
       true
     );
 
+    // Clear the config now that we've started
+    this.customEventConfig = null;
+
     this.broadcastGameState();
 
     return { success: true };
   }
 
-  validateCustomVoteConfig(config) {
+  validateCustomEventConfig(config) {
     if (!config) {
       return { valid: false, error: 'Configuration required' };
     }
@@ -684,8 +730,8 @@ export class Game {
       }
     }
 
-    // For vote/customVote events, show tally slide first and defer resolution
-    if (eventId === 'vote' || eventId === 'customVote') {
+    // For vote/customEvent events, show tally slide first and defer resolution
+    if (eventId === 'vote' || eventId === 'customEvent') {
       return this.showTallyAndDeferResolution(eventId, instance);
     }
 

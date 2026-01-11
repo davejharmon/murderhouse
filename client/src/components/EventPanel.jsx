@@ -1,7 +1,7 @@
 // client/src/components/EventPanel.jsx
 import { useState } from 'react';
 import { DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
-import CustomVoteModal from './CustomVoteModal';
+import CustomEventModal from './CustomEventModal';
 import styles from './EventPanel.module.css';
 
 export default function EventPanel({
@@ -16,14 +16,13 @@ export default function EventPanel({
   onResolveAllEvents,
   onSkipEvent,
   onDebugAutoSelectAll,
-  onStartCustomVote,
+  onCreateCustomEvent,
 }) {
-  const [showCustomVoteModal, setShowCustomVoteModal] = useState(false);
+  const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
   const hasPending = pendingEvents.length > 0;
   const hasActive = activeEvents.length > 0;
   const isDayPhase = currentPhase === 'day';
-  const customVoteActive = activeEvents.includes('customVote');
 
   // Convert AVAILABLE_ITEMS to object format for UI
   const availableItems = AVAILABLE_ITEMS.map((id) => ({
@@ -39,9 +38,9 @@ export default function EventPanel({
     { id: 'hunter', name: 'Hunter' },
   ];
 
-  const handleCustomVoteSubmit = (config) => {
-    onStartCustomVote(config);
-    setShowCustomVoteModal(false);
+  const handleCustomEventSubmit = (config) => {
+    onCreateCustomEvent(config);
+    setShowCustomEventModal(false);
   };
 
   return (
@@ -49,15 +48,14 @@ export default function EventPanel({
       <section className={styles.panel}>
         <h2>Events</h2>
 
-        {/* Custom Vote Button - Only during DAY phase */}
+        {/* Create Event Button - Only during DAY phase */}
         {isDayPhase && (
           <div className={styles.group}>
             <button
-              className={`${styles.eventBtn} ${styles.customVote}`}
-              onClick={() => setShowCustomVoteModal(true)}
-              disabled={customVoteActive}
+              className={`${styles.eventBtn} ${styles.customEvent}`}
+              onClick={() => setShowCustomEventModal(true)}
             >
-              {customVoteActive ? 'Custom Vote Active' : 'Start Custom Vote'}
+              Create Event
             </button>
           </div>
         )}
@@ -73,7 +71,7 @@ export default function EventPanel({
                   className={styles.eventBtn}
                   onClick={() => onStartEvent(eventId)}
                 >
-                  Start {eventId}
+                  Start {eventId === 'customEvent' ? 'Custom' : eventId}
                 </button>
               ))}
             </div>
@@ -102,7 +100,9 @@ export default function EventPanel({
 
                 return (
                   <div key={eventId} className={styles.activeEvent}>
-                    <div className={styles.eventName}>{eventId}</div>
+                    <div className={styles.eventName}>
+                      {eventId === 'customEvent' ? 'Custom' : eventId}
+                    </div>
                     <div className={styles.progress}>
                       {progress.responded || 0}/{progress.total || 0}
                     </div>
@@ -152,10 +152,10 @@ export default function EventPanel({
         )}
       </section>
 
-      <CustomVoteModal
-        isOpen={showCustomVoteModal}
-        onClose={() => setShowCustomVoteModal(false)}
-        onSubmit={handleCustomVoteSubmit}
+      <CustomEventModal
+        isOpen={showCustomEventModal}
+        onClose={() => setShowCustomEventModal(false)}
+        onSubmit={handleCustomEventSubmit}
         availableItems={availableItems}
         availableRoles={availableRoles}
       />

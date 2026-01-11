@@ -18,6 +18,11 @@ export default function DebugGrid() {
   const [connections, setConnections] = useState({});
   const wsRefs = useRef({});
 
+  // Set page title
+  useEffect(() => {
+    document.title = 'Debug - MURDERHOUSE';
+  }, []);
+
   // Connect all 9 players
   useEffect(() => {
     const newConnections = {};
@@ -130,7 +135,10 @@ export default function DebugGrid() {
       <div className={styles.header}>
         <h1>DEBUG: 9-Player Grid</h1>
         <Link to='/host' className={styles.controlLink}>
-          Host Dashboard
+          Host
+        </Link>
+        <Link to='/screen' className={styles.controlLink}>
+          Screen
         </Link>
         <div className={styles.info}>
           Connected: {Object.values(connections).filter(Boolean).length}/

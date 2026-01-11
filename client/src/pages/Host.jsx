@@ -1,5 +1,6 @@
 // client/src/pages/Host.jsx
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
@@ -25,6 +26,11 @@ export default function Host() {
     return saved ? JSON.parse(saved) : false;
   });
   const autoAdvanceTimerRef = useRef(null);
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Host - MURDERHOUSE';
+  }, []);
 
   // Connect as host on mount
   useEffect(() => {
@@ -81,8 +87,8 @@ export default function Host() {
   const handleStartEvent = (eventId) =>
     send(ClientMsg.START_EVENT, { eventId });
   const handleStartAllEvents = () => send(ClientMsg.START_ALL_EVENTS);
-  const handleStartCustomVote = (config) =>
-    send(ClientMsg.START_CUSTOM_VOTE, config);
+  const handleCreateCustomEvent = (config) =>
+    send(ClientMsg.CREATE_CUSTOM_EVENT, config);
   const handleResolveEvent = (eventId) =>
     send(ClientMsg.RESOLVE_EVENT, { eventId });
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
@@ -139,7 +145,11 @@ export default function Host() {
         {/* Left Panel - Game Controls */}
         <aside className={styles.sidebar}>
           <header className={styles.header}>
-            <h1>MURDERHOUSE</h1>
+            <h1>HOST</h1>
+            <div className={styles.navLinks}>
+              <Link to='/screen'>Screen</Link>
+              <Link to='/debug'>Debug</Link>
+            </div>
             <div className={styles.phaseIndicator}>
               {isLobby && 'LOBBY'}
               {phase === GamePhase.DAY && `DAY ${gameState?.dayCount}`}
@@ -182,7 +192,7 @@ export default function Host() {
               currentPhase={phase}
               onStartEvent={handleStartEvent}
               onStartAllEvents={handleStartAllEvents}
-              onStartCustomVote={handleStartCustomVote}
+              onCreateCustomEvent={handleCreateCustomEvent}
               onResolveEvent={handleResolveEvent}
               onResolveAllEvents={handleResolveAllEvents}
               onSkipEvent={handleSkipEvent}

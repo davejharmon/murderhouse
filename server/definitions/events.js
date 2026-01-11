@@ -669,9 +669,9 @@ const events = {
     },
   },
 
-  customVote: {
-    id: 'customVote',
-    name: 'Custom Vote',
+  customEvent: {
+    id: 'customEvent',
+    name: 'Custom Event',
     description: 'Vote for a custom reward.',
     verb: 'vote for',
     verbPastTense: 'voted for',
@@ -682,7 +682,7 @@ const events = {
     participants: (game) => game.getAlivePlayers(),
 
     validTargets: (actor, game) => {
-      const instance = game.activeEvents.get('customVote');
+      const instance = game.activeEvents.get('customEvent');
 
       // Check for runoff voting - only show runoff candidates
       if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
@@ -705,14 +705,14 @@ const events = {
     allowAbstain: true,
 
     resolve: (results, game) => {
-      const instance = game.activeEvents.get('customVote');
+      const instance = game.activeEvents.get('customEvent');
       const config = instance?.config;
       const runoffRound = instance?.runoffRound || 0;
 
       if (!config) {
         return {
           success: false,
-          message: 'Custom vote configuration missing',
+          message: 'Custom event configuration missing',
         };
       }
 
@@ -749,7 +749,7 @@ const events = {
           // After 3 runoffs, pick randomly
           const winnerId =
             frontrunners[Math.floor(Math.random() * frontrunners.length)];
-          return resolveCustomVoteReward(winnerId, config, game, tally, true);
+          return resolveCustomEventReward(winnerId, config, game, tally, true);
         }
 
         // Trigger runoff
@@ -758,11 +758,11 @@ const events = {
           runoff: true,
           frontrunners,
           tally,
-          message: `Custom vote tied. Starting runoff with ${frontrunners.length} candidates.`,
+          message: `Custom event tied. Starting runoff with ${frontrunners.length} candidates.`,
         };
       }
 
-      return resolveCustomVoteReward(
+      return resolveCustomEventReward(
         frontrunners[0],
         config,
         game,
@@ -776,7 +776,7 @@ const events = {
 /**
  * Helper function to resolve custom vote rewards
  */
-function resolveCustomVoteReward(winnerId, config, game, tally, wasTie) {
+function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
   const winner = game.getPlayer(winnerId);
 
   if (!winner) {
@@ -829,7 +829,7 @@ function resolveCustomVoteReward(winnerId, config, game, tally, wasTie) {
     slide: {
       type: 'voteTally',
       tally,
-      title: 'CUSTOM VOTE RESULT',
+      title: 'CUSTOM EVENT RESULT',
       subtitle: slideSubtitle,
       style: SlideStyle.NEUTRAL,
     },

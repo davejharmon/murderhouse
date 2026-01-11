@@ -22,6 +22,11 @@ export default function Player() {
     rejoinAsPlayer,
   } = useGame();
 
+  // Set page title
+  useEffect(() => {
+    document.title = `Player ${playerId} - MURDERHOUSE`;
+  }, [playerId]);
+
   // Join game on mount
   useEffect(() => {
     if (connected && playerId) {

@@ -1,17 +1,24 @@
 import { useState } from 'react';
-import styles from './CustomVoteModal.module.css';
+import styles from './CustomEventModal.module.css';
 
-export default function CustomVoteModal({
+const MECHANISMS = [
+  { id: 'vote', name: 'Vote' },
+];
+
+export default function CustomEventModal({
   isOpen,
   onClose,
   onSubmit,
   availableItems,
   availableRoles
 }) {
+  const [mechanism, setMechanism] = useState('vote');
   const [rewardType, setRewardType] = useState('item');
   const [rewardParam, setRewardParam] = useState('');
 
   if (!isOpen) return null;
+
+  const mechanismLabel = MECHANISMS.find(m => m.id === mechanism)?.name || 'Event';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -33,12 +40,14 @@ export default function CustomVoteModal({
     }
 
     onSubmit({
+      mechanism,
       rewardType,
       rewardParam: rewardType === 'resurrection' ? null : rewardParam,
       description,
     });
 
     // Reset form
+    setMechanism('vote');
     setRewardType('item');
     setRewardParam('');
   };
@@ -49,11 +58,29 @@ export default function CustomVoteModal({
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
-          <h2>Configure Custom Vote</h2>
+          <h2>Configure Event</h2>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </header>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Mechanism Selection */}
+          <div className={styles.field}>
+            <label>Mechanism</label>
+            <div className={styles.radioGroup}>
+              {MECHANISMS.map(m => (
+                <label key={m.id}>
+                  <input
+                    type="radio"
+                    value={m.id}
+                    checked={mechanism === m.id}
+                    onChange={(e) => setMechanism(e.target.value)}
+                  />
+                  {m.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Reward Type Selection */}
           <div className={styles.field}>
             <label>Reward Type</label>
@@ -80,7 +107,7 @@ export default function CustomVoteModal({
                     setRewardParam('');
                   }}
                 />
-                Role Reassignment
+                Role
               </label>
               <label>
                 <input
@@ -144,7 +171,7 @@ export default function CustomVoteModal({
           <div className={styles.actions}>
             <button type="button" onClick={onClose}>Cancel</button>
             <button type="submit" className={styles.primary} disabled={!isValid}>
-              Start Vote
+              Create {mechanismLabel}
             </button>
           </div>
         </form>

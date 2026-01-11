@@ -263,14 +263,15 @@ export function createHandlers(game) {
       return game.startAllEvents();
     },
 
-    [ClientMsg.START_CUSTOM_VOTE]: (ws, payload) => {
+    [ClientMsg.CREATE_CUSTOM_EVENT]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
 
-      const { rewardType, rewardParam, description } = payload;
+      const { mechanism, rewardType, rewardParam, description } = payload;
 
-      return game.startCustomVote({
+      return game.createCustomEvent({
+        mechanism: mechanism || 'vote',
         rewardType,
         rewardParam,
         description,

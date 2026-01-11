@@ -9,6 +9,32 @@
   overflow: hidden;
 }
 
+.navLinks {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 1rem;
+  z-index: 100;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.navLinks:hover {
+  opacity: 1;
+}
+
+.navLinks a {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+}
+
+.navLinks a:hover {
+  color: var(--color-accent-blue);
+}
+
 .slideWrapper {
   position: absolute;
   top: 0;

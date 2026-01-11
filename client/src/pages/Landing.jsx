@@ -46,6 +46,9 @@ export default function Landing() {
               <Link to='/screen' className={styles.controlLink}>
                 Big Screen
               </Link>
+              <Link to='/debug' className={styles.controlLink}>
+                Debug Grid
+              </Link>
             </div>
           </div>
         </section>

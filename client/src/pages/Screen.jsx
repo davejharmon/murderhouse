@@ -1,5 +1,6 @@
 // client/src/pages/Screen.jsx
 import { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus } from '@shared/constants.js';
 import styles from './Screen.module.css';
@@ -23,6 +24,11 @@ export default function Screen() {
       slideQueueLen: slideQueue?.queue?.length,
     });
   }, [connected, gameState, currentSlide, slideQueue, effectiveSlide]);
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Screen - MURDERHOUSE';
+  }, []);
 
   // Connect as screen on mount
   useEffect(() => {
@@ -366,6 +372,10 @@ export default function Screen() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.navLinks}>
+        <Link to='/host'>Host</Link>
+        <Link to='/debug'>Debug</Link>
+      </div>
       <div key={effectiveSlide?.id} className={styles.slideWrapper}>
         {renderSlide()}
       </div>
