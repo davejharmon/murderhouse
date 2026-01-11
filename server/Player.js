@@ -21,7 +21,7 @@ export class Player {
     this.ws = ws;
 
     // Identity
-    this.name = `Player ${this.seatNumber}`;
+    this.name = id === 'player-0' ? 'A' : `Player ${this.seatNumber}`;
     this.portrait = `player${this.seatNumber}.png`;
 
     // Game state
@@ -520,16 +520,22 @@ export class Player {
       this.ws.send(JSON.stringify({ type, payload }));
       return true;
     }
+    console.log(`[Player ${this.id}] Failed to send ${type}: ws=${!!this.ws}, readyState=${this.ws?.readyState}`);
     return false;
   }
 
   // Helper: Send updated private state to this player
   syncState(game) {
-    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
+    const sent = this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
+    if (!sent) {
+      console.log(`[Player ${this.id}] syncState failed - ws not connected`);
+    }
+    return sent;
   }
 
   // Update connection
   setConnection(ws) {
+    console.log(`[Player ${this.id}] setConnection called, ws=${!!ws}, readyState=${ws?.readyState}`);
     this.ws = ws;
     this.connected = ws !== null;
     this.lastSeen = Date.now();

@@ -15,62 +15,55 @@ The terminal connects via WiFi to the game server's WebSocket API and receives t
 
 ## Hardware Components
 
-| Component | Model | Purpose |
-|-----------|-------|---------|
-| Microcontroller | YD-ESP32-23 (2022-V1.3) | WiFi-enabled controller |
-| Display | SSD1322 256x64 OLED (SPI, amber) | 3-line game display |
-| YES Button | 4-pin arcade button (green LED) | Confirm selection / Use ability |
-| NO Button | 4-pin arcade button (red LED) | Abstain from vote |
-| Rotary Switch | SP8T 8-way rotary selector | Navigate targets (UP/DOWN) |
-| Power LED | Through-hole red LED | Power indicator |
-| Status LED | WS2811 Neopixel RGB | Connection status |
+| Component       | Model                            | Purpose                         |
+| --------------- | -------------------------------- | ------------------------------- |
+| Microcontroller | ESP32-S3-DevKitC-1               | WiFi-enabled controller         |
+| Display         | SSD1322 256x64 OLED (SPI, amber) | 3-line game display             |
+| YES Button      | 4-pin arcade button (green LED)  | Confirm selection / Use ability |
+| NO Button       | 4-pin arcade button (red LED)    | Abstain from vote               |
+| Rotary Switch   | SP8T 8-way rotary selector       | Navigate targets (UP/DOWN)      |
+| Power LED       | Through-hole red LED             | Power indicator                 |
+| Status LED      | WS2811 Neopixel RGB              | Connection status               |
 
 ### Additional Components Needed
 
-| Component | Qty | Purpose |
-|-----------|-----|---------|
-| 220Ω resistor | 2 | Button LED current limiting |
-| 330Ω resistor | 2 | Power LED + Neopixel data line |
-| 1kΩ resistor | 1 | Rotary ladder position 1 |
-| 2kΩ resistor | 1 | Rotary ladder position 2 |
-| 3kΩ resistor | 1 | Rotary ladder position 3 |
-| 4.7kΩ resistor | 1 | Rotary ladder position 4 |
-| 6.8kΩ resistor | 1 | Rotary ladder position 5 |
-| 10kΩ resistor | 2 | Rotary ladder position 6 + ADC pulldown |
-| 15kΩ resistor | 1 | Rotary ladder position 7 |
-| 22kΩ resistor | 1 | Rotary ladder position 8 |
-| 100µF capacitor | 1 | Neopixel power smoothing (optional) |
+| Component       | Qty | Purpose                             |
+| --------------- | --- | ----------------------------------- |
+| 220Ω resistor   | 2   | Button LED current limiting         |
+| 330Ω resistor   | 2   | Power LED + Neopixel data line      |
+| 500Ω resistor   | 2   | Rotary ladder ends (top + bottom)   |
+| 1kΩ resistor    | 7   | Rotary ladder between positions     |
+| 100µF capacitor | 1   | Neopixel power smoothing (optional) |
 
 ## Wiring Diagram
 
-### GPIO Pin Assignments
+### GPIO Pin Assignments (ESP32-S3)
 
 ```
-SSD1322 OLED (SPI):
+SSD1322 OLED (SPI2):
   VCC  → 3.3V
   GND  → GND
-  DIN  → GPIO 23 (VSPI MOSI)
-  CLK  → GPIO 18 (VSPI SCK)
-  CS   → GPIO 5  (VSPI CS0)
-  DC   → GPIO 16
-  RST  → GPIO 17
+  DIN  → GPIO 11 (SPI2 MOSI/SDA)
+  CLK  → GPIO 12 (SPI2 SCK)
+  CS   → GPIO 10 (SPI2 CS0)
+  DC   → GPIO 9
+  RST  → GPIO 14
 
 YES Button (Green):
   COM  → GND
-  NO   → GPIO 32 (internal pullup)
-  LED+ → GPIO 25 (via 220Ω resistor)
+  NO   → GPIO 4 (internal pullup)
+  LED+ → GPIO 5 (via 220Ω resistor)
   LED- → GND
 
 NO Button (Red):
   COM  → GND
-  NO   → GPIO 33 (internal pullup)
-  LED+ → GPIO 26 (via 220Ω resistor)
+  NO   → GPIO 6 (internal pullup)
+  LED+ → GPIO 7 (via 220Ω resistor)
   LED- → GND
 
-Rotary Switch (Resistor Ladder):
-  Common → 3.3V
-  Pos 1-8 → Through resistors to GPIO 34 (ADC)
-  GPIO 34 → 10kΩ pulldown to GND
+Rotary Switch (Series Resistor Ladder):
+  3.3V → 500Ω → Pos1 → 1kΩ → Pos2 → 1kΩ → ... → Pos8 → 500Ω → GND
+  Common (wiper) → GPIO 1 (ADC1_CH0)
 
 Power LED:
   Anode  → 3.3V (via 330Ω resistor)
@@ -79,22 +72,22 @@ Power LED:
 Neopixel (WS2811):
   VCC → 5V
   GND → GND
-  DIN → GPIO 27 (via 330Ω resistor)
+  DIN → GPIO 8 (via 330Ω resistor)
 ```
 
 ### Schematic
 
 ```
                               ┌─────────────────────────────────────┐
-                              │         YD-ESP32-23                 │
+                              │       ESP32-S3-DevKitC-1            │
                               │                                     │
     SSD1322 OLED              │  3.3V ──────────────┬───────────────┼──→ VCC (OLED)
     ┌──────────┐              │                     │               │
-    │          │←── DIN ──────┼── GPIO 23           │               │
-    │          │←── CLK ──────┼── GPIO 18           ├── 330Ω ──┬──→ │ Power LED (+)
-    │          │←── CS  ──────┼── GPIO 5            │          │    │
-    │          │←── DC  ──────┼── GPIO 16           │         GND   │
-    │          │←── RST ──────┼── GPIO 17           │               │
+    │          │←── DIN ──────┼── GPIO 11           │               │
+    │          │←── CLK ──────┼── GPIO 12           ├── 330Ω ──┬──→ │ Power LED (+)
+    │          │←── CS  ──────┼── GPIO 10           │          │    │
+    │          │←── DC  ──────┼── GPIO 9            │         GND   │
+    │          │←── RST ──────┼── GPIO 14           │               │
     │          │←── GND ──────┼── GND ──────────────┴───────────────┼──→ GND (OLED)
     │          │←── VCC ──────┼── 3.3V                              │
     └──────────┘              │                                     │
@@ -102,37 +95,42 @@ Neopixel (WS2811):
     YES Button (Green)        │                                     │
     ┌──────┐                  │                                     │
     │ COM  │───────────────── GND                                   │
-    │ NO   │─────────────────┼── GPIO 32 (pullup)                   │
-    │ LED+ │──── 220Ω ───────┼── GPIO 25                            │
+    │ NO   │─────────────────┼── GPIO 4 (pullup)                    │
+    │ LED+ │──── 220Ω ───────┼── GPIO 5                             │
     │ LED- │───────────────── GND                                   │
     └──────┘                  │                                     │
                               │                                     │
     NO Button (Red)           │                                     │
     ┌──────┐                  │                                     │
     │ COM  │───────────────── GND                                   │
-    │ NO   │─────────────────┼── GPIO 33 (pullup)                   │
-    │ LED+ │──── 220Ω ───────┼── GPIO 26                            │
+    │ NO   │─────────────────┼── GPIO 6 (pullup)                    │
+    │ LED+ │──── 220Ω ───────┼── GPIO 7                             │
     │ LED- │───────────────── GND                                   │
     └──────┘                  │                                     │
                               │                                     │
-    Rotary Switch (SP8T)      │                                     │
-    ┌─────────┐               │                                     │
-    │ Common  │────── 3.3V    │                                     │
-    │ Pos 1   │── 1kΩ ──┐     │                                     │
-    │ Pos 2   │── 2kΩ ──┤     │                                     │
-    │ Pos 3   │── 3kΩ ──┤     │                                     │
-    │ Pos 4   │── 4.7kΩ─┼─────┼── GPIO 34 (ADC)                     │
-    │ Pos 5   │── 6.8kΩ─┤     │      │                              │
-    │ Pos 6   │── 10kΩ ─┤     │      10kΩ (pulldown)                │
-    │ Pos 7   │── 15kΩ ─┤     │      │                              │
-    │ Pos 8   │── 22kΩ ─┘     │     GND                             │
-    └─────────┘               │                                     │
+    Rotary Switch (SP8T) - Series Resistor Ladder                  │
+                              │                                     │
+    3.3V ── 500Ω ─┬─ Pos1     │                                     │
+                  │    │      │                                     │
+                 1kΩ   │      │                                     │
+                  │    │      │                                     │
+                 Pos2  │      │                                     │
+                  │    │      │                                     │
+                 1kΩ  Common ─┼── GPIO 1 (ADC)                      │
+                  │  (wiper)  │                                     │
+                 ...          │                                     │
+                  │           │                                     │
+                 Pos8         │                                     │
+                  │           │                                     │
+                 500Ω         │                                     │
+                  │           │                                     │
+                 GND          │                                     │
                               │                                     │
     Neopixel (WS2811)         │                                     │
     ┌──────┐                  │                                     │
     │ VCC  │───────────────── 5V                                    │
     │ GND  │───────────────── GND                                   │
-    │ DIN  │──── 330Ω ───────┼── GPIO 27                            │
+    │ DIN  │──── 330Ω ───────┼── GPIO 8                             │
     └──────┘                  │                                     │
                               └─────────────────────────────────────┘
 ```
@@ -153,58 +151,58 @@ The OLED displays a 3-line format matching the React TinyScreen component:
 
 ### Display States
 
-| State | Line 1 | Line 2 | Line 3 |
-|-------|--------|--------|--------|
-| Lobby | LOBBY | WAITING | Game will begin soon |
-| Selecting | ROLE > EVENT | TARGET NAME | YES confirm • NO abstain |
-| Locked | ROLE > EVENT :lock: | TARGET NAME | Selection locked |
-| Abstained | ROLE > EVENT :x: | ABSTAINED | Waiting for others |
-| Dead | ELIMINATED :skull: | SPECTATOR | Watch the game unfold |
-| Ability Ready | DAY N :pistol: | USE PISTOL? | YES to use • 1/1 |
+| State         | Line 1              | Line 2      | Line 3                   |
+| ------------- | ------------------- | ----------- | ------------------------ |
+| Lobby         | LOBBY               | WAITING     | Game will begin soon     |
+| Selecting     | ROLE > EVENT        | TARGET NAME | YES confirm • NO abstain |
+| Locked        | ROLE > EVENT :lock: | TARGET NAME | Selection locked         |
+| Abstained     | ROLE > EVENT :x:    | ABSTAINED   | Waiting for others       |
+| Dead          | ELIMINATED :skull:  | SPECTATOR   | Watch the game unfold    |
+| Ability Ready | DAY N :pistol:      | USE PISTOL? | YES to use • 1/1         |
 
 ### Glyphs
 
 Inline glyph tokens are rendered as characters:
 
-| Token | Display | Meaning |
-|-------|---------|---------|
-| `:pistol:` | `*` | Pistol item |
-| `:phone:` | `$` | Phone item |
-| `:crystal:` | `@` | Crystal Ball |
-| `:wolf:` | `W` | Werewolf indicator |
-| `:lock:` | `!` | Selection locked |
-| `:x:` | `-` | Abstained |
-| `:alpha:` | `A` | Alpha werewolf |
-| `:pack:` | `P` | Pack suggestion |
-| `:skull:` | `X` | Dead/eliminated |
+| Token       | Display | Meaning            |
+| ----------- | ------- | ------------------ |
+| `:pistol:`  | `*`     | Pistol item        |
+| `:phone:`   | `$`     | Phone item         |
+| `:crystal:` | `@`     | Crystal Ball       |
+| `:wolf:`    | `W`     | Werewolf indicator |
+| `:lock:`    | `!`     | Selection locked   |
+| `:x:`       | `-`     | Abstained          |
+| `:alpha:`   | `A`     | Alpha werewolf     |
+| `:pack:`    | `P`     | Pack suggestion    |
+| `:skull:`   | `X`     | Dead/eliminated    |
 
 ## LED Behavior
 
 ### Button LEDs
 
-| State | Brightness | Behavior |
-|-------|------------|----------|
-| OFF | 0% | No action available |
-| DIM | 30% | Secondary action available |
-| BRIGHT | 100% | Primary action ready |
-| PULSE | 20-100% | Waiting/loading (1s cycle) |
+| State  | Brightness | Behavior                   |
+| ------ | ---------- | -------------------------- |
+| OFF    | 0%         | No action available        |
+| DIM    | 30%        | Secondary action available |
+| BRIGHT | 100%       | Primary action ready       |
+| PULSE  | 20-100%    | Waiting/loading (1s cycle) |
 
 ### Neopixel Status
 
-| Connection State | Color | Pattern |
-|------------------|-------|---------|
-| Booting | White | Steady |
-| WiFi connecting | Blue | Slow pulse |
+| Connection State     | Color  | Pattern    |
+| -------------------- | ------ | ---------- |
+| Booting              | White  | Steady     |
+| WiFi connecting      | Blue   | Slow pulse |
 | WebSocket connecting | Yellow | Fast pulse |
-| Joining game | Cyan | Steady |
-| Connected | Green | Steady |
-| Reconnecting | Orange | Fast pulse |
+| Joining game         | Cyan   | Steady     |
+| Connected            | Green  | Steady     |
+| Reconnecting         | Orange | Fast pulse |
 
 ## Input Handling
 
 ### Rotary Switch
 
-The 8-position rotary switch uses a resistor ladder connected to a single ADC pin. When the switch position changes:
+The 8-position rotary switch uses a series resistor ladder (500Ω-1kΩ-1kΩ-...-1kΩ-500Ω) connected to a single ADC pin. When the switch position changes:
 
 - **Clockwise rotation** (position increases) → Sends `selectDown` (next target)
 - **Counter-clockwise rotation** (position decreases) → Sends `selectUp` (previous target)
@@ -299,10 +297,10 @@ The terminal primarily uses the `playerState` message which includes a `display`
   "type": "playerState",
   "payload": {
     "display": {
-      "line1": {"left": "ALPHA > KILL", "right": ":wolf:"},
-      "line2": {"text": "PLAYER 3", "style": "normal"},
-      "line3": {"text": "YES confirm • NO abstain"},
-      "leds": {"yes": "bright", "no": "dim"}
+      "line1": { "left": "ALPHA > KILL", "right": ":wolf:" },
+      "line2": { "text": "PLAYER 3", "style": "normal" },
+      "line3": { "text": "YES confirm • NO abstain" },
+      "leds": { "yes": "bright", "no": "dim" }
     }
   }
 }
@@ -311,26 +309,31 @@ The terminal primarily uses the `playerState` message which includes a `display`
 ## Troubleshooting
 
 ### Display not working
+
 - Check SPI connections (MOSI, CLK, CS, DC, RST)
 - Verify 3.3V power to display
 - Try adjusting contrast in `display.cpp`
 
 ### Buttons not responding
+
 - Verify buttons are wired to GND (COM) and GPIO (NO)
 - Check that internal pullups are enabled
 - Monitor serial output for input events
 
 ### Rotary switch not detecting positions
-- Verify resistor values in the ladder
-- Check ADC readings in serial monitor
+
+- Verify resistor chain: 3.3V → 500Ω → Pos1 → 1kΩ → Pos2 → ... → Pos8 → 500Ω → GND
+- Check ADC readings in serial monitor (should range ~260-3830)
 - Adjust thresholds in `config.h` if needed
 
 ### WiFi not connecting
+
 - Verify SSID and password in `config.h`
 - Check that ESP32 is within WiFi range
 - Monitor serial output for connection status
 
 ### WebSocket not connecting
+
 - Verify server IP and port
 - Ensure game server is running
 - Check firewall settings

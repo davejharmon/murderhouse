@@ -70,7 +70,8 @@ ConnectionState networkUpdate() {
                 // Send join message
                 StaticJsonDocument<128> doc;
                 doc["playerId"] = PLAYER_ID;
-                sendMessage(ClientMsg::JOIN, &doc.as<JsonObject>());
+                JsonObject payload = doc.as<JsonObject>();
+                sendMessage(ClientMsg::JOIN, &payload);
                 connState = ConnectionState::JOINING;
             }
             break;
@@ -102,13 +103,38 @@ ConnectionState networkUpdate() {
                 // WebSocket reconnected, rejoin game
                 StaticJsonDocument<128> doc;
                 doc["playerId"] = PLAYER_ID;
-                sendMessage(ClientMsg::REJOIN, &doc.as<JsonObject>());
+                JsonObject payload = doc.as<JsonObject>();
+                sendMessage(ClientMsg::REJOIN, &payload);
                 connState = ConnectionState::JOINING;
             }
+            break;
+
+        case ConnectionState::ERROR:
+            // Stay in error state until retryJoin() is called
+            webSocket.loop();
             break;
     }
 
     return connState;
+}
+
+void networkRetryJoin() {
+    if (connState == ConnectionState::ERROR) {
+        Serial.println("Retrying join...");
+        lastError[0] = '\0';  // Clear error message
+
+        if (wsConnected) {
+            // WebSocket still connected, just resend join
+            StaticJsonDocument<128> doc;
+            doc["playerId"] = PLAYER_ID;
+            JsonObject payload = doc.as<JsonObject>();
+            sendMessage(ClientMsg::JOIN, &payload);
+            connState = ConnectionState::JOINING;
+        } else {
+            // Need to reconnect WebSocket
+            connState = ConnectionState::RECONNECTING;
+        }
+    }
 }
 
 bool networkIsConnected() {
@@ -162,7 +188,8 @@ void networkSendUseItem(const char* itemId) {
     if (networkIsConnected()) {
         StaticJsonDocument<128> doc;
         doc["itemId"] = itemId;
-        sendMessage(ClientMsg::USE_ITEM, &doc.as<JsonObject>());
+        JsonObject payload = doc.as<JsonObject>();
+        sendMessage(ClientMsg::USE_ITEM, &payload);
     }
 }
 
@@ -211,6 +238,10 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
                 strncpy(lastError, errorMsg, sizeof(lastError) - 1);
                 Serial.print("Server error: ");
                 Serial.println(errorMsg);
+                // If we were trying to join, transition to error state
+                if (connState == ConnectionState::JOINING) {
+                    connState = ConnectionState::ERROR;
+                }
             }
             else if (strcmp(msgType, ServerMsg::PLAYER_STATE) == 0) {
                 parsePlayerState(msgPayload);
@@ -252,24 +283,24 @@ static void parsePlayerState(JsonObject& payload) {
 
     JsonObject display = payload["display"];
 
-    // Parse line1
+    // Parse line1 (use | "" to handle null values)
     JsonObject line1 = display["line1"];
-    currentDisplayState.line1.left = line1["left"].as<String>();
-    currentDisplayState.line1.right = line1["right"].as<String>();
+    currentDisplayState.line1.left = line1["left"] | "";
+    currentDisplayState.line1.right = line1["right"] | "";
 
     // Parse line2
     JsonObject line2 = display["line2"];
-    currentDisplayState.line2.text = line2["text"].as<String>();
-    currentDisplayState.line2.style = parseDisplayStyle(line2["style"].as<String>());
+    currentDisplayState.line2.text = line2["text"] | "";
+    currentDisplayState.line2.style = parseDisplayStyle(line2["style"] | "normal");
 
     // Parse line3
     JsonObject line3 = display["line3"];
-    currentDisplayState.line3.text = line3["text"].as<String>();
+    currentDisplayState.line3.text = line3["text"] | "";
 
     // Parse LEDs
     JsonObject leds = display["leds"];
-    currentDisplayState.leds.yes = parseLedState(leds["yes"].as<String>());
-    currentDisplayState.leds.no = parseLedState(leds["no"].as<String>());
+    currentDisplayState.leds.yes = parseLedState(leds["yes"] | "off");
+    currentDisplayState.leds.no = parseLedState(leds["no"] | "off");
 
     // Notify callback
     if (displayCallback != nullptr) {

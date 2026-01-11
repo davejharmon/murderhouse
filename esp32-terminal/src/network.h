@@ -21,6 +21,9 @@ ConnectionState networkUpdate();
 // Check if connected to game server
 bool networkIsConnected();
 
+// Retry joining after an error
+void networkRetryJoin();
+
 // Send messages to server
 void networkSendSelectUp();
 void networkSendSelectDown();

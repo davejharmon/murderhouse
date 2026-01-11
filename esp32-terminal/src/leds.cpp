@@ -162,6 +162,12 @@ void ledsSetStatus(ConnectionState state) {
             statusR = 255; statusG = 100; statusB = 0;
             statusPulse = true;
             break;
+
+        case ConnectionState::ERROR:
+            // Red - error
+            statusR = 255; statusG = 0; statusB = 0;
+            statusPulse = false;
+            break;
     }
 
     if (!statusPulse) {

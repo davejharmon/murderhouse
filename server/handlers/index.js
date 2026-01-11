@@ -16,21 +16,26 @@ export function createHandlers(game) {
 
     [ClientMsg.JOIN]: (ws, payload) => {
       const { playerId } = payload;
+      console.log(`[JOIN] playerId=${playerId}, ws.readyState=${ws.readyState}`);
 
       // Check if player already exists (reconnection)
       const existing = game.getPlayer(playerId);
+      console.log(`[JOIN] existing player found: ${!!existing}`);
       if (existing) {
         const result = game.reconnectPlayer(playerId, ws);
+        console.log(`[JOIN] reconnectPlayer result:`, result.success, result.error || '');
         if (result.success) {
           ws.playerId = playerId;
           ws.clientType = 'player';
+          console.log(`[JOIN] Set ws.playerId=${ws.playerId}, player.ws=${!!existing.ws}`);
           send(ws, ServerMsg.WELCOME, {
             playerId,
             reconnected: true,
-            player: existing.getPrivateState(),
+            player: existing.getPrivateState(game),
           });
           send(ws, ServerMsg.GAME_STATE, game.getGameState());
-          send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState());
+          send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState(game));
+          game.broadcastPlayerList(); // Notify others of reconnection
         }
         return result;
       }
@@ -42,10 +47,10 @@ export function createHandlers(game) {
         ws.clientType = 'player';
         send(ws, ServerMsg.WELCOME, {
           playerId,
-          player: result.player.getPrivateState(),
+          player: result.player.getPrivateState(game),
         });
         send(ws, ServerMsg.GAME_STATE, game.getGameState());
-        send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState());
+        send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState(game));
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
       }
@@ -62,10 +67,11 @@ export function createHandlers(game) {
         send(ws, ServerMsg.WELCOME, {
           playerId,
           reconnected: true,
-          player: result.player.getPrivateState(),
+          player: result.player.getPrivateState(game),
         });
         send(ws, ServerMsg.GAME_STATE, game.getGameState());
-        send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState());
+        send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState(game));
+        game.broadcastPlayerList(); // Notify others of reconnection
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
       }
@@ -117,11 +123,16 @@ export function createHandlers(game) {
     },
 
     [ClientMsg.SELECT_UP]: (ws) => {
+      console.log(`[SELECT_UP] ws.playerId=${ws.playerId}`);
       const player = game.getPlayer(ws.playerId);
-      if (!player) return { success: false, error: 'Not a player' };
+      if (!player) {
+        console.log(`[SELECT_UP] Player not found for id=${ws.playerId}`);
+        return { success: false, error: 'Not a player' };
+      }
 
       // Find active event and valid targets
       for (const [eventId, instance] of game.activeEvents) {
+        console.log(`[SELECT_UP] Checking event ${eventId}, participants:`, instance.participants);
         if (instance.participants.includes(player.id)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);

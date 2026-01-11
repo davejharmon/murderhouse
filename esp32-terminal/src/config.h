@@ -11,47 +11,50 @@
 #define WIFI_PASSWORD "andywarhol"
 
 // WebSocket server - UPDATE FOR YOUR SERVER
-#define WS_HOST "192.168.1.100"
+#define WS_HOST "192.168.86.23"
 #define WS_PORT 8080
 #define WS_PATH "/"
 
 // Unique player ID for this terminal
 // Each physical terminal should have a unique ID
-#define PLAYER_ID "esp32-terminal-001"
+#define PLAYER_ID "player-0"
 
 // ============================================================================
-// PIN DEFINITIONS - SSD1322 OLED (SPI)
+// PIN DEFINITIONS - SSD1322 OLED (SPI) - ESP32-S3
 // ============================================================================
 
-#define PIN_OLED_MOSI   23  // DIN - VSPI MOSI
-#define PIN_OLED_CLK    18  // CLK - VSPI SCK
-#define PIN_OLED_CS     5   // CS  - VSPI CS0
-#define PIN_OLED_DC     16  // Data/Command
-#define PIN_OLED_RST    17  // Reset
+#define PIN_OLED_MOSI   11  // DIN - SPI2 MOSI
+#define PIN_OLED_CLK    12  // CLK - SPI2 SCK
+#define PIN_OLED_CS     10  // CS  - SPI2 CS0
+#define PIN_OLED_DC     9   // Data/Command
+#define PIN_OLED_RST    14  // Reset
 
 // ============================================================================
-// PIN DEFINITIONS - BUTTONS
+// PIN DEFINITIONS - BUTTONS - ESP32-S3
 // ============================================================================
 
 // YES button (green arcade button)
-#define PIN_BTN_YES     32  // Button input (pulled up, active LOW)
-#define PIN_LED_YES     25  // LED output (PWM)
+#define PIN_BTN_YES     4   // Button input (pulled up, active LOW)
+#define PIN_LED_YES     5   // LED output (PWM)
 
 // NO button (red arcade button)
-#define PIN_BTN_NO      33  // Button input (pulled up, active LOW)
-#define PIN_LED_NO      26  // LED output (PWM)
+#define PIN_BTN_NO      6   // Button input (pulled up, active LOW)
+#define PIN_LED_NO      7   // LED output (PWM)
 
 // ============================================================================
-// PIN DEFINITIONS - ROTARY SWITCH
+// PIN DEFINITIONS - ROTARY SWITCH - ESP32-S3
 // ============================================================================
 
-#define PIN_ROTARY_ADC  34  // ADC input for resistor ladder
+#define PIN_ROTARY_ADC  1   // ADC1_CH0 input for resistor ladder
 
 // ============================================================================
-// PIN DEFINITIONS - STATUS LED
+// PIN DEFINITIONS - STATUS LED - ESP32-S3
 // ============================================================================
 
-#define PIN_NEOPIXEL    27  // WS2811 data pin
+#ifdef PIN_NEOPIXEL
+#undef PIN_NEOPIXEL
+#endif
+#define PIN_NEOPIXEL    8   // WS2811 data pin
 
 // ============================================================================
 // TIMING CONFIGURATION
@@ -76,18 +79,19 @@
 // ROTARY SWITCH ADC THRESHOLDS
 // ============================================================================
 
-// ADC values for each rotary position (midpoints between expected values)
-// Position 1: ~3723, Position 2: ~3413, Position 3: ~3151, etc.
+// Series resistor ladder: 3.3V--[500]--Pos1--[1k]--Pos2--...--Pos8--[500]--GND
+// Total resistance: 8kΩ, giving linear voltage distribution
+// ADC values: Pos1=3834, Pos2=3327, Pos3=2817, Pos4=2308, Pos5=1787, Pos6=1278, Pos7=769, Pos8=261
 // Using midpoints for threshold detection
-#define ROTARY_POS_1_MIN  3550  // > 3550 = Position 1
-#define ROTARY_POS_2_MIN  3280  // 3280-3550 = Position 2
-#define ROTARY_POS_3_MIN  2960  // 2960-3280 = Position 3
-#define ROTARY_POS_4_MIN  2600  // 2600-2960 = Position 4
-#define ROTARY_POS_5_MIN  2240  // 2240-2600 = Position 5
-#define ROTARY_POS_6_MIN  1840  // 1840-2240 = Position 6
-#define ROTARY_POS_7_MIN  1450  // 1450-1840 = Position 7
-#define ROTARY_POS_8_MIN  1000  // 1000-1450 = Position 8
-// < 1000 = No position / disconnected
+#define ROTARY_POS_1_MIN  3580  // > 3580 = Position 1
+#define ROTARY_POS_2_MIN  3072  // 3072-3580 = Position 2
+#define ROTARY_POS_3_MIN  2562  // 2562-3072 = Position 3
+#define ROTARY_POS_4_MIN  2048  // 2048-2562 = Position 4
+#define ROTARY_POS_5_MIN  1532  // 1532-2048 = Position 5
+#define ROTARY_POS_6_MIN  1024  // 1024-1532 = Position 6
+#define ROTARY_POS_7_MIN  515   // 515-1024 = Position 7
+#define ROTARY_POS_8_MIN  100   // 100-515 = Position 8
+// < 100 = No position / disconnected
 
 // ============================================================================
 // LED PWM CONFIGURATION

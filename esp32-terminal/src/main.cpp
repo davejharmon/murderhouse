@@ -42,6 +42,14 @@ void setup() {
     ledsInit();
     ledsSetStatus(ConnectionState::BOOT);
 
+    // Brief LED test at boot
+    Serial.println("Testing button LEDs...");
+    ledsSetYes(LedState::BRIGHT);
+    ledsSetNo(LedState::BRIGHT);
+    delay(500);
+    ledsSetYes(LedState::OFF);
+    ledsSetNo(LedState::OFF);
+
     Serial.println("Initializing input...");
     inputInit();
 
@@ -68,7 +76,12 @@ void loop() {
 
         // Update display for connection states
         if (connState != ConnectionState::CONNECTED) {
-            displayConnectionStatus(connState);
+            // Pass error message for ERROR state
+            const char* detail = nullptr;
+            if (connState == ConnectionState::ERROR) {
+                detail = networkGetLastError();
+            }
+            displayConnectionStatus(connState, detail);
         }
 
         Serial.print("Connection state: ");
@@ -91,10 +104,14 @@ void loop() {
             case ConnectionState::RECONNECTING:
                 Serial.println("RECONNECTING");
                 break;
+            case ConnectionState::ERROR:
+                Serial.print("ERROR: ");
+                Serial.println(networkGetLastError());
+                break;
         }
     }
 
-    // Only process game input when connected
+    // Handle input based on connection state
     if (networkIsConnected()) {
         // Poll for input events
         InputEvent event = inputPoll();
@@ -131,6 +148,14 @@ void loop() {
         if (displayDirty) {
             displayRender(currentDisplay);
             displayDirty = false;
+        }
+    }
+    else if (connState == ConnectionState::ERROR) {
+        // In error state, any button press retries the join
+        InputEvent event = inputPoll();
+        if (event == InputEvent::YES || event == InputEvent::NO) {
+            Serial.println("Retrying join...");
+            networkRetryJoin();
         }
     }
 

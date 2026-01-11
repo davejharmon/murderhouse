@@ -7,7 +7,7 @@
 // U8g2 constructor for SSD1322 256x64 (4-wire SPI)
 // Using hardware SPI with custom pins
 U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
-    U8G2_R0,           // Rotation
+    U8G2_R2,           // Rotation (180° for upside-down mount)
     PIN_OLED_CS,       // CS
     PIN_OLED_DC,       // DC
     PIN_OLED_RST       // Reset
@@ -28,6 +28,9 @@ U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
 #define MARGIN_X      4     // Left/right margin
 
 void displayInit() {
+    // Initialize SPI with ESP32-S3 pins
+    SPI.begin(PIN_OLED_CLK, -1, PIN_OLED_MOSI, PIN_OLED_CS);
+
     // Initialize U8g2
     u8g2.begin();
     u8g2.setContrast(255);  // Max contrast for amber OLED
@@ -160,6 +163,12 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
             line1 = "CONNECTION LOST";
             line2 = "RECONNECTING";
             line3 = detail ? detail : "Please wait...";
+            break;
+
+        case ConnectionState::ERROR:
+            line1 = detail ? detail : "Join failed";
+            line2 = "ERROR";
+            line3 = "Press any button to retry";
             break;
     }
 

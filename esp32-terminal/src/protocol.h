@@ -82,7 +82,8 @@ enum class ConnectionState {
     WS_CONNECTING,
     JOINING,
     CONNECTED,
-    RECONNECTING
+    RECONNECTING,
+    ERROR
 };
 
 // ============================================================================

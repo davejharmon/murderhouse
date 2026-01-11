@@ -10,11 +10,24 @@ static unsigned long lastNoChange = 0;
 
 // Rotary switch tracking
 static uint8_t lastRotaryPos = 0;
+static uint8_t pendingRotaryPos = 0;
+static uint8_t confirmCount = 0;
 static unsigned long lastRotaryRead = 0;
 
-// Read the rotary switch position from ADC
+// Number of consecutive reads required to confirm a position change
+#define ROTARY_CONFIRM_COUNT 3
+
+// Number of ADC samples to average
+#define ROTARY_ADC_SAMPLES 4
+
+// Read the rotary switch position from ADC with averaging
 static uint8_t readRotaryPosition() {
-    int adcValue = analogRead(PIN_ROTARY_ADC);
+    // Take multiple samples and average them
+    int32_t adcSum = 0;
+    for (int i = 0; i < ROTARY_ADC_SAMPLES; i++) {
+        adcSum += analogRead(PIN_ROTARY_ADC);
+    }
+    int adcValue = adcSum / ROTARY_ADC_SAMPLES;
 
     // Determine position based on ADC thresholds
     if (adcValue > ROTARY_POS_1_MIN) return 1;
@@ -86,34 +99,50 @@ InputEvent inputPoll() {
 
         uint8_t currentPos = readRotaryPosition();
 
-        // Only process if we have a valid position and it changed
-        if (currentPos > 0 && currentPos != lastRotaryPos && lastRotaryPos > 0) {
-            // Determine direction
-            // Clockwise (increasing position) = DOWN
-            // Counter-clockwise (decreasing position) = UP
+        // Ignore invalid readings
+        if (currentPos == 0) {
+            return InputEvent::NONE;
+        }
 
-            // Handle wraparound (8 -> 1 is clockwise, 1 -> 8 is counter-clockwise)
-            int8_t diff = (int8_t)currentPos - (int8_t)lastRotaryPos;
+        // If position matches confirmed position, reset pending state
+        if (currentPos == lastRotaryPos) {
+            pendingRotaryPos = 0;
+            confirmCount = 0;
+            return InputEvent::NONE;
+        }
 
-            // Adjust for wraparound
-            if (diff > 4) {
-                diff -= 8;  // e.g., 8 - 1 = 7, adjusted to -1
-            } else if (diff < -4) {
-                diff += 8;  // e.g., 1 - 8 = -7, adjusted to 1
+        // Position is different from confirmed - check if it matches pending
+        if (currentPos == pendingRotaryPos) {
+            // Same as pending, increment confirmation counter
+            confirmCount++;
+
+            if (confirmCount >= ROTARY_CONFIRM_COUNT) {
+                // Position confirmed! Calculate direction and update
+                int8_t diff = (int8_t)currentPos - (int8_t)lastRotaryPos;
+
+                // Adjust for wraparound
+                if (diff > 4) {
+                    diff -= 8;  // e.g., 8 - 1 = 7, adjusted to -1
+                } else if (diff < -4) {
+                    diff += 8;  // e.g., 1 - 8 = -7, adjusted to 1
+                }
+
+                lastRotaryPos = currentPos;
+                pendingRotaryPos = 0;
+                confirmCount = 0;
+
+                if (diff > 0) {
+                    // Clockwise = position increased = DOWN (next target)
+                    return InputEvent::DOWN;
+                } else if (diff < 0) {
+                    // Counter-clockwise = position decreased = UP (previous target)
+                    return InputEvent::UP;
+                }
             }
-
-            lastRotaryPos = currentPos;
-
-            if (diff > 0) {
-                // Clockwise = position increased = DOWN (next target)
-                return InputEvent::DOWN;
-            } else if (diff < 0) {
-                // Counter-clockwise = position decreased = UP (previous target)
-                return InputEvent::UP;
-            }
-        } else if (currentPos > 0) {
-            // Just update position if it's valid
-            lastRotaryPos = currentPos;
+        } else {
+            // Different position than pending - start new pending
+            pendingRotaryPos = currentPos;
+            confirmCount = 1;
         }
     }
 
