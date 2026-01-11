@@ -3,15 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { GamePhase, PlayerStatus } from '@shared/constants.js';
 import styles from './PlayerConsole.module.css';
 
-// Helper functions for item display
-function getItemIcon(itemId) {
-  const icons = {
-    pistol: '🔫',
-    crystalBall: '🔮',
-  };
-  return icons[itemId] || '📦';
-}
-
+// Helper function for item descriptions
 function getItemDescription(itemId) {
   const descriptions = {
     pistol: 'Shoot a player',
@@ -53,7 +45,6 @@ export default function PlayerConsole({
       .map(item => ({
         id: item.id,
         name: item.id.toUpperCase(),
-        icon: getItemIcon(item.id),
         description: getItemDescription(item.id),
         uses: item.uses,
         maxUses: item.maxUses,
@@ -191,7 +182,7 @@ export default function PlayerConsole({
     // Ability mode
     if (inAbilityMode && currentAbility) {
       return {
-        primary: `${currentAbility.icon} ${currentAbility.name}`,
+        primary: currentAbility.name,
         secondary: `${currentAbility.description} • ${currentAbility.uses}/${currentAbility.maxUses} uses`,
         ability: true,
       };
@@ -254,12 +245,9 @@ export default function PlayerConsole({
           <div className={styles.inventoryItems}>
             {player.inventory.map((item, idx) => (
               <div key={idx} className={styles.inventoryItem}>
-                <span className={styles.itemIcon}>{getItemIcon(item.id)}</span>
-                <span className={styles.itemDetails}>
-                  <span className={styles.itemName}>{item.id.toUpperCase()}</span>
-                  <span className={styles.itemUses}>
-                    {item.uses}/{item.maxUses} uses
-                  </span>
+                <span className={styles.itemName}>{item.id.toUpperCase()}</span>
+                <span className={styles.itemUses}>
+                  {item.uses}/{item.maxUses} uses
                 </span>
               </div>
             ))}
