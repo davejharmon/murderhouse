@@ -1,7 +1,16 @@
 // server/Player.js
 // Player model - represents a player in the game
 
-import { PlayerStatus, ServerMsg, Team } from '../shared/constants.js';
+import {
+  PlayerStatus,
+  ServerMsg,
+  Team,
+  GamePhase,
+  ItemGlyphs,
+  Glyphs,
+  LedState,
+  DisplayStyle,
+} from '../shared/constants.js';
 
 let nextSeatNumber = 1;
 
@@ -186,6 +195,7 @@ export class Player {
       vigilanteUsed: this.vigilanteUsed,
       inventory: this.inventory,
       packInfo: game ? this.getPackInfo(game) : null,
+      display: game ? this.getDisplayState(game) : null,
     };
   }
 
@@ -214,6 +224,238 @@ export class Player {
       playerRole: this.role.id,
       isAlpha: this.role.id === 'alpha',
     };
+  }
+
+  // === Display State (TinyScreen) ===
+
+  /**
+   * Get the display state for TinyScreen (3-line format)
+   * @param {Game} game - The game instance
+   * @param {Object} eventContext - Optional event context { eventId, eventName, description, allowAbstain }
+   * @returns {Object} Display state with line1, line2, line3, leds
+   */
+  getDisplayState(game, eventContext = null) {
+    const phase = game?.phase;
+    const dayCount = game?.dayCount || 0;
+    const hasActiveEvent = this.pendingEvents.size > 0;
+
+    // Get current event info
+    const activeEventId = hasActiveEvent ? [...this.pendingEvents][0] : null;
+    const activeEvent = activeEventId ? game?.activeEvents?.get(activeEventId) : null;
+    const eventName = activeEvent?.event?.name || eventContext?.eventName || null;
+
+    // Build display based on state priority
+    return this._buildDisplay(game, {
+      phase,
+      dayCount,
+      hasActiveEvent,
+      activeEventId,
+      eventName,
+      eventContext,
+    });
+  }
+
+  /**
+   * Build the display object based on current state
+   */
+  _buildDisplay(game, ctx) {
+    const { phase, dayCount, hasActiveEvent, activeEventId, eventName } = ctx;
+
+    // === LOBBY ===
+    if (phase === GamePhase.LOBBY) {
+      return this._display(
+        { left: 'LOBBY', right: '' },
+        { text: 'WAITING', style: DisplayStyle.NORMAL },
+        { text: 'Game will begin soon' },
+        { yes: LedState.OFF, no: LedState.OFF }
+      );
+    }
+
+    // === GAME OVER ===
+    if (phase === GamePhase.GAME_OVER) {
+      return this._display(
+        { left: 'GAME OVER', right: '' },
+        { text: 'FINISHED', style: DisplayStyle.NORMAL },
+        { text: 'Thanks for playing' },
+        { yes: LedState.OFF, no: LedState.OFF }
+      );
+    }
+
+    // === DEAD (no active event) ===
+    if (!this.isAlive && !hasActiveEvent) {
+      return this._display(
+        { left: 'ELIMINATED', right: Glyphs.SKULL },
+        { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
+        { text: 'Watch the game unfold' },
+        { yes: LedState.OFF, no: LedState.OFF }
+      );
+    }
+
+    // === ABSTAINED ===
+    if (this.abstained) {
+      return this._display(
+        { left: this._getContextLine(phase, dayCount, eventName), right: Glyphs.X },
+        { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
+        { text: 'Waiting for others' },
+        { yes: LedState.OFF, no: LedState.OFF }
+      );
+    }
+
+    // === CONFIRMED SELECTION ===
+    if (this.confirmedSelection) {
+      const targetName = game?.getPlayer(this.confirmedSelection)?.name || 'Unknown';
+      // Special display for pardon event
+      const line2Text = activeEventId === 'pardon' ? 'PARDONED' : targetName.toUpperCase();
+      return this._display(
+        { left: this._getContextLine(phase, dayCount, eventName), right: Glyphs.LOCK },
+        { text: line2Text, style: DisplayStyle.LOCKED },
+        { text: 'Selection locked' },
+        { yes: LedState.OFF, no: LedState.OFF }
+      );
+    }
+
+    // === EVENT ACTIVE WITH SELECTION ===
+    if (hasActiveEvent && this.currentSelection) {
+      const targetName = game?.getPlayer(this.currentSelection)?.name || 'Unknown';
+      const packHint = this._getPackHint(game, activeEventId);
+      const canAbstain = ctx.eventContext?.allowAbstain !== false;
+
+      // Special display for pardon event - show PARDON? instead of target name
+      const line2Text = activeEventId === 'pardon' ? 'PARDON?' : targetName.toUpperCase();
+
+      return this._display(
+        { left: this._getContextLine(phase, dayCount, eventName), right: packHint },
+        { text: line2Text, style: DisplayStyle.NORMAL },
+        { text: canAbstain ? 'YES confirm \u2022 NO abstain' : 'YES to confirm' },
+        { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF }
+      );
+    }
+
+    // === EVENT ACTIVE NO SELECTION ===
+    if (hasActiveEvent) {
+      const packHint = this._getPackHint(game, activeEventId);
+      const canAbstain = ctx.eventContext?.allowAbstain !== false;
+
+      return this._display(
+        { left: this._getContextLine(phase, dayCount, eventName), right: packHint },
+        { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
+        { text: 'Swipe to choose' },
+        { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF }
+      );
+    }
+
+    // === ABILITY MODE (idle with usable items) ===
+    const usableAbilities = this._getUsableAbilities();
+    if (usableAbilities.length > 0 && this.isAlive) {
+      const ability = usableAbilities[0]; // Show first ability
+      return this._display(
+        { left: this._getPhaseLabel(phase, dayCount), right: this._getInventoryGlyphs() },
+        { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
+        { text: `YES to use \u2022 ${ability.uses}/${ability.maxUses}` },
+        { yes: LedState.DIM, no: LedState.OFF }
+      );
+    }
+
+    // === IDLE STATE ===
+    const roleLabel = this.role?.name?.toUpperCase() || 'PLAYER';
+    const idleTip = phase === GamePhase.DAY
+      ? 'Discuss and vote'
+      : 'Waiting...';
+
+    return this._display(
+      { left: this._getPhaseLabel(phase, dayCount), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
+      { text: roleLabel, style: DisplayStyle.NORMAL },
+      { text: idleTip },
+      { yes: LedState.OFF, no: LedState.OFF }
+    );
+  }
+
+  /**
+   * Create a display state object
+   */
+  _display(line1, line2, line3, leds) {
+    return { line1, line2, line3, leds };
+  }
+
+  /**
+   * Get the context line (role + event name)
+   */
+  _getContextLine(phase, dayCount, eventName) {
+    const roleLabel = this.role?.name?.toUpperCase() || 'PLAYER';
+    if (eventName) {
+      return `${roleLabel} > ${eventName.toUpperCase()}`;
+    }
+    return this._getPhaseLabel(phase, dayCount);
+  }
+
+  /**
+   * Get the phase label (e.g., "DAY 1" or "NIGHT 2")
+   */
+  _getPhaseLabel(phase, dayCount) {
+    if (phase === GamePhase.DAY) return `DAY ${dayCount}`;
+    if (phase === GamePhase.NIGHT) return `NIGHT ${dayCount}`;
+    return phase?.toUpperCase() || '';
+  }
+
+  /**
+   * Get inventory glyphs string
+   */
+  _getInventoryGlyphs() {
+    return this.inventory
+      .filter((item) => item.uses > 0 || item.maxUses === -1)
+      .map((item) => ItemGlyphs[item.id] || '')
+      .filter(Boolean)
+      .join('');
+  }
+
+  /**
+   * Get role glyph (for werewolves)
+   */
+  _getRoleGlyph() {
+    if (!this.role) return '';
+    if (this.role.id === 'alpha') return Glyphs.ALPHA;
+    if (this.role.team === Team.WEREWOLF) return Glyphs.WOLF;
+    return '';
+  }
+
+  /**
+   * Get pack hint (most popular target among pack)
+   */
+  _getPackHint(game, eventId) {
+    if (!this.role || this.role.team !== Team.WEREWOLF) return '';
+    if (!['kill', 'hunt'].includes(eventId)) return '';
+
+    // Count pack selections
+    const tally = {};
+    const packMembers = game.getAlivePlayers()
+      .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id);
+
+    for (const member of packMembers) {
+      if (member.currentSelection) {
+        tally[member.currentSelection] = (tally[member.currentSelection] || 0) + 1;
+      }
+    }
+
+    // Find most popular
+    const entries = Object.entries(tally);
+    if (entries.length === 0) return '';
+
+    const [topTargetId] = entries.sort((a, b) => b[1] - a[1])[0];
+    const topTarget = game.getPlayer(topTargetId);
+
+    if (topTarget) {
+      return `${Glyphs.PACK}${topTarget.name.toUpperCase()}`;
+    }
+    return '';
+  }
+
+  /**
+   * Get usable abilities (items with startsEvent)
+   */
+  _getUsableAbilities() {
+    return this.inventory.filter(
+      (item) => item.startsEvent && (item.uses > 0 || item.maxUses === -1)
+    );
   }
 
   // Inventory management

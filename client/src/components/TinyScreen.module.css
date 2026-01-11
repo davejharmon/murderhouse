@@ -1,0 +1,152 @@
+/* client/src/components/TinyScreen.module.css */
+/* Three-line display mimicking 256x64 OLED */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #0a0a0a;
+  border: 2px solid rgba(100, 100, 100, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  min-height: 100px;
+  gap: 4px;
+}
+
+/* Line 1: Small context line with glyphs */
+.line1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.left {
+  flex: 1;
+}
+
+.right {
+  font-weight: 600;
+  color: var(--color-accent-blue);
+  letter-spacing: 0.2em;
+}
+
+/* Line 2: Big primary content */
+.line2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: var(--color-text-primary);
+  padding: 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Line 3: Small tutorial/status tip */
+.line3 {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+/* === Display Style Variants === */
+
+/* Locked state - green border */
+.locked {
+  border-color: var(--color-accent-green);
+  background: linear-gradient(180deg, rgba(74, 222, 128, 0.08) 0%, #0a0a0a 100%);
+}
+
+.locked .line2 {
+  color: var(--color-accent-green);
+}
+
+.locked .right {
+  color: var(--color-accent-green);
+}
+
+/* Abstained state - muted */
+.abstained {
+  border-color: rgba(100, 100, 100, 0.5);
+  background: linear-gradient(180deg, rgba(100, 100, 100, 0.08) 0%, #0a0a0a 100%);
+}
+
+.abstained .line2 {
+  color: var(--color-text-muted);
+}
+
+/* Waiting state - pulsing */
+.waiting {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.waiting .line2 {
+  color: var(--color-accent-blue);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    border-color: rgba(100, 100, 100, 0.3);
+  }
+  50% {
+    border-color: var(--color-accent-blue);
+  }
+}
+
+/* === LED State Classes (for button styling) === */
+
+.led_off {
+  opacity: 0.3;
+}
+
+.led_dim {
+  opacity: 0.6;
+}
+
+.led_bright {
+  opacity: 1;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.led_pulse {
+  animation: ledPulse 1s ease-in-out infinite;
+}
+
+@keyframes ledPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px currentColor;
+  }
+}
+
+/* === Compact Mode (for debug grid) === */
+
+.compact {
+  min-height: 60px;
+  padding: 8px 12px;
+  gap: 2px;
+}
+
+.compact .line1 {
+  font-size: 0.625rem;
+}
+
+.compact .line2 {
+  font-size: 1rem;
+  padding: 4px 0;
+}
+
+.compact .line3 {
+  font-size: 0.625rem;
+}

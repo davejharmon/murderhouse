@@ -1,148 +1,95 @@
 /* client/src/components/PlayerConsole.module.css */
+/* Simplified to mimic physical ESP32 terminal */
 
 .console {
   display: flex;
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  background: var(--color-bg-dark);
+  background: #0d0d0d;
   padding: var(--space-md);
   user-select: none;
   -webkit-user-select: none;
 }
 
 .console.dead {
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-/* Header */
+/* Header - Player Identity */
 .header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-lg) 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid #333;
 }
 
 .seatNumber {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: #666;
   letter-spacing: 0.1em;
 }
 
 .playerName {
   font-family: var(--font-mono);
-  font-size: 1.5rem;
-  font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 600;
   text-transform: uppercase;
   margin: var(--space-xs) 0;
+  color: #fff;
 }
 
 .role {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.15em;
 }
 
-/* Tiny Screen */
-.tinyScreen {
-  flex: 1;
+/* Controls Container */
+.controls {
+  flex: 0 0 auto;
+  padding: var(--space-md) 0;
+}
+
+/* Button Row - Horizontal layout */
+.buttonRow {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin: var(--space-lg) 0;
-  padding: var(--space-xl);
-  background: var(--color-bg-medium);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  text-align: center;
-  min-height: 200px;
+  gap: var(--space-sm);
 }
 
-.tinyScreen.locked {
-  border-color: var(--color-accent-green);
-  background: rgba(74, 222, 128, 0.05);
-}
-
-.tinyScreen.waiting {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.tinyScreen.ability {
-  border-color: rgba(255, 193, 7, 0.5);
-  background: rgba(255, 193, 7, 0.05);
-}
-
-.tinyScreen.result {
-  border-color: rgba(155, 126, 217, 0.5);
-  background: rgba(155, 126, 217, 0.05);
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.screenPrimary {
-  font-family: var(--font-mono);
-  font-size: 2rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-sm);
-}
-
-.screenSecondary {
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-/* Controls */
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg) 0;
-}
-
-/* Button Grid - 2x2 layout: UP | YES / DOWN | NO */
-.buttonGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: var(--space-md);
-  min-height: 200px;
-}
-
+/* Navigation Buttons (Rotary switch simulation) */
 .navButton {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-lg);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  color: var(--color-text-primary);
-  transition: all var(--transition-fast);
+  width: 48px;
+  height: 48px;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 50%;
+  color: #888;
+  transition: all 0.15s ease;
 }
 
 .navButton:hover:not(:disabled) {
-  background: var(--color-bg-light);
-  border-color: var(--color-accent-blue);
+  background: #252525;
+  border-color: #555;
+  color: #fff;
 }
 
 .navButton:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.95);
+  background: #333;
 }
 
 .navButton:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
@@ -151,425 +98,132 @@
   line-height: 1;
 }
 
-.navLabel {
-  font-size: 0.625rem;
-  margin-top: var(--space-xs);
-  letter-spacing: 0.2em;
-}
-
-/* YES Button */
+/* YES Button - Green LED arcade button */
 .yesButton {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
-  background: var(--color-bg-elevated);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  color: var(--color-text-muted);
-  transition: all var(--transition-fast);
-  font-weight: 600;
+  width: 48px;
+  height: 48px;
+  background: #1a2a1a;
+  border: 3px solid #2a4a2a;
+  border-radius: 50%;
+  color: #3a5a3a;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
 }
 
 .yesButton.active {
-  background: var(--color-accent-green);
-  border-color: var(--color-accent-green);
-  color: var(--color-bg-dark);
+  background: #2a5a2a;
+  border-color: #4ade80;
+  color: #4ade80;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.2);
 }
 
 .yesButton.active:hover:not(:disabled) {
-  background: #5eeb99;
-  border-color: #5eeb99;
-  transform: translateY(-2px);
+  background: #3a6a3a;
+  box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3);
+}
+
+.yesButton.active:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .yesButton:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
-.yesIcon {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.yesLabel {
-  font-size: 0.875rem;
-  margin-top: var(--space-xs);
-  letter-spacing: 0.2em;
-}
-
-/* NO Button */
+/* NO Button - Red LED arcade button */
 .noButton {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
-  background: var(--color-bg-elevated);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  color: var(--color-text-muted);
-  transition: all var(--transition-fast);
-  font-weight: 600;
+  width: 48px;
+  height: 48px;
+  background: #2a1a1a;
+  border: 3px solid #4a2a2a;
+  border-radius: 50%;
+  color: #5a3a3a;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
 }
 
 .noButton.active {
-  background: var(--color-accent-red);
-  border-color: var(--color-accent-red);
-  color: var(--color-bg-dark);
+  background: #5a2a2a;
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
 .noButton.active:hover:not(:disabled) {
-  background: #ff6b6b;
-  border-color: #ff6b6b;
-  transform: translateY(-2px);
+  background: #6a3a3a;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.noButton.active:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .noButton:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
-.noIcon {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.noLabel {
-  font-size: 0.875rem;
-  margin-top: var(--space-xs);
-  letter-spacing: 0.2em;
-}
-
-.spectatorMessage,
-.idleMessage {
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  padding: var(--space-lg);
-}
-
-/* Status Bar */
-.statusBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border-top: 1px solid var(--border-color);
-}
-
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.statusDot.alive {
-  background: var(--color-accent-green);
-  box-shadow: 0 0 8px var(--color-accent-green);
-}
-
-.statusDot.dead {
-  background: var(--color-accent-red);
-}
-
-.statusText {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  letter-spacing: 0.1em;
-}
-
-.phase {
-  margin-left: var(--space-sm);
-  font-size: 1rem;
-}
-
-/* Inventory */
-.inventory {
-  padding: var(--space-md) 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.inventoryLabel {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  color: var(--color-text-muted);
-  letter-spacing: 0.15em;
-  margin-bottom: var(--space-sm);
-  text-align: center;
-}
-
-.inventoryItems {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.inventoryItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-md);
-}
-
-.itemIcon {
-  font-size: 1.5rem;
-}
-
-.itemDetails {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.itemName {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #ffc107;
-  letter-spacing: 0.1em;
-}
-
-.itemUses {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  color: var(--color-text-muted);
-}
-
-/* Pack Info */
-.packInfo {
-  background: rgba(201, 76, 76, 0.15);
-  border: 2px solid #c94c4c;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.packLabel {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: #c94c4c;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-align: center;
-}
-
-.packMembers {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.packMember {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 8px;
-  border-radius: 6px;
-}
-
-.packName {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-}
-
-.packSelection {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-style: italic;
-  margin-top: 4px;
-  transition: all 0.2s ease;
-}
-
-.packSelection.considering {
-  color: #ffa500;
-  opacity: 0.8;
-  animation: pulse-soft 2s ease-in-out infinite;
-}
-
-.packSelection.confirmed {
-  color: #4ade80;
-  font-weight: 700;
-  opacity: 1;
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-}
-
 /* ===== COMPACT MODE ===== */
-/* Optimized for 3x3 grid on 960x1080 (half of 1920x1080) */
+/* For debug grid view */
 
 .console.compact {
   height: auto;
-  padding: 4px;
-  font-size: 0.75rem;
+  padding: 6px;
 }
 
 .compact .header {
   padding: 4px 0;
-  border-bottom: none;
+  border-bottom: 1px solid #222;
 }
 
 .compact .seatNumber {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .compact .playerName {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin: 2px 0;
 }
 
 .compact .role {
-  font-size: 0.65rem;
-}
-
-.compact .tinyScreen {
-  margin: 4px 0;
-  padding: 8px;
-  min-height: 60px;
-  flex: 0 1 auto;
-  border-radius: 4px;
-}
-
-.compact .screenPrimary {
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.compact .screenSecondary {
-  font-size: 0.65rem;
+  font-size: 0.55rem;
 }
 
 .compact .controls {
   padding: 4px 0;
-  gap: 4px;
 }
 
-.compact .buttonGrid {
-  min-height: 100px;
-  gap: 4px;
+.compact .buttonRow {
+  gap: 3px;
 }
 
 .compact .navButton {
-  padding: 8px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-width: 1px;
 }
 
 .compact .arrow {
-  font-size: 1rem;
-}
-
-.compact .navLabel {
-  font-size: 0.5rem;
-  margin-top: 2px;
+  font-size: 0.7rem;
 }
 
 .compact .yesButton,
 .compact .noButton {
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.compact .yesIcon,
-.compact .noIcon {
-  font-size: 1.2rem;
-}
-
-.compact .yesLabel,
-.compact .noLabel {
-  font-size: 0.6rem;
-  margin-top: 2px;
-}
-
-.compact .statusBar {
-  padding: 4px;
-}
-
-.compact .statusDot {
-  width: 6px;
-  height: 6px;
-}
-
-.compact .statusText {
-  font-size: 0.6rem;
-}
-
-.compact .phase {
-  font-size: 0.75rem;
-}
-
-.compact .inventory {
-  padding: 4px 0;
-}
-
-.compact .inventoryLabel {
+  width: 32px;
+  height: 32px;
   font-size: 0.5rem;
-  margin-bottom: 4px;
+  border-width: 2px;
 }
-
-.compact .inventoryItems {
-  gap: 2px;
-}
-
-.compact .inventoryItem {
-  padding: 4px 6px;
-  border-radius: 3px;
-}
-
-.compact .itemIcon {
-  font-size: 1rem;
-}
-
-.compact .itemName {
-  font-size: 0.65rem;
-}
-
-.compact .itemUses {
-  font-size: 0.5rem;
-}
-
-.compact .packInfo {
-  padding: 6px;
-  margin-bottom: 8px;
-}
-
-.compact .packLabel {
-  font-size: 0.5rem;
-  margin-bottom: 4px;
-}
-
-.compact .packMembers {
-  gap: 4px;
-}
-
-.compact .packMember {
-  padding: 4px;
-}
-
-.compact .packName {
-  font-size: 0.65rem;
-}
-
-.compact .packSelection {
-  font-size: 0.55rem;
-  margin-top: 2px;
-}
-
-.compact .spectatorMessage,
-.compact .idleMessage {
-  font-size: 0.7rem;
-  padding: 8px;
-}
-

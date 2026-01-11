@@ -119,3 +119,42 @@ export const DEBUG_MODE = true;
 
 // Available items (for host UI)
 export const AVAILABLE_ITEMS = ['pistol', 'phone', 'crystalBall'];
+
+// Display glyphs for TinyScreen
+// Format: :glyphId: in strings, rendered differently by React vs ESP
+export const Glyphs = {
+  PISTOL: ':pistol:',
+  PHONE: ':phone:',
+  CRYSTAL: ':crystal:',
+  WOLF: ':wolf:',
+  VILLAGE: ':village:',
+  LOCK: ':lock:',
+  CHECK: ':check:',
+  X: ':x:',
+  ALPHA: ':alpha:',
+  PACK: ':pack:',
+  SKULL: ':skull:',
+};
+
+// Item ID to glyph mapping
+export const ItemGlyphs = {
+  pistol: Glyphs.PISTOL,
+  phone: Glyphs.PHONE,
+  crystalBall: Glyphs.CRYSTAL,
+};
+
+// LED states for physical buttons
+export const LedState = {
+  OFF: 'off',
+  DIM: 'dim',
+  BRIGHT: 'bright',
+  PULSE: 'pulse',
+};
+
+// Display line styles
+export const DisplayStyle = {
+  NORMAL: 'normal',
+  LOCKED: 'locked',
+  ABSTAINED: 'abstained',
+  WAITING: 'waiting',
+};
