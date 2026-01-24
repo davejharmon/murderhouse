@@ -362,7 +362,7 @@ export class Player {
       return this._display(
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
-        { text: 'Swipe to choose' },
+        { left: 'Use dial', right: canAbstain ? 'ABSTAIN' : '' },
         { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF }
       );
     }
@@ -374,7 +374,7 @@ export class Player {
       return this._display(
         { left: getLine1(), right: this._getInventoryGlyphs() },
         { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-        { left: 'USE', right: `${ability.uses}/${ability.maxUses}` },
+        { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
         { yes: LedState.DIM, no: LedState.OFF }
       );
     }
