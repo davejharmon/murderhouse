@@ -143,7 +143,7 @@ The OLED displays a 3-line format matching the React TinyScreen component:
 
 ```
 ┌──────────────────────────────────────┐
-│ ALPHA > KILL                    :wolf: │  ← Line 1: Context + glyphs (small)
+│ #8 WEREWOLF > DAY 1 > VOTE    :wolf: │  ← Line 1: Context + glyphs (small)
 │                                        │
 │           PLAYER 3                     │  ← Line 2: Primary content (large)
 │                                        │
@@ -151,16 +151,32 @@ The OLED displays a 3-line format matching the React TinyScreen component:
 └──────────────────────────────────────┘
 ```
 
+### Line 1 Format
+
+Line 1 follows a standardized format: `#{seat} {NAME/ROLE} > {PHASE} > {ACTION}`
+
+| Phase     | Example                           | Description                    |
+| --------- | --------------------------------- | ------------------------------ |
+| Lobby     | `#8 PLAYER > LOBBY`               | Default name, waiting          |
+| Lobby     | `#8 DEMI > LOBBY`                 | Custom name set                |
+| Day idle  | `#8 WEREWOLF > DAY 1`             | Role assigned, no active event |
+| Voting    | `#8 WEREWOLF > DAY 1 > VOTE`      | Active vote event              |
+| Night     | `#8 SEER > NIGHT 1 > INVESTIGATE` | Night action                   |
+| Item use  | `#8 VILLAGER > DAY 1 > SHOOT (PISTOL)` | Item-triggered event      |
+| Dead      | `#8 WEREWOLF > DAY 1 > DEAD`      | Player eliminated              |
+| Game over | `#8 WEREWOLF > GAME OVER`         | Game finished                  |
+
 ### Display States
 
-| State         | Line 1              | Line 2      | Line 3                   |
-| ------------- | ------------------- | ----------- | ------------------------ |
-| Lobby         | LOBBY               | WAITING     | Game will begin soon     |
-| Selecting     | ROLE > EVENT        | TARGET NAME | YES confirm • NO abstain |
-| Locked        | ROLE > EVENT :lock: | TARGET NAME | Selection locked         |
-| Abstained     | ROLE > EVENT :x:    | ABSTAINED   | Waiting for others       |
-| Dead          | ELIMINATED :skull:  | SPECTATOR   | Watch the game unfold    |
-| Ability Ready | DAY N :pistol:      | USE PISTOL? | YES to use • 1/1         |
+| State         | Line 1                        | Line 2      | Line 3                   |
+| ------------- | ----------------------------- | ----------- | ------------------------ |
+| Connecting    | CONNECTING...                 | WIFI/SERVER | Status message           |
+| Lobby         | #N NAME > LOBBY               | WAITING     | Game will begin soon     |
+| Selecting     | #N ROLE > PHASE > EVENT       | TARGET NAME | YES confirm • NO abstain |
+| Locked        | #N ROLE > PHASE > EVENT :lock:| TARGET NAME | Selection locked         |
+| Abstained     | #N ROLE > PHASE > EVENT :x:   | ABSTAINED   | Waiting for others       |
+| Dead          | #N ROLE > PHASE > DEAD :skull:| SPECTATOR   | Watch the game unfold    |
+| Ability Ready | #N ROLE > PHASE               | USE PISTOL? | YES to use • 1/1         |
 
 ### Glyphs
 
