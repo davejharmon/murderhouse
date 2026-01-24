@@ -17,7 +17,15 @@ let nextSeatNumber = 1;
 export class Player {
   constructor(id, ws = null) {
     this.id = id;
-    this.seatNumber = nextSeatNumber++;
+
+    // If ID is numeric (e.g., "8"), use that as seat number for consistency
+    // Otherwise use auto-increment counter
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId) && numericId >= 1 && numericId <= 99) {
+      this.seatNumber = numericId;
+    } else {
+      this.seatNumber = nextSeatNumber++;
+    }
 
     // Multiple connections support (web client + physical terminal)
     this.connections = ws ? [ws] : [];
