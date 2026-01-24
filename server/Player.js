@@ -401,17 +401,33 @@ export class Player {
 
   /**
    * Build the standardized line1 left text
-   * Format: #{seatNumber} {ROLE} > {PHASE} > {ACTION}
+   * Format: #{seatNumber} {NAME/ROLE} > {PHASE} > {ACTION}
    * Examples:
-   *   #8 PLAYER > LOBBY
-   *   #8 WEREWOLF > DAY 1
+   *   #8 PLAYER > LOBBY (default name, no role)
+   *   #8 DEMI > LOBBY (custom name, no role)
+   *   #8 WEREWOLF > DAY 1 (role assigned)
    *   #8 WEREWOLF > DAY 1 > VOTE
    *   #8 WEREWOLF > DAY 1 > DEAD
    *   #8 VILLAGER > DAY 1 > SHOOT (PISTOL)
    */
   _getLine1(phase, dayCount, eventName, eventId) {
     const playerNum = `#${this.seatNumber}`;
-    const roleLabel = (this.role?.name?.toUpperCase() || 'PLAYER').substring(0, 12); // Truncate long role names
+
+    // Determine what to show: role (if assigned) or player name (in lobby)
+    let nameOrRole;
+    if (this.role) {
+      // Role assigned - show role name
+      nameOrRole = this.role.name.toUpperCase();
+    } else {
+      // No role - show custom name if set, otherwise "PLAYER"
+      const defaultName = `Player ${this.seatNumber}`;
+      if (this.name && this.name !== defaultName) {
+        nameOrRole = this.name.toUpperCase();
+      } else {
+        nameOrRole = 'PLAYER';
+      }
+    }
+    nameOrRole = nameOrRole.substring(0, 12); // Truncate long names
 
     // Build phase part
     let phasePart;
@@ -438,7 +454,7 @@ export class Player {
       }
     }
 
-    return `${playerNum} ${roleLabel} > ${phasePart}${actionPart}`;
+    return `${playerNum} ${nameOrRole} > ${phasePart}${actionPart}`;
   }
 
   /**
