@@ -442,7 +442,7 @@ export class Player {
     // Build action part
     let actionPart = '';
     if (!this.isAlive) {
-      actionPart = ' > DEAD';
+      actionPart = ' :skull:';
     } else if (eventName) {
       actionPart = ` > ${eventName.toUpperCase()}`;
       // Add item name for item-triggered events

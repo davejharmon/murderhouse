@@ -27,6 +27,56 @@ U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
 
 #define MARGIN_X      4     // Left/right margin
 
+// Process text to extract bitmap glyphs and their positions
+// Returns the text with bitmap glyphs replaced by spaces
+static GlyphRenderResult processGlyphsForRender(const String& input, int startX, int charWidth) {
+    GlyphRenderResult result;
+    result.text = input;
+    result.bitmapCount = 0;
+
+    // Process each glyph type
+    for (int i = 0; GLYPHS[i].token != nullptr; i++) {
+        if (GLYPHS[i].type == GlyphType::CHARACTER) {
+            // Simple character replacement
+            result.text.replace(GLYPHS[i].token, String(GLYPHS[i].display));
+        } else if (GLYPHS[i].type == GlyphType::BITMAP) {
+            // Find all occurrences of this bitmap glyph
+            int pos = 0;
+            String searchText = result.text;
+            while ((pos = searchText.indexOf(GLYPHS[i].token)) != -1 &&
+                   result.bitmapCount < MAX_BITMAP_GLYPHS) {
+                // Calculate the X position for this glyph
+                // Position = startX + (characters before glyph * char width)
+                int xPos = startX + (pos * charWidth);
+
+                // Store bitmap info
+                result.bitmaps[result.bitmapCount].x = xPos;
+                result.bitmaps[result.bitmapCount].bitmap = GLYPHS[i].bitmap;
+                result.bitmaps[result.bitmapCount].width = GLYPHS[i].width;
+                result.bitmaps[result.bitmapCount].height = GLYPHS[i].height;
+                result.bitmapCount++;
+
+                // Replace with space in the result text
+                result.text.replace(GLYPHS[i].token, " ");
+                searchText = result.text;  // Update search text for next iteration
+            }
+        }
+    }
+
+    return result;
+}
+
+// Draw bitmap glyphs at their calculated positions
+static void drawBitmapGlyphs(const GlyphRenderResult& glyphs, int baselineY, int fontHeight) {
+    for (uint8_t i = 0; i < glyphs.bitmapCount; i++) {
+        const BitmapGlyph& g = glyphs.bitmaps[i];
+        // Center bitmap vertically relative to text baseline
+        // Baseline is at bottom of text, so we need to offset upward
+        int yPos = baselineY - fontHeight + (fontHeight - g.height) / 2;
+        u8g2.drawXBM(g.x, yPos, g.width, g.height, g.bitmap);
+    }
+}
+
 void displayInit() {
     // Initialize SPI with ESP32-S3 pins
     SPI.begin(PIN_OLED_CLK, -1, PIN_OLED_MOSI, PIN_OLED_CS);
@@ -65,14 +115,25 @@ void displayRender(const DisplayState& state) {
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
 
-    // Left side
-    String leftText = renderGlyphs(state.line1.left);
-    u8g2.drawStr(MARGIN_X, LINE1_Y, leftText.c_str());
+    // Get character width for position calculations
+    int charWidth = u8g2.getMaxCharWidth();
+    int fontHeight = 10;  // FONT_SMALL is 10px height
 
-    // Right side (right-aligned)
+    // Left side - process for bitmap glyphs
+    GlyphRenderResult leftGlyphs = processGlyphsForRender(state.line1.left, MARGIN_X, charWidth);
+    u8g2.drawStr(MARGIN_X, LINE1_Y, leftGlyphs.text.c_str());
+    drawBitmapGlyphs(leftGlyphs, LINE1_Y, fontHeight);
+
+    // Right side (right-aligned) - process for bitmap glyphs
+    // First do simple glyph replacement to calculate width
     String rightText = renderGlyphs(state.line1.right);
     int rightWidth = u8g2.getStrWidth(rightText.c_str());
-    u8g2.drawStr(DISPLAY_WIDTH - rightWidth - MARGIN_X, LINE1_Y, rightText.c_str());
+    int rightStartX = DISPLAY_WIDTH - rightWidth - MARGIN_X;
+
+    // Now process with position tracking
+    GlyphRenderResult rightGlyphs = processGlyphsForRender(state.line1.right, rightStartX, charWidth);
+    u8g2.drawStr(rightStartX, LINE1_Y, rightGlyphs.text.c_str());
+    drawBitmapGlyphs(rightGlyphs, LINE1_Y, fontHeight);
 
     // === LINE 2: Main content (large, centered) ===
     u8g2.setFont(FONT_LARGE);

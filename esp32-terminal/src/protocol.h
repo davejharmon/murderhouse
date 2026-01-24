@@ -143,29 +143,78 @@ struct DisplayState {
 // GLYPH MAPPING
 // ============================================================================
 
-// Glyph tokens and their display characters
-// For bitmap support, these could be replaced with custom character codes
+// Placeholder character used for bitmap glyphs during text rendering
+// This character takes up space but will be replaced with bitmap
+#define GLYPH_PLACEHOLDER '\x01'
+
+// Glyph types
+enum class GlyphType {
+    CHARACTER,  // Simple character replacement
+    BITMAP      // Bitmap glyph (drawn separately)
+};
+
+// Bitmap glyph data (XBM format, LSB = leftmost pixel)
+// 8x8 skull bitmap
+const uint8_t BITMAP_SKULL[] = {
+    0x3C,  // ..1111..
+    0x42,  // .1....1.
+    0x6D,  // .1.11.1.  (eye sockets)
+    0x81,  // 1......1
+    0x42,  // .1....1.
+    0x3C,  // ..1111..
+    0x18,  // ...11...  (nose)
+    0x7E   // .111111.  (jaw)
+};
+const uint8_t BITMAP_SKULL_WIDTH = 8;
+const uint8_t BITMAP_SKULL_HEIGHT = 8;
+
+// Glyph entry with optional bitmap data
 struct GlyphEntry {
     const char* token;
-    char display;
+    GlyphType type;
+    char display;           // Character to display (or placeholder width for bitmaps)
+    const uint8_t* bitmap;  // Bitmap data (nullptr for character glyphs)
+    uint8_t width;          // Bitmap width
+    uint8_t height;         // Bitmap height
 };
 
 const GlyphEntry GLYPHS[] = {
-    {":pistol:", '*'},
-    {":phone:", '$'},
-    {":crystal:", '@'},
-    {":wolf:", 'W'},
-    {":village:", 'V'},
-    {":lock:", '!'},
-    {":check:", '+'},
-    {":x:", '-'},
-    {":alpha:", 'A'},
-    {":pack:", 'P'},
-    {":skull:", 'X'},
-    {nullptr, 0}  // Sentinel
+    // Bitmap glyphs (will be rendered as actual graphics)
+    {":skull:", GlyphType::BITMAP, ' ', BITMAP_SKULL, BITMAP_SKULL_WIDTH, BITMAP_SKULL_HEIGHT},
+
+    // Character glyphs (simple text replacement)
+    {":pistol:", GlyphType::CHARACTER, '*', nullptr, 0, 0},
+    {":phone:", GlyphType::CHARACTER, '$', nullptr, 0, 0},
+    {":crystal:", GlyphType::CHARACTER, '@', nullptr, 0, 0},
+    {":wolf:", GlyphType::CHARACTER, 'W', nullptr, 0, 0},
+    {":village:", GlyphType::CHARACTER, 'V', nullptr, 0, 0},
+    {":lock:", GlyphType::CHARACTER, '!', nullptr, 0, 0},
+    {":check:", GlyphType::CHARACTER, '+', nullptr, 0, 0},
+    {":x:", GlyphType::CHARACTER, '-', nullptr, 0, 0},
+    {":alpha:", GlyphType::CHARACTER, 'A', nullptr, 0, 0},
+    {":pack:", GlyphType::CHARACTER, 'P', nullptr, 0, 0},
+    {nullptr, GlyphType::CHARACTER, 0, nullptr, 0, 0}  // Sentinel
+};
+
+// Structure to track bitmap glyph positions for rendering
+struct BitmapGlyph {
+    int16_t x;              // X position to draw
+    const uint8_t* bitmap;  // Bitmap data
+    uint8_t width;
+    uint8_t height;
+};
+
+#define MAX_BITMAP_GLYPHS 4  // Max bitmap glyphs per line
+
+// Result of processing glyphs in a string
+struct GlyphRenderResult {
+    String text;                             // Text with glyphs replaced
+    BitmapGlyph bitmaps[MAX_BITMAP_GLYPHS];  // Bitmap glyphs to draw
+    uint8_t bitmapCount;                     // Number of bitmap glyphs
 };
 
 // Replace glyph tokens in a string with display characters
+// For simple cases where bitmap positions aren't needed
 inline String renderGlyphs(const String& input) {
     String result = input;
     for (int i = 0; GLYPHS[i].token != nullptr; i++) {
