@@ -35,7 +35,7 @@ function renderGlyphs(str) {
  *   display: {
  *     line1: { left: string, right: string },
  *     line2: { text: string, style: 'normal'|'locked'|'abstained'|'waiting' },
- *     line3: { text: string },
+ *     line3: { text: string } OR { left: string, right: string },
  *     leds: { yes: string, no: string }
  *   }
  */
@@ -56,6 +56,9 @@ export default function TinyScreen({ display }) {
   const { line1, line2, line3 } = display;
   const styleClass = styles[line2.style] || '';
 
+  // Line 3 can be centered text or left/right aligned (for button labels)
+  const hasLine3LeftRight = line3.left || line3.right;
+
   return (
     <div className={`${styles.screen} ${styleClass}`}>
       <div className={styles.line1}>
@@ -63,7 +66,14 @@ export default function TinyScreen({ display }) {
         <span className={styles.right}>{renderGlyphs(line1.right)}</span>
       </div>
       <div className={styles.line2}>{line2.text}</div>
-      <div className={styles.line3}>{line3.text}</div>
+      {hasLine3LeftRight ? (
+        <div className={styles.line3Split}>
+          <span className={styles.left}>{renderGlyphs(line3.left)}</span>
+          <span className={styles.right}>{renderGlyphs(line3.right)}</span>
+        </div>
+      ) : (
+        <div className={styles.line3}>{line3.text}</div>
+      )}
     </div>
   );
 }

@@ -116,9 +116,11 @@ struct DisplayState {
         DisplayStyle style;  // Visual style variant
     } line2;
 
-    // Line 3: Tutorial/tip
+    // Line 3: Tutorial/tip (supports both centered text and left/right aligned)
     struct {
-        String text;  // e.g., "YES confirm - NO abstain"
+        String text;   // Centered text (used if left/right empty)
+        String left;   // Left-aligned (above YES button)
+        String right;  // Right-aligned (above NO button)
     } line3;
 
     // LED states
@@ -154,19 +156,33 @@ enum class GlyphType {
 };
 
 // Bitmap glyph data (XBM format, LSB = leftmost pixel)
-// 8x8 skull bitmap
-const uint8_t BITMAP_SKULL[] = {
-    0x3C,  // ..1111..
-    0x42,  // .1....1.
-    0x6D,  // .1.11.1.  (eye sockets)
-    0x81,  // 1......1
-    0x42,  // .1....1.
-    0x3C,  // ..1111..
-    0x18,  // ...11...  (nose)
-    0x7E   // .111111.  (jaw)
+// 8x8 ghost bitmap (friendly death indicator)
+const uint8_t BITMAP_GHOST[] = {
+    0x3C,  //   ████
+    0x7E,  //  ██████
+    0xFF,  // ████████
+    0xDB,  // ██ ██ ██  (eyes)
+    0xFF,  // ████████
+    0xFF,  // ████████
+    0xBD,  // █ ████ █
+    0xA5   // █ █  █ █  (wavy bottom)
 };
-const uint8_t BITMAP_SKULL_WIDTH = 8;
-const uint8_t BITMAP_SKULL_HEIGHT = 8;
+const uint8_t BITMAP_GHOST_WIDTH = 8;
+const uint8_t BITMAP_GHOST_HEIGHT = 8;
+
+// 8x8 wolf face bitmap (werewolf indicator)
+const uint8_t BITMAP_WOLF[] = {
+    0x81,  // █      █  (ears)
+    0xC3,  // ██    ██
+    0xFF,  // ████████  (head)
+    0xDB,  // ██ ██ ██  (eyes)
+    0xFF,  // ████████
+    0x7E,  //  ██████   (snout)
+    0x3C,  //   ████
+    0x18   //    ██     (nose)
+};
+const uint8_t BITMAP_WOLF_WIDTH = 8;
+const uint8_t BITMAP_WOLF_HEIGHT = 8;
 
 // Glyph entry with optional bitmap data
 struct GlyphEntry {
@@ -180,13 +196,13 @@ struct GlyphEntry {
 
 const GlyphEntry GLYPHS[] = {
     // Bitmap glyphs (will be rendered as actual graphics)
-    {":skull:", GlyphType::BITMAP, ' ', BITMAP_SKULL, BITMAP_SKULL_WIDTH, BITMAP_SKULL_HEIGHT},
+    {":skull:", GlyphType::BITMAP, ' ', BITMAP_GHOST, BITMAP_GHOST_WIDTH, BITMAP_GHOST_HEIGHT},
+    {":wolf:", GlyphType::BITMAP, ' ', BITMAP_WOLF, BITMAP_WOLF_WIDTH, BITMAP_WOLF_HEIGHT},
 
     // Character glyphs (simple text replacement)
     {":pistol:", GlyphType::CHARACTER, '*', nullptr, 0, 0},
     {":phone:", GlyphType::CHARACTER, '$', nullptr, 0, 0},
     {":crystal:", GlyphType::CHARACTER, '@', nullptr, 0, 0},
-    {":wolf:", GlyphType::CHARACTER, 'W', nullptr, 0, 0},
     {":village:", GlyphType::CHARACTER, 'V', nullptr, 0, 0},
     {":lock:", GlyphType::CHARACTER, '!', nullptr, 0, 0},
     {":check:", GlyphType::CHARACTER, '+', nullptr, 0, 0},

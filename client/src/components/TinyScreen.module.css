@@ -49,12 +49,23 @@
   white-space: nowrap;
 }
 
-/* Line 3: Small tutorial/status tip */
+/* Line 3: Small tutorial/status tip (centered) */
 .line3 {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
   text-align: center;
   letter-spacing: 0.02em;
+}
+
+/* Line 3: Split layout for button labels (left/right aligned) */
+.line3Split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* === Display Style Variants === */
@@ -147,6 +158,7 @@
   padding: 4px 0;
 }
 
-.compact .line3 {
+.compact .line3,
+.compact .line3Split {
   font-size: 0.625rem;
 }

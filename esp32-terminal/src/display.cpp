@@ -161,14 +161,30 @@ void displayRender(const DisplayState& state) {
 
     u8g2.drawStr(line2X, LINE2_Y, line2Text.c_str());
 
-    // === LINE 3: Tutorial/tip (small, centered) ===
+    // === LINE 3: Tutorial/tip (small, centered or left/right aligned) ===
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
 
-    String line3Text = renderGlyphs(state.line3.text);
-    int line3Width = u8g2.getStrWidth(line3Text.c_str());
-    int line3X = (DISPLAY_WIDTH - line3Width) / 2;
-    u8g2.drawStr(line3X, LINE3_Y, line3Text.c_str());
+    // Check if we have left/right alignment (for button labels)
+    if (state.line3.left.length() > 0 || state.line3.right.length() > 0) {
+        // Left-aligned text (above YES button)
+        if (state.line3.left.length() > 0) {
+            String leftText = renderGlyphs(state.line3.left);
+            u8g2.drawStr(MARGIN_X, LINE3_Y, leftText.c_str());
+        }
+        // Right-aligned text (above NO button)
+        if (state.line3.right.length() > 0) {
+            String rightText = renderGlyphs(state.line3.right);
+            int rightWidth = u8g2.getStrWidth(rightText.c_str());
+            u8g2.drawStr(DISPLAY_WIDTH - rightWidth - MARGIN_X, LINE3_Y, rightText.c_str());
+        }
+    } else {
+        // Centered text (default)
+        String line3Text = renderGlyphs(state.line3.text);
+        int line3Width = u8g2.getStrWidth(line3Text.c_str());
+        int line3X = (DISPLAY_WIDTH - line3Width) / 2;
+        u8g2.drawStr(line3X, LINE3_Y, line3Text.c_str());
+    }
 
     // Send buffer to display
     u8g2.sendBuffer();
