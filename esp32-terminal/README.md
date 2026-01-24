@@ -13,6 +13,8 @@ This terminal replicates the React player console experience on dedicated hardwa
 
 The terminal connects via WiFi to the game server's WebSocket API and receives the same display state data as the React client.
 
+**Multi-connection support**: A physical terminal and web client can control the same player simultaneously. Both receive state updates and either can send commands.
+
 ## Hardware Components
 
 | Component       | Model                            | Purpose                         |
@@ -192,15 +194,27 @@ Inline glyph tokens are rendered as characters:
 | Connection State     | Color  | Pattern    |
 | -------------------- | ------ | ---------- |
 | Booting              | White  | Steady     |
+| Player selection     | Purple | Pulse      |
 | WiFi connecting      | Blue   | Slow pulse |
 | WebSocket connecting | Yellow | Fast pulse |
 | Joining game         | Cyan   | Steady     |
 | Connected            | Green  | Steady     |
 | Reconnecting         | Orange | Fast pulse |
+| Error                | Red    | Steady     |
 
 ## Input Handling
 
-### Rotary Switch
+### Player Selection (Boot)
+
+On startup, the terminal displays a player selection screen:
+
+1. Use the **rotary dial** to select player 1-9
+2. Press **YES** to confirm and connect
+3. The terminal joins as that player ID
+
+This allows multiple physical terminals to connect as different players without reflashing.
+
+### Rotary Switch (In-Game)
 
 The 8-position rotary switch uses a series resistor ladder (500Ω-1kΩ-1kΩ-...-1kΩ-500Ω) connected to a single ADC pin. When the switch position changes:
 
@@ -211,6 +225,16 @@ The 8-position rotary switch uses a series resistor ladder (500Ω-1kΩ-1kΩ-...-
 
 - **YES button** → Sends `confirm` (lock in selection or use ability)
 - **NO button** → Sends `abstain` (skip voting)
+
+### Reset Gesture
+
+Hold **both YES and NO buttons** for 3 seconds to trigger a software restart:
+
+1. After 3 seconds: Display shows "RESTARTING" with "Release to cancel"
+2. After 2 more seconds (5 total): Terminal performs software reboot
+3. Release buttons anytime to cancel
+
+This is useful for changing player ID or recovering from stuck states without physical reset.
 
 ## Setup & Configuration
 
@@ -230,10 +254,9 @@ Edit `src/config.h`:
 // Game server
 #define WS_HOST "192.168.1.100"  // Server IP address
 #define WS_PORT 8080
-
-// Unique ID for this terminal
-#define PLAYER_ID "esp32-terminal-001"
 ```
+
+**Note**: Player ID (1-9) is selected at boot using the dial, not hardcoded in config.
 
 ### 3. Build & Flash
 
@@ -280,13 +303,15 @@ The terminal implements the same protocol as the React client:
 ### Outgoing Messages
 
 ```json
-{"type": "join", "payload": {"playerId": "esp32-terminal-001"}}
+{"type": "join", "payload": {"playerId": "1"}}
 {"type": "selectUp", "payload": {}}
 {"type": "selectDown", "payload": {}}
 {"type": "confirm", "payload": {}}
 {"type": "abstain", "payload": {}}
 {"type": "useItem", "payload": {"itemId": "pistol"}}
 ```
+
+**Note**: Player ID matches the number selected at boot (1-9), same format as web clients.
 
 ### Incoming Messages
 
@@ -344,5 +369,6 @@ The terminal primarily uses the `playerState` message which includes a `display`
 - [ ] Sound effects via buzzer
 - [ ] Battery power option
 - [ ] 3D printed enclosure design
-- [ ] Multiple terminal support with unique IDs
+- [x] Multiple terminal support with unique IDs (player selection at boot)
+- [x] Multi-connection support (web + terminal simultaneously)
 - [ ] OTA firmware updates

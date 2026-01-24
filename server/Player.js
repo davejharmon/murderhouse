@@ -53,9 +53,9 @@ export class Player {
     this.lastSeen = Date.now();
   }
 
-  // Connection status (true if any connection is active)
+  // Connection status (true if any connection is open)
   get connected() {
-    return this.connections.length > 0;
+    return this.connections.some(ws => ws && ws.readyState === 1);
   }
 
   // Legacy getter for backward compatibility
@@ -537,8 +537,12 @@ export class Player {
 
     for (const ws of this.connections) {
       if (ws && ws.readyState === 1) {
-        ws.send(message);
-        sentCount++;
+        try {
+          ws.send(message);
+          sentCount++;
+        } catch (err) {
+          console.error(`[Player ${this.id}] Error sending ${type}:`, err.message);
+        }
       }
     }
 

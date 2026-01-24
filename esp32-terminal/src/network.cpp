@@ -240,6 +240,12 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             const char* msgType = doc["type"];
             JsonObject msgPayload = doc["payload"];
 
+            // Validate message type exists
+            if (msgType == nullptr) {
+                Serial.println("Message missing type field");
+                return;
+            }
+
             // Handle message types
             if (strcmp(msgType, ServerMsg::WELCOME) == 0) {
                 Serial.println("Received welcome - joined game");
@@ -248,6 +254,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             else if (strcmp(msgType, ServerMsg::ERROR) == 0) {
                 const char* errorMsg = msgPayload["message"] | "Unknown error";
                 strncpy(lastError, errorMsg, sizeof(lastError) - 1);
+                lastError[sizeof(lastError) - 1] = '\0';  // Ensure null termination
                 Serial.print("Server error: ");
                 Serial.println(errorMsg);
                 // If we were trying to join, transition to error state
