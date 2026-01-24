@@ -272,10 +272,14 @@ export class Player {
   _buildDisplay(game, ctx) {
     const { phase, dayCount, hasActiveEvent, activeEventId, eventName } = ctx;
 
+    // Helper to get line1 with current context
+    const getLine1 = (evtName = null, evtId = null) =>
+      this._getLine1(phase, dayCount, evtName, evtId);
+
     // === LOBBY ===
     if (phase === GamePhase.LOBBY) {
       return this._display(
-        { left: 'LOBBY', right: '' },
+        { left: getLine1(), right: '' },
         { text: 'WAITING', style: DisplayStyle.NORMAL },
         { text: 'Game will begin soon' },
         { yes: LedState.OFF, no: LedState.OFF }
@@ -285,7 +289,7 @@ export class Player {
     // === GAME OVER ===
     if (phase === GamePhase.GAME_OVER) {
       return this._display(
-        { left: 'GAME OVER', right: '' },
+        { left: getLine1(), right: '' },
         { text: 'FINISHED', style: DisplayStyle.NORMAL },
         { text: 'Thanks for playing' },
         { yes: LedState.OFF, no: LedState.OFF }
@@ -295,7 +299,7 @@ export class Player {
     // === DEAD (no active event) ===
     if (!this.isAlive && !hasActiveEvent) {
       return this._display(
-        { left: 'ELIMINATED', right: Glyphs.SKULL },
+        { left: getLine1(), right: Glyphs.SKULL },
         { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
         { text: 'Watch the game unfold' },
         { yes: LedState.OFF, no: LedState.OFF }
@@ -305,7 +309,7 @@ export class Player {
     // === ABSTAINED ===
     if (this.abstained) {
       return this._display(
-        { left: this._getContextLine(phase, dayCount, eventName), right: Glyphs.X },
+        { left: getLine1(eventName, activeEventId), right: Glyphs.X },
         { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
         { text: 'Waiting for others' },
         { yes: LedState.OFF, no: LedState.OFF }
@@ -318,7 +322,7 @@ export class Player {
       // Special display for pardon event
       const line2Text = activeEventId === 'pardon' ? 'PARDONED' : targetName.toUpperCase();
       return this._display(
-        { left: this._getContextLine(phase, dayCount, eventName), right: Glyphs.LOCK },
+        { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
         { text: line2Text, style: DisplayStyle.LOCKED },
         { text: 'Selection locked' },
         { yes: LedState.OFF, no: LedState.OFF }
@@ -335,7 +339,7 @@ export class Player {
       const line2Text = activeEventId === 'pardon' ? 'PARDON?' : targetName.toUpperCase();
 
       return this._display(
-        { left: this._getContextLine(phase, dayCount, eventName), right: packHint },
+        { left: getLine1(eventName, activeEventId), right: packHint },
         { text: line2Text, style: DisplayStyle.NORMAL },
         { text: canAbstain ? 'YES confirm \u2022 NO abstain' : 'YES to confirm' },
         { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF }
@@ -348,7 +352,7 @@ export class Player {
       const canAbstain = ctx.eventContext?.allowAbstain !== false;
 
       return this._display(
-        { left: this._getContextLine(phase, dayCount, eventName), right: packHint },
+        { left: getLine1(eventName, activeEventId), right: packHint },
         { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
         { text: 'Swipe to choose' },
         { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF }
@@ -360,7 +364,7 @@ export class Player {
     if (usableAbilities.length > 0 && this.isAlive) {
       const ability = usableAbilities[0]; // Show first ability
       return this._display(
-        { left: this._getPhaseLabel(phase, dayCount), right: this._getInventoryGlyphs() },
+        { left: getLine1(), right: this._getInventoryGlyphs() },
         { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
         { text: `YES to use \u2022 ${ability.uses}/${ability.maxUses}` },
         { yes: LedState.DIM, no: LedState.OFF }
@@ -368,14 +372,13 @@ export class Player {
     }
 
     // === IDLE STATE ===
-    const roleLabel = this.role?.name?.toUpperCase() || 'PLAYER';
     const idleTip = phase === GamePhase.DAY
       ? 'Discuss and vote'
       : 'Waiting...';
 
     return this._display(
-      { left: this._getPhaseLabel(phase, dayCount), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
-      { text: roleLabel, style: DisplayStyle.NORMAL },
+      { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
+      { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
       { text: idleTip },
       { yes: LedState.OFF, no: LedState.OFF }
     );
@@ -389,14 +392,45 @@ export class Player {
   }
 
   /**
-   * Get the context line (role + event name)
+   * Build the standardized line1 left text
+   * Format: #{seatNumber} {ROLE} > {PHASE} > {ACTION}
+   * Examples:
+   *   #8 PLAYER > LOBBY
+   *   #8 WEREWOLF > DAY 1
+   *   #8 WEREWOLF > DAY 1 > VOTE
+   *   #8 WEREWOLF > DAY 1 > DEAD
+   *   #8 VILLAGER > DAY 1 > SHOOT (PISTOL)
    */
-  _getContextLine(phase, dayCount, eventName) {
-    const roleLabel = this.role?.name?.toUpperCase() || 'PLAYER';
-    if (eventName) {
-      return `${roleLabel} > ${eventName.toUpperCase()}`;
+  _getLine1(phase, dayCount, eventName, eventId) {
+    const playerNum = `#${this.seatNumber}`;
+    const roleLabel = (this.role?.name?.toUpperCase() || 'PLAYER').substring(0, 12); // Truncate long role names
+
+    // Build phase part
+    let phasePart;
+    if (phase === GamePhase.LOBBY) {
+      phasePart = 'LOBBY';
+    } else if (phase === GamePhase.GAME_OVER) {
+      phasePart = 'GAME OVER';
+    } else {
+      phasePart = this._getPhaseLabel(phase, dayCount);
     }
-    return this._getPhaseLabel(phase, dayCount);
+
+    // Build action part
+    let actionPart = '';
+    if (!this.isAlive) {
+      actionPart = ' > DEAD';
+    } else if (eventName) {
+      actionPart = ` > ${eventName.toUpperCase()}`;
+      // Add item name for item-triggered events
+      if (eventId === 'shoot') {
+        actionPart += ' (PISTOL)';
+      } else if (eventId === 'investigate' && !this.role?.events?.investigate) {
+        // Crystal ball investigate (player doesn't have investigate from role)
+        actionPart += ' (CRYSTAL)';
+      }
+    }
+
+    return `${playerNum} ${roleLabel} > ${phasePart}${actionPart}`;
   }
 
   /**

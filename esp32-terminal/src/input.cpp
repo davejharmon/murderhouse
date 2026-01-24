@@ -14,11 +14,19 @@ static uint8_t pendingRotaryPos = 0;
 static uint8_t confirmCount = 0;
 static unsigned long lastRotaryRead = 0;
 
+// Lockout tracking - prevents bouncing back to previous position
+static uint8_t lockedOutPos = 0;       // Position we won't accept during lockout
+static unsigned long lockoutExpiry = 0; // When lockout ends
+
 // Number of consecutive reads required to confirm a position change
 #define ROTARY_CONFIRM_COUNT 3
 
 // Number of ADC samples to average
 #define ROTARY_ADC_SAMPLES 4
+
+// Lockout duration after confirming a change (ms)
+// During this time, readings matching the old position are ignored
+#define ROTARY_LOCKOUT_MS 250
 
 // Read the rotary switch position from ADC with averaging
 static uint8_t readRotaryPosition() {
@@ -104,6 +112,18 @@ InputEvent inputPoll() {
             return InputEvent::NONE;
         }
 
+        // Check if we're in lockout period and reading the locked-out position
+        // This prevents bouncing back to the previous position after a change
+        if (lockedOutPos != 0 && currentPos == lockedOutPos) {
+            if (now < lockoutExpiry) {
+                // Still in lockout - ignore this reading
+                return InputEvent::NONE;
+            } else {
+                // Lockout expired - clear it
+                lockedOutPos = 0;
+            }
+        }
+
         // If position matches confirmed position, reset pending state
         if (currentPos == lastRotaryPos) {
             pendingRotaryPos = 0;
@@ -118,7 +138,8 @@ InputEvent inputPoll() {
 
             if (confirmCount >= ROTARY_CONFIRM_COUNT) {
                 // Position confirmed! Calculate direction and update
-                int8_t diff = (int8_t)currentPos - (int8_t)lastRotaryPos;
+                uint8_t oldPos = lastRotaryPos;
+                int8_t diff = (int8_t)currentPos - (int8_t)oldPos;
 
                 // Adjust for wraparound
                 if (diff > 4) {
@@ -130,6 +151,10 @@ InputEvent inputPoll() {
                 lastRotaryPos = currentPos;
                 pendingRotaryPos = 0;
                 confirmCount = 0;
+
+                // Set lockout to prevent bouncing back to old position
+                lockedOutPos = oldPos;
+                lockoutExpiry = now + ROTARY_LOCKOUT_MS;
 
                 if (diff > 0) {
                     // Clockwise = position increased = DOWN (next target)

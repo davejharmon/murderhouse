@@ -159,7 +159,7 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
 
     switch (connState) {
         case ConnectionState::BOOT:
-            line1 = "MURDERHOUSE";
+            line1 = "CONNECTING...";
             line2 = "BOOTING";
             line3 = "Initializing...";
             break;
@@ -169,39 +169,39 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
             return;
 
         case ConnectionState::WIFI_CONNECTING:
-            line1 = "NETWORK";
-            line2 = "CONNECTING";
-            line3 = detail ? detail : "Searching for WiFi...";
+            line1 = "CONNECTING...";
+            line2 = "WIFI";
+            line3 = detail ? detail : "Searching for network...";
             break;
 
         case ConnectionState::WS_CONNECTING:
-            line1 = "SERVER";
-            line2 = "CONNECTING";
+            line1 = "CONNECTING...";
+            line2 = "SERVER";
             line3 = detail ? detail : "Establishing link...";
             break;
 
         case ConnectionState::JOINING:
-            line1 = "GAME";
+            line1 = "CONNECTING...";
             line2 = "JOINING";
             line3 = detail ? detail : "Registering player...";
             break;
 
         case ConnectionState::CONNECTED:
-            line1 = "CONNECTED";
+            line1 = "CONNECTING...";
             line2 = "READY";
             line3 = detail ? detail : "Waiting for game state...";
             break;
 
         case ConnectionState::RECONNECTING:
-            line1 = "CONNECTION LOST";
+            line1 = "CONNECTING...";
             line2 = "RECONNECTING";
             line3 = detail ? detail : "Please wait...";
             break;
 
         case ConnectionState::ERROR:
-            line1 = detail ? detail : "Join failed";
+            line1 = "CONNECTING...";
             line2 = "ERROR";
-            line3 = "Press any button to retry";
+            line3 = detail ? detail : "Press button to retry";
             break;
     }
 
