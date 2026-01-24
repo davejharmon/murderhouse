@@ -216,6 +216,79 @@ See `server/flows/InterruptFlow.js` for the base class pattern.
 - Hard-coded limit of 3 runoff rounds with no validation or configurability
 - Consider making configurable constant
 
+### ESP32 Terminal Issues
+
+**JSON Field Validation** (Priority: Medium)
+
+- `network.cpp parsePlayerState()` assumes all JSON fields exist and are correct types
+- If server sends malformed data (e.g., `line1: null`), terminal could crash
+- **Fix**: Add null checks before accessing nested JSON objects, use ArduinoJson's `containsKey()` and type checking
+
+**Display Text Overflow** (Priority: Low)
+
+- Text centering calculation `(DISPLAY_WIDTH - textWidth) / 2` can produce negative X coordinates
+- Extremely long player names or descriptions could render off-screen
+- **Fix**: Clamp X coordinate to 0 minimum, or truncate long strings with ellipsis
+
+**WiFi Reconnection Strategy** (Priority: Medium)
+
+- No exponential backoff when WiFi reconnection fails repeatedly
+- Terminal could spam connection attempts, wasting power and bandwidth
+- **Fix**: Implement backoff strategy (e.g., 1s, 2s, 4s, 8s delays) with max retry limit before requiring manual reset
+
+### Server Race Conditions
+
+**Concurrent recordSelection() Calls** (Priority: Low - mitigated by Node.js single-threaded model)
+
+- Multiple WebSocket messages for same player/event could interleave in event loop
+- `instance.results[pid]` could be overwritten if messages arrive in quick succession
+- **Fix**: Add check `if (instance.results[pid] !== undefined) return` at start of selection recording
+- **Note**: Node.js single-threaded nature makes this unlikely in practice
+
+**Flow Trigger During Event Resolution** (Priority: Medium)
+
+- A flow's `onSelection()` could trigger game state changes while `resolveEvent()` is in progress
+- Hunter revenge flow could fire while vote resolution is running
+- **Fix**: Add `isResolving` flag to prevent flow triggers during resolution, queue them instead
+
+**Broadcast During Partial State** (Priority: Low)
+
+- Multiple `broadcastGameState()` calls during event processing could send inconsistent snapshots
+- **Fix**: Batch state updates and broadcast once at end of operation
+
+### Server Connection Management
+
+**Stale Connections in Player.connections Array** (Priority: Low)
+
+- Closed WebSocket connections may remain in array until explicitly removed
+- `connected` getter now checks `readyState`, but array could grow with dead references
+- **Fix**: Periodically prune connections with `readyState !== 1`, or prune on each `send()` call
+
+**Event/Flow ID Namespace Collision** (Priority: Medium)
+
+- Regular events and flow events share the same `activeEvents` map
+- If an event and flow have the same ID, they could collide
+- **Fix**: Use prefixed IDs for flows (e.g., `flow:hunterRevenge`) or separate maps
+
+### Server Validation Gaps
+
+**Player ID Validation** (Priority: Low)
+
+- JOIN handler accepts any `playerId` without validation
+- Empty strings, special characters, or extremely long IDs are not rejected
+- **Fix**: Add regex validation for player ID format, reject invalid formats with error
+
+**Circular Linked Deaths** (Priority: Low)
+
+- `checkLinkedDeaths()` doesn't prevent infinite loops if `player.linkedTo` creates a cycle
+- Cupid role with corrupted state could cause stack overflow
+- **Fix**: Track visited players in a Set, skip already-processed players
+
+**Event Participant Validation** (Priority: Low)
+
+- Dead players could still be in runoff `participants` if they die between rounds
+- **Fix**: Filter `participants` through `getAlivePlayers()` before starting runoff
+
 ---
 
 _This section tracks identified technical debt for future improvement. The codebase is well-structured overall; these are polish items, not critical issues._
