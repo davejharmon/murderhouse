@@ -7,17 +7,17 @@ import styles from './TinyScreen.module.css';
 
 // Glyph rendering for React (physical displays use bitmap icons)
 const GLYPH_MAP = {
-  ':pistol:': '*',
-  ':phone:': '$',
-  ':crystal:': '@',
-  ':wolf:': 'W',
-  ':village:': 'V',
-  ':lock:': '!',
-  ':check:': '+',
-  ':x:': '-',
-  ':alpha:': 'A',
-  ':pack:': 'P',
-  ':skull:': 'X',
+  ':pistol:': '🔫',
+  ':phone:': '📱',
+  ':crystal:': '🔮',
+  ':wolf:': '🐺',
+  ':village:': '🏠',
+  ':lock:': '🔒',
+  ':check:': '✓',
+  ':x:': '✗',
+  ':alpha:': '👑',
+  ':pack:': '🐾',
+  ':skull:': '💀',
 };
 
 /**
@@ -59,7 +59,7 @@ export default function TinyScreen({ display }) {
   return (
     <div className={`${styles.screen} ${styleClass}`}>
       <div className={styles.line1}>
-        <span className={styles.left}>{line1.left}</span>
+        <span className={styles.left}>{renderGlyphs(line1.left)}</span>
         <span className={styles.right}>{renderGlyphs(line1.right)}</span>
       </div>
       <div className={styles.line2}>{line2.text}</div>
