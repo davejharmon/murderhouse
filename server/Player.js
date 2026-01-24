@@ -12,6 +12,25 @@ import {
   DisplayStyle,
 } from '../shared/constants.js';
 
+// Action labels for each event type (confirm action / abstain action)
+const EVENT_ACTIONS = {
+  vote: { confirm: 'VOTE', abstain: 'ABSTAIN' },
+  pardon: { confirm: 'PARDON', abstain: 'CONDEMN' },
+  hunt: { confirm: 'KILL', abstain: 'ABSTAIN' },
+  kill: { confirm: 'KILL', abstain: 'ABSTAIN' },
+  investigate: { confirm: 'REVEAL', abstain: 'ABSTAIN' },
+  protect: { confirm: 'PROTECT', abstain: 'ABSTAIN' },
+  shoot: { confirm: 'SHOOT', abstain: 'ABSTAIN' },
+  suspect: { confirm: 'SUSPECT', abstain: 'ABSTAIN' },
+  vigil: { confirm: 'KILL', abstain: 'ABSTAIN' },
+  customEvent: { confirm: 'CONFIRM', abstain: 'ABSTAIN' },
+};
+
+// Get action labels for an event (with fallback)
+function getEventActions(eventId) {
+  return EVENT_ACTIONS[eventId] || { confirm: 'CONFIRM', abstain: 'ABSTAIN' };
+}
+
 let nextSeatNumber = 1;
 
 export class Player {
@@ -327,8 +346,10 @@ export class Player {
     // === CONFIRMED SELECTION ===
     if (this.confirmedSelection) {
       const targetName = game?.getPlayer(this.confirmedSelection)?.name || 'Unknown';
-      // Special display for pardon event
-      const line2Text = activeEventId === 'pardon' ? 'PARDONED' : targetName.toUpperCase();
+      // Special display for pardon event - show "PARDONING {NAME}"
+      const line2Text = activeEventId === 'pardon'
+        ? `PARDONING ${targetName.toUpperCase()}`
+        : targetName.toUpperCase();
       return this._display(
         { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
         { text: line2Text, style: DisplayStyle.LOCKED },
@@ -342,14 +363,17 @@ export class Player {
       const targetName = game?.getPlayer(this.currentSelection)?.name || 'Unknown';
       const packHint = this._getPackHint(game, activeEventId);
       const canAbstain = ctx.eventContext?.allowAbstain !== false;
+      const actions = getEventActions(activeEventId);
 
-      // Special display for pardon event - show PARDON? instead of target name
-      const line2Text = activeEventId === 'pardon' ? 'PARDON?' : targetName.toUpperCase();
+      // Special display for pardon event - show "PARDON {NAME}?"
+      const line2Text = activeEventId === 'pardon'
+        ? `PARDON ${targetName.toUpperCase()}?`
+        : targetName.toUpperCase();
 
       return this._display(
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: line2Text, style: DisplayStyle.NORMAL },
-        canAbstain ? { left: 'CONFIRM', right: 'ABSTAIN' } : { left: 'CONFIRM', right: '' },
+        { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
         { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF }
       );
     }
@@ -358,11 +382,12 @@ export class Player {
     if (hasActiveEvent) {
       const packHint = this._getPackHint(game, activeEventId);
       const canAbstain = ctx.eventContext?.allowAbstain !== false;
+      const actions = getEventActions(activeEventId);
 
       return this._display(
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
-        { left: 'Use dial', right: canAbstain ? 'ABSTAIN' : '' },
+        { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
         { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF }
       );
     }
