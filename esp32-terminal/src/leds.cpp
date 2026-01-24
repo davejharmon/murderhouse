@@ -133,6 +133,12 @@ void ledsSetStatus(ConnectionState state) {
             statusPulse = false;
             break;
 
+        case ConnectionState::PLAYER_SELECT:
+            // Purple - selecting player
+            statusR = 150; statusG = 0; statusB = 255;
+            statusPulse = true;
+            break;
+
         case ConnectionState::WIFI_CONNECTING:
             // Blue - connecting to WiFi
             statusR = 0; statusG = 0; statusB = 255;

@@ -8,6 +8,10 @@
 // Callback type for receiving display state updates
 typedef void (*DisplayStateCallback)(const DisplayState& state);
 
+// Set the player ID to use for joining (call before networkInit)
+// playerNum should be 1-9
+void networkSetPlayerId(uint8_t playerNum);
+
 // Initialize network (WiFi credentials from config.h)
 void networkInit();
 

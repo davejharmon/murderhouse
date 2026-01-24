@@ -46,14 +46,13 @@ wss.on('connection', (ws) => {
     clients.delete(ws);
     console.log(`[Server] Client disconnected (${clients.size} total), playerId=${ws.playerId}`);
 
-    // Mark player as disconnected if applicable
-    // BUT only if this ws is still the player's current connection
-    // (player may have reconnected on a new ws)
+    // Remove this connection from the player's connection list
     if (ws.playerId) {
       const player = game.getPlayer(ws.playerId);
-      if (player && player.ws === ws) {
-        console.log(`[Server] Clearing connection for player ${ws.playerId}`);
-        player.setConnection(null);
+      if (player) {
+        player.removeConnection(ws);
+        console.log(`[Server] Removed connection for player ${ws.playerId}, ${player.connections.length} remaining`);
+        // Broadcast updated player list (connected status may have changed)
         game.broadcastPlayerList();
       }
     }

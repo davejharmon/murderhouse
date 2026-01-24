@@ -16,6 +16,75 @@ static bool displayDirty = true;
 // Connection state tracking
 static ConnectionState lastConnState = ConnectionState::BOOT;
 
+// Player selection state (before connecting)
+static uint8_t selectedPlayer = 1;  // 1-9
+static bool playerSelectDirty = true;
+static bool playerConfirmed = false;
+
+// Reset detection state (hold both buttons for 3 seconds)
+static unsigned long bothButtonsHeldSince = 0;
+static bool resetMessageShown = false;
+static const unsigned long RESET_HOLD_MS = 3000;      // Time to hold before showing message
+static const unsigned long RESET_CONFIRM_MS = 2000;   // Additional time before restart
+
+// Check if both buttons are currently pressed (raw read)
+bool areBothButtonsHeld() {
+    // Buttons are active LOW (pullup)
+    return (digitalRead(PIN_BTN_YES) == LOW) && (digitalRead(PIN_BTN_NO) == LOW);
+}
+
+// Check for reset gesture (hold both buttons for 3 seconds)
+// Returns true if reset is triggered (caller should not continue normal loop)
+bool checkResetGesture() {
+    unsigned long now = millis();
+
+    if (areBothButtonsHeld()) {
+        // Start tracking if not already
+        if (bothButtonsHeldSince == 0) {
+            bothButtonsHeldSince = now;
+            resetMessageShown = false;
+            Serial.println("Both buttons held - reset timer started");
+        }
+
+        unsigned long heldFor = now - bothButtonsHeldSince;
+
+        // After 3 seconds, show restart message
+        if (heldFor >= RESET_HOLD_MS && !resetMessageShown) {
+            Serial.println("Showing restart message...");
+            displayMessage("HOLD TO CONFIRM", "RESTARTING", "Release to cancel");
+            ledsSetYes(LedState::BRIGHT);
+            ledsSetNo(LedState::BRIGHT);
+            resetMessageShown = true;
+        }
+
+        // After 5 seconds total (3 + 2), perform restart
+        if (heldFor >= RESET_HOLD_MS + RESET_CONFIRM_MS) {
+            Serial.println("Restarting terminal...");
+            displayMessage("", "RESTARTING...", "");
+            delay(500);  // Brief delay to show message
+            ESP.restart();
+        }
+
+        return resetMessageShown;  // Block normal input while showing reset message
+    } else {
+        // Buttons released - cancel reset
+        if (bothButtonsHeldSince != 0) {
+            if (resetMessageShown) {
+                Serial.println("Reset cancelled");
+                // Restore display based on current state
+                if (!playerConfirmed) {
+                    displayPlayerSelect(selectedPlayer);
+                } else {
+                    displayDirty = true;  // Force display refresh
+                }
+            }
+            bothButtonsHeldSince = 0;
+            resetMessageShown = false;
+        }
+        return false;
+    }
+}
+
 // Callback when display state is received from server
 void onDisplayUpdate(const DisplayState& state) {
     currentDisplay = state;
@@ -30,8 +99,6 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Murderhouse ESP32 Terminal ===");
-    Serial.print("Player ID: ");
-    Serial.println(PLAYER_ID);
 
     // Initialize subsystems
     Serial.println("Initializing display...");
@@ -53,16 +120,90 @@ void setup() {
     Serial.println("Initializing input...");
     inputInit();
 
-    Serial.println("Initializing network...");
-    networkInit();
-    networkSetDisplayCallback(onDisplayUpdate);
+    // Start in player selection mode
+    Serial.println("Entering player selection...");
+    lastConnState = ConnectionState::PLAYER_SELECT;
+    ledsSetStatus(ConnectionState::PLAYER_SELECT);
+    ledsSetYes(LedState::PULSE);  // Pulse YES button to indicate it confirms
+    displayPlayerSelect(selectedPlayer);
+    playerSelectDirty = false;
 
-    Serial.println("Initialization complete!");
+    Serial.println("Use dial to select player (1-9), press YES to confirm");
 }
 
 void loop() {
     // Update LEDs (for pulse animations)
     ledsUpdate();
+
+    // Check for reset gesture (hold both buttons for 3 seconds)
+    if (checkResetGesture()) {
+        delay(10);
+        return;  // Skip normal processing while reset is pending
+    }
+
+    // Handle player selection mode (before network is initialized)
+    if (!playerConfirmed) {
+        // Poll for input events
+        InputEvent event = inputPoll();
+
+        switch (event) {
+            case InputEvent::UP:
+                // Move selection up (wrap from 1 to 9)
+                if (selectedPlayer == 1) {
+                    selectedPlayer = 9;
+                } else {
+                    selectedPlayer--;
+                }
+                playerSelectDirty = true;
+                Serial.print("Selected player: ");
+                Serial.println(selectedPlayer);
+                break;
+
+            case InputEvent::DOWN:
+                // Move selection down (wrap from 9 to 1)
+                if (selectedPlayer == 9) {
+                    selectedPlayer = 1;
+                } else {
+                    selectedPlayer++;
+                }
+                playerSelectDirty = true;
+                Serial.print("Selected player: ");
+                Serial.println(selectedPlayer);
+                break;
+
+            case InputEvent::YES:
+                // Confirm selection and start connecting
+                Serial.print("Player confirmed: ");
+                Serial.println(selectedPlayer);
+                playerConfirmed = true;
+
+                // Set the player ID
+                networkSetPlayerId(selectedPlayer);
+
+                // Turn off YES button pulse
+                ledsSetYes(LedState::OFF);
+
+                // Initialize network (this will start WiFi connection)
+                Serial.println("Initializing network...");
+                networkInit();
+                networkSetDisplayCallback(onDisplayUpdate);
+                break;
+
+            case InputEvent::NO:
+            case InputEvent::NONE:
+            default:
+                break;
+        }
+
+        // Update display if selection changed
+        if (playerSelectDirty) {
+            displayPlayerSelect(selectedPlayer);
+            playerSelectDirty = false;
+        }
+
+        delay(1);
+        return;  // Don't process network until player is confirmed
+    }
 
     // Update network and get connection state
     ConnectionState connState = networkUpdate();
@@ -88,6 +229,9 @@ void loop() {
         switch (connState) {
             case ConnectionState::BOOT:
                 Serial.println("BOOT");
+                break;
+            case ConnectionState::PLAYER_SELECT:
+                Serial.println("PLAYER_SELECT");
                 break;
             case ConnectionState::WIFI_CONNECTING:
                 Serial.println("WIFI_CONNECTING");

@@ -78,6 +78,7 @@ inline DisplayStyle parseDisplayStyle(const String& style) {
 
 enum class ConnectionState {
     BOOT,
+    PLAYER_SELECT,   // Selecting player ID (1-9) before connecting
     WIFI_CONNECTING,
     WS_CONNECTING,
     JOINING,

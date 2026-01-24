@@ -8,6 +8,9 @@
 // WebSocket client
 static WebSocketsClient webSocket;
 
+// Player ID (set before init)
+static char playerId[16] = "1";  // Default to player 1
+
 // Connection state
 static ConnectionState connState = ConnectionState::BOOT;
 static bool wsConnected = false;
@@ -26,6 +29,13 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length);
 static void parsePlayerState(JsonObject& payload);
 static void sendMessage(const char* type, JsonObject* payload = nullptr);
 
+void networkSetPlayerId(uint8_t playerNum) {
+    // Use just the number to match the web client format
+    snprintf(playerId, sizeof(playerId), "%d", playerNum);
+    Serial.print("Player ID set to: ");
+    Serial.println(playerId);
+}
+
 void networkInit() {
     connState = ConnectionState::WIFI_CONNECTING;
 
@@ -35,6 +45,8 @@ void networkInit() {
 
     Serial.print("Connecting to WiFi: ");
     Serial.println(WIFI_SSID);
+    Serial.print("Player ID: ");
+    Serial.println(playerId);
 }
 
 void networkSetDisplayCallback(DisplayStateCallback callback) {
@@ -69,7 +81,7 @@ ConnectionState networkUpdate() {
             if (wsConnected && !gameJoined) {
                 // Send join message
                 StaticJsonDocument<128> doc;
-                doc["playerId"] = PLAYER_ID;
+                doc["playerId"] = playerId;
                 JsonObject payload = doc.as<JsonObject>();
                 sendMessage(ClientMsg::JOIN, &payload);
                 connState = ConnectionState::JOINING;
@@ -102,7 +114,7 @@ ConnectionState networkUpdate() {
             } else if (wsConnected) {
                 // WebSocket reconnected, rejoin game
                 StaticJsonDocument<128> doc;
-                doc["playerId"] = PLAYER_ID;
+                doc["playerId"] = playerId;
                 JsonObject payload = doc.as<JsonObject>();
                 sendMessage(ClientMsg::REJOIN, &payload);
                 connState = ConnectionState::JOINING;
@@ -126,7 +138,7 @@ void networkRetryJoin() {
         if (wsConnected) {
             // WebSocket still connected, just resend join
             StaticJsonDocument<128> doc;
-            doc["playerId"] = PLAYER_ID;
+            doc["playerId"] = playerId;
             JsonObject payload = doc.as<JsonObject>();
             sendMessage(ClientMsg::JOIN, &payload);
             connState = ConnectionState::JOINING;

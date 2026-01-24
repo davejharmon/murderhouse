@@ -18,7 +18,9 @@ export class Player {
   constructor(id, ws = null) {
     this.id = id;
     this.seatNumber = nextSeatNumber++;
-    this.ws = ws;
+
+    // Multiple connections support (web client + physical terminal)
+    this.connections = ws ? [ws] : [];
 
     // Identity
     this.name = id === 'player-0' ? 'A' : `Player ${this.seatNumber}`;
@@ -48,8 +50,17 @@ export class Player {
     this.inventory = []; // Array of { id, uses, maxUses }
 
     // Connection
-    this.connected = ws !== null;
     this.lastSeen = Date.now();
+  }
+
+  // Connection status (true if any connection is active)
+  get connected() {
+    return this.connections.length > 0;
+  }
+
+  // Legacy getter for backward compatibility
+  get ws() {
+    return this.connections[0] || null;
   }
 
   // Get player name with role emoji
@@ -514,14 +525,29 @@ export class Player {
     return false; // Unlimited use items never deplete
   }
 
-  // Send message to this player
+  // Send message to this player (all connections)
   send(type, payload) {
-    if (this.ws && this.ws.readyState === 1) {
-      this.ws.send(JSON.stringify({ type, payload }));
-      return true;
+    if (this.connections.length === 0) {
+      console.log(`[Player ${this.id}] Failed to send ${type}: no connections`);
+      return false;
     }
-    console.log(`[Player ${this.id}] Failed to send ${type}: ws=${!!this.ws}, readyState=${this.ws?.readyState}`);
-    return false;
+
+    const message = JSON.stringify({ type, payload });
+    let sentCount = 0;
+
+    for (const ws of this.connections) {
+      if (ws && ws.readyState === 1) {
+        ws.send(message);
+        sentCount++;
+      }
+    }
+
+    if (sentCount === 0) {
+      console.log(`[Player ${this.id}] Failed to send ${type}: all ${this.connections.length} connections closed`);
+      return false;
+    }
+
+    return true;
   }
 
   // Helper: Send updated private state to this player
@@ -533,11 +559,37 @@ export class Player {
     return sent;
   }
 
-  // Update connection
+  // Add a new connection (supports multiple simultaneous connections)
+  addConnection(ws) {
+    if (!ws) return;
+
+    // Don't add duplicates
+    if (!this.connections.includes(ws)) {
+      this.connections.push(ws);
+      console.log(`[Player ${this.id}] addConnection: now has ${this.connections.length} connection(s)`);
+    }
+    this.lastSeen = Date.now();
+  }
+
+  // Remove a connection
+  removeConnection(ws) {
+    const index = this.connections.indexOf(ws);
+    if (index !== -1) {
+      this.connections.splice(index, 1);
+      console.log(`[Player ${this.id}] removeConnection: now has ${this.connections.length} connection(s)`);
+    }
+  }
+
+  // Legacy method for backward compatibility
   setConnection(ws) {
     console.log(`[Player ${this.id}] setConnection called, ws=${!!ws}, readyState=${ws?.readyState}`);
-    this.ws = ws;
-    this.connected = ws !== null;
+    if (ws === null) {
+      // Clear all connections (legacy behavior for explicit disconnect)
+      this.connections = [];
+    } else {
+      // Add new connection
+      this.addConnection(ws);
+    }
     this.lastSeen = Date.now();
   }
 }

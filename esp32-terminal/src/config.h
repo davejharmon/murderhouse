@@ -11,13 +11,12 @@
 #define WIFI_PASSWORD "andywarhol"
 
 // WebSocket server - UPDATE FOR YOUR SERVER
-#define WS_HOST "192.168.86.23"
+#define WS_HOST "192.168.86.85"
 #define WS_PORT 8080
 #define WS_PATH "/"
 
-// Unique player ID for this terminal
-// Each physical terminal should have a unique ID
-#define PLAYER_ID "player-0"
+// Player ID is now selected at boot via dial (1-9)
+// The player ID will be set dynamically as "player-N" where N is 1-9
 
 // ============================================================================
 // PIN DEFINITIONS - SSD1322 OLED (SPI) - ESP32-S3

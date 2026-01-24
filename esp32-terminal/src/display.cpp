@@ -123,6 +123,35 @@ void displayMessage(const char* line1, const char* line2, const char* line3) {
     displayRender(state);
 }
 
+void displayPlayerSelect(uint8_t selectedPlayer) {
+    u8g2.clearBuffer();
+
+    // === LINE 1: Title ===
+    u8g2.setFont(FONT_SMALL);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(MARGIN_X, LINE1_Y, "SELECT PLAYER");
+
+    // === LINE 2: Selected player number (large, centered) ===
+    u8g2.setFont(FONT_LARGE);
+    char playerText[16];
+    snprintf(playerText, sizeof(playerText), "PLAYER %d", selectedPlayer);
+    int textWidth = u8g2.getStrWidth(playerText);
+    int textX = (DISPLAY_WIDTH - textWidth) / 2;
+
+    // Draw selection box
+    u8g2.drawFrame(textX - 6, LINE2_Y - 18, textWidth + 12, 24);
+    u8g2.drawStr(textX, LINE2_Y, playerText);
+
+    // === LINE 3: Instructions ===
+    u8g2.setFont(FONT_SMALL);
+    const char* instructions = "DIAL select - YES confirm";
+    int instrWidth = u8g2.getStrWidth(instructions);
+    int instrX = (DISPLAY_WIDTH - instrWidth) / 2;
+    u8g2.drawStr(instrX, LINE3_Y, instructions);
+
+    u8g2.sendBuffer();
+}
+
 void displayConnectionStatus(ConnectionState connState, const char* detail) {
     const char* line1 = "";
     const char* line2 = "";
@@ -134,6 +163,10 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
             line2 = "BOOTING";
             line3 = "Initializing...";
             break;
+
+        case ConnectionState::PLAYER_SELECT:
+            // Handled separately by displayPlayerSelect()
+            return;
 
         case ConnectionState::WIFI_CONNECTING:
             line1 = "NETWORK";

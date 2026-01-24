@@ -16,18 +16,26 @@ export function createHandlers(game) {
 
     [ClientMsg.JOIN]: (ws, payload) => {
       const { playerId } = payload;
-      console.log(`[JOIN] playerId=${playerId}, ws.readyState=${ws.readyState}`);
+      console.log(
+        `[JOIN] playerId=${playerId}, ws.readyState=${ws.readyState}`
+      );
 
       // Check if player already exists (reconnection)
       const existing = game.getPlayer(playerId);
       console.log(`[JOIN] existing player found: ${!!existing}`);
       if (existing) {
         const result = game.reconnectPlayer(playerId, ws);
-        console.log(`[JOIN] reconnectPlayer result:`, result.success, result.error || '');
+        console.log(
+          `[JOIN] reconnectPlayer result:`,
+          result.success,
+          result.error || ''
+        );
         if (result.success) {
           ws.playerId = playerId;
           ws.clientType = 'player';
-          console.log(`[JOIN] Set ws.playerId=${ws.playerId}, player.ws=${!!existing.ws}`);
+          console.log(
+            `[JOIN] Added connection for ${ws.playerId}, total connections: ${existing.connections.length}`
+          );
           send(ws, ServerMsg.WELCOME, {
             playerId,
             reconnected: true,
@@ -132,7 +140,10 @@ export function createHandlers(game) {
 
       // Find active event and valid targets
       for (const [eventId, instance] of game.activeEvents) {
-        console.log(`[SELECT_UP] Checking event ${eventId}, participants:`, instance.participants);
+        console.log(
+          `[SELECT_UP] Checking event ${eventId}, participants:`,
+          instance.participants
+        );
         if (instance.participants.includes(player.id)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
@@ -415,9 +426,17 @@ export function createHandlers(game) {
 
       // Validate portrait filename
       const validPortraits = [
-        'player1.png', 'player2.png', 'player3.png',
-        'player4.png', 'player5.png', 'player6.png',
-        'player7.png', 'player8.png', 'player9.png', 'anon.png'
+        'player1.png',
+        'player2.png',
+        'player3.png',
+        'player4.png',
+        'player5.png',
+        'player6.png',
+        'player7.png',
+        'player8.png',
+        'player9.png',
+        'playerA.png',
+        'anon.png',
       ];
       if (!validPortraits.includes(payload.portrait)) {
         return { success: false, error: 'Invalid portrait' };

@@ -142,8 +142,15 @@ export class Game {
     const player = this.players.get(id);
     if (!player) return { success: false, error: 'Player not found' };
 
+    const wasConnected = player.connected;
     player.setConnection(ws);
-    this.addLog(`${player.name} reconnected`);
+
+    // Only log reconnect if player wasn't connected, otherwise log additional connection
+    if (!wasConnected) {
+      this.addLog(`${player.name} reconnected`);
+    } else {
+      this.addLog(`${player.name} +connection (${player.connections.length})`);
+    }
 
     return { success: true, player };
   }
