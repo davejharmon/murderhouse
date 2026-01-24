@@ -349,7 +349,7 @@ export class Player {
       return this._display(
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: line2Text, style: DisplayStyle.NORMAL },
-        { text: canAbstain ? 'YES confirm \u2022 NO abstain' : 'YES to confirm' },
+        { text: canAbstain ? 'YES confirm - NO abstain' : 'YES to confirm' },
         { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF }
       );
     }
@@ -374,7 +374,7 @@ export class Player {
       return this._display(
         { left: getLine1(), right: this._getInventoryGlyphs() },
         { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-        { text: `YES to use \u2022 ${ability.uses}/${ability.maxUses}` },
+        { text: `YES to use - ${ability.uses}/${ability.maxUses}` },
         { yes: LedState.DIM, no: LedState.OFF }
       );
     }
