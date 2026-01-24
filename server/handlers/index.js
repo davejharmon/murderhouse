@@ -43,7 +43,10 @@ export function createHandlers(game) {
           });
           send(ws, ServerMsg.GAME_STATE, game.getGameState());
           send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState(game));
-          game.broadcastPlayerList(); // Notify others of reconnection
+          // Notify others of reconnection - broadcastGameState after broadcastPlayerList
+          // ensures host gets role info (PLAYER_LIST only has public state)
+          game.broadcastPlayerList();
+          game.broadcastGameState();
         }
         return result;
       }
@@ -79,7 +82,10 @@ export function createHandlers(game) {
         });
         send(ws, ServerMsg.GAME_STATE, game.getGameState());
         send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState(game));
-        game.broadcastPlayerList(); // Notify others of reconnection
+        // Notify others of reconnection - broadcastGameState after broadcastPlayerList
+        // ensures host gets role info (PLAYER_LIST only has public state)
+        game.broadcastPlayerList();
+        game.broadcastGameState();
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
       }
