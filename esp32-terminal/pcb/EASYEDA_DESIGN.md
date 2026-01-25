@@ -1,4 +1,4 @@
-Rer# ESP32 Terminal PCB - EasyEDA Design Guide
+# ESP32 Terminal PCB - EasyEDA Design Guide
 
 ## Overview
 
@@ -158,7 +158,7 @@ Power is supplied through the ESP32 DevKit's USB-C port. No separate power conne
 
 | Component  | Connects To            |
 | ---------- | ---------------------- |
-| D1 Anode   | 5V rail via R13 (330Ω) |
+| D1 Anode   | 5V rail via R4 (330Ω)  |
 | D1 Cathode | GND rail               |
 
 _Power LED indicates USB power is connected_
@@ -166,13 +166,13 @@ _Power LED indicates USB power is connected_
 ### Power Budget
 
 | Component              | Current (typical) |
-| ---------------------- | ----------------- | --- |
+| ---------------------- | ----------------- |
 | ESP32-S3 (WiFi active) | 200-300mA         |
 | 2× LED arcade buttons  | 40-100mA          |
 | 1× WS2811 Neopixel     | 60mA max          |
 | 1× Power LED           | 15mA              |
 | OLED SSD1322           | 100-150mA         |
-| **Total**              | **~500mA**        | P   |
+| **Total**              | **~500mA**        |
 
 _Use a USB-C power adapter rated 5V 2A for headroom (any phone charger works)_
 
