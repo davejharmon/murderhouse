@@ -15,7 +15,7 @@ Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3
 | J3  | OLED Display   | 1x7 Female  | C2337     | VCC,GND,DIN,CLK,CS,DC,RST |
 | J4  | YES Button     | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
 | J5  | NO Button      | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
-| J6  | Rotary Encoder | 1x3 Female  | C2337     | GND,A,B                   |
+| J6  | Rotary Encoder | 1x5 Female  | C2337     | GND,A,B,SW,GND            |
 | J7  | Neopixel       | 1x3 Female  | C2337     | 5V,GND,DIN                |
 
 _Note: Power supplied via ESP32 DevKit USB-C port - no separate power header needed_
@@ -66,7 +66,7 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
               RST  ─┤3              38├─ RX
          GPIO 4   ─┤4  (YES_BTN)   37├─ GPIO 1  (ENCODER_A)
          GPIO 5   ─┤5  (YES_LED)   36├─ GPIO 2  (ENCODER_B)
-         GPIO 6   ─┤6  (NO_BTN)    35├─ GPIO 42
+         GPIO 6   ─┤6  (NO_BTN)    35├─ GPIO 42 (ENCODER_SW)
          GPIO 7   ─┤7  (NO_LED)    34├─ GPIO 41
          GPIO 15  ─┤8              33├─ GPIO 40
          GPIO 16  ─┤9              32├─ GPIO 39
@@ -126,11 +126,13 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
 
 | J6 Pin | Signal | Connects To              |
 | ------ | ------ | ------------------------ |
-| 1      | GND    | GND rail                 |
+| 1      | GND    | GND rail (encoder common)|
 | 2      | A      | ESP32 GPIO 1 (pin 37)    |
 | 3      | B      | ESP32 GPIO 2 (pin 36)    |
+| 4      | SW     | ESP32 GPIO 42 (pin 35)   |
+| 5      | GND    | GND rail (switch common) |
 
-_EC11 encoder recommended. Uses internal pullups on ESP32._
+_EC11 encoder with push button. Uses internal pullups on ESP32. Button active LOW._
 
 ### Neopixel Header (J7)
 
@@ -226,7 +228,7 @@ Suggested Layout (Top View):
 │                  [C1]                      │
 │                                            │
 │  [J4 YES]    [J6 ENCODER]    [J5 NO]      │
-│   4-pin        3-pin          4-pin       │
+│   4-pin        5-pin          4-pin       │
 │                                            │
 │  [D1 PWR LED]  [R1] [R2] [R3] [R4]        │
 │                 SMD resistors              │
@@ -277,11 +279,13 @@ NO Button (4-pin arcade):
   LED+       → 3
   LED-       → 4
 
-Rotary Encoder (EC11):
+Rotary Encoder (EC11 with button):
   Encoder Pin → J6 Pin
   GND         → 1
   A (CLK)     → 2
   B (DT)      → 3
+  SW          → 4
+  SW GND      → 5
 
 Neopixel (WS2811):
   Pixel Pin → J7 Pin

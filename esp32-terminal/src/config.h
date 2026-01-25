@@ -46,7 +46,7 @@
 
 #define PIN_ENCODER_A   1   // Encoder A (CLK) signal
 #define PIN_ENCODER_B   2   // Encoder B (DT) signal
-// Optional: #define PIN_ENCODER_SW  X  // Encoder push button (if needed)
+#define PIN_ENCODER_SW  42  // Encoder push button (directly to GPIO, active LOW)
 
 // ============================================================================
 // PIN DEFINITIONS - STATUS LED - ESP32-S3

@@ -61,10 +61,11 @@ NO Button (Red):
   LED+ → GPIO 7 (via 220Ω resistor)
   LED- → GND
 
-Rotary Encoder (EC11):
-  GND → GND
+Rotary Encoder (EC11 with button):
+  GND     → GND
   A (CLK) → GPIO 1
   B (DT)  → GPIO 2
+  SW      → GPIO 42 (active LOW, optional)
 
 Power LED:
   Anode  → 3.3V (via 330Ω resistor)
@@ -114,6 +115,7 @@ Neopixel (WS2811):
     │ GND  │───────────────── GND                                   │
     │ A    │─────────────────┼── GPIO 1                             │
     │ B    │─────────────────┼── GPIO 2                             │
+    │ SW   │─────────────────┼── GPIO 42 (optional)                 │
     └──────┘                  │                                     │
                               │                                     │
     Neopixel (WS2811)         │                                     │
