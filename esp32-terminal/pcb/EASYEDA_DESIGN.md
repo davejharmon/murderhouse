@@ -1,45 +1,53 @@
-# ESP32 Terminal PCB - EasyEDA Design Guide
+Rer# ESP32 Terminal PCB - EasyEDA Design Guide
 
 ## Overview
 
-Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3-DevKitC-1 module to arcade buttons, rotary switch, OLED display, and Neopixel via Dupont headers.
+Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3-DevKitC-1 module to arcade buttons, rotary encoder, OLED display, and Neopixel via Dupont headers.
 
 ## Bill of Materials (BOM)
 
 ### Headers (Dupont Breakouts)
 
-| Ref | Component | Pins | LCSC Part | Notes |
-|-----|-----------|------|-----------|-------|
-| J1 | ESP32 Left | 1x20 Female | C2337 | 2.54mm pitch |
-| J2 | ESP32 Right | 1x20 Female | C2337 | 2.54mm pitch |
-| J3 | OLED Display | 1x7 Female | C2337 | VCC,GND,DIN,CLK,CS,DC,RST |
-| J4 | YES Button | 1x4 Female | C2337 | COM,NO,LED+,LED- |
-| J5 | NO Button | 1x4 Female | C2337 | COM,NO,LED+,LED- |
-| J6 | Rotary Switch | 1x3 Female | C2337 | 3.3V,GND,SIG (active) |
-| J7 | Rotary Positions | 1x8 Female | C2337 | Pos1-Pos8 connections |
-| J8 | Neopixel | 1x3 Female | C2337 | 5V,GND,DIN |
-| J9 | Power In | 1x2 or JST | C2337 | 5V,GND |
+| Ref | Component      | Pins        | LCSC Part | Notes                     |
+| --- | -------------- | ----------- | --------- | ------------------------- |
+| J1  | ESP32 Left     | 1x20 Female | C2337     | 2.54mm pitch              |
+| J2  | ESP32 Right    | 1x20 Female | C2337     | 2.54mm pitch              |
+| J3  | OLED Display   | 1x7 Female  | C2337     | VCC,GND,DIN,CLK,CS,DC,RST |
+| J4  | YES Button     | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
+| J5  | NO Button      | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
+| J6  | Rotary Encoder | 1x3 Female  | C2337     | GND,A,B                   |
+| J7  | Neopixel       | 1x3 Female  | C2337     | 5V,GND,DIN                |
+
+_Note: Power supplied via ESP32 DevKit USB-C port - no separate power header needed_
 
 ### Resistors (0805 SMD recommended)
 
-| Ref | Value | Qty | LCSC Part | Purpose |
-|-----|-------|-----|-----------|---------|
-| R1 | 220Ω | 1 | C17557 | YES button LED |
-| R2 | 220Ω | 1 | C17557 | NO button LED |
-| R3 | 330Ω | 1 | C17630 | Neopixel data line |
-| R4 | 510Ω | 1 | C17734 | Rotary ladder top |
-| R5-R11 | 1kΩ | 7 | C17513 | Rotary ladder between positions |
-| R12 | 510Ω | 1 | C17734 | Rotary ladder bottom |
+| Ref | Value | Qty | LCSC Part | Purpose            |
+| --- | ----- | --- | --------- | ------------------ |
+| R1  | 220Ω  | 1   | C17557    | YES button LED     |
+| R2  | 220Ω  | 1   | C17557    | NO button LED      |
+| R3  | 330Ω  | 1   | C17630    | Neopixel data line |
+| R4  | 330Ω  | 1   | C17630    | Power LED resistor |
 
-*Note: 500Ω not standard - using 510Ω instead*
+### Capacitors
 
-### Optional
+| Ref | Value     | LCSC Part | Purpose                  |
+| --- | --------- | --------- | ------------------------ |
+| C1  | 100µF 10V | C15008    | Neopixel power smoothing |
 
-| Ref | Component | LCSC Part | Purpose |
-|-----|-----------|-----------|---------|
-| C1 | 100µF 10V | C15008 | Neopixel power smoothing |
-| D1 | Red LED 3mm | C84256 | Power indicator |
-| R13 | 330Ω | C17630 | Power LED resistor |
+### LEDs
+
+| Ref | Component   | LCSC Part | Purpose         |
+| --- | ----------- | --------- | --------------- |
+| D1  | Red LED 3mm | C84256    | Power indicator |
+
+### Rotary Encoder
+
+| Ref | Component          | LCSC Part | Purpose              |
+| --- | ------------------ | --------- | -------------------- |
+| SW1 | EC11 Rotary Encoder| C318884   | Navigation dial      |
+
+_EC11 is a standard 5-pin encoder with detents. Only 3 pins used (GND, A, B). Push-button pin optional._
 
 ---
 
@@ -48,6 +56,7 @@ Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3
 ### ESP32-S3-DevKitC-1 Pinout Reference
 
 The DevKit has pins on both sides. We'll use female headers to socket the module.
+Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage to the 5V rail.
 
 ```
                     ESP32-S3-DevKitC-1
@@ -55,8 +64,8 @@ The DevKit has pins on both sides. We'll use female headers to socket the module
               3V3  ─┤1              40├─ GND
               3V3  ─┤2              39├─ TX
               RST  ─┤3              38├─ RX
-         GPIO 4   ─┤4  (YES_BTN)   37├─ GPIO 1  (ROTARY_ADC)
-         GPIO 5   ─┤5  (YES_LED)   36├─ GPIO 2
+         GPIO 4   ─┤4  (YES_BTN)   37├─ GPIO 1  (ENCODER_A)
+         GPIO 5   ─┤5  (YES_LED)   36├─ GPIO 2  (ENCODER_B)
          GPIO 6   ─┤6  (NO_BTN)    35├─ GPIO 42
          GPIO 7   ─┤7  (NO_LED)    34├─ GPIO 41
          GPIO 15  ─┤8              33├─ GPIO 40
@@ -74,6 +83,9 @@ The DevKit has pins on both sides. We'll use female headers to socket the module
          GPIO 14  ─┤20 (OLED_RST)  21├─ GPIO 19
                     └─────────────────┘
                          USB-C
+
+        5V pin location (active when USB connected):
+        Pin 40 side, near GND - connect to 5V rail
 ```
 
 ---
@@ -82,105 +94,92 @@ The DevKit has pins on both sides. We'll use female headers to socket the module
 
 ### OLED Display Header (J3)
 
-| J3 Pin | Signal | Connects To |
-|--------|--------|-------------|
-| 1 | VCC | 3.3V rail |
-| 2 | GND | GND rail |
-| 3 | DIN | ESP32 GPIO 11 (pin 17) |
-| 4 | CLK | ESP32 GPIO 12 (pin 18) |
-| 5 | CS | ESP32 GPIO 10 (pin 16) |
-| 6 | DC | ESP32 GPIO 9 (pin 15) |
-| 7 | RST | ESP32 GPIO 14 (pin 20) |
+| J3 Pin | Signal | Connects To            |
+| ------ | ------ | ---------------------- |
+| 1      | VCC    | 3.3V rail              |
+| 2      | GND    | GND rail               |
+| 3      | DIN    | ESP32 GPIO 11 (pin 17) |
+| 4      | CLK    | ESP32 GPIO 12 (pin 18) |
+| 5      | CS     | ESP32 GPIO 10 (pin 16) |
+| 6      | DC     | ESP32 GPIO 9 (pin 15)  |
+| 7      | RST    | ESP32 GPIO 14 (pin 20) |
 
 ### YES Button Header (J4)
 
-| J4 Pin | Signal | Connects To |
-|--------|--------|-------------|
-| 1 | COM | GND rail |
-| 2 | NO | ESP32 GPIO 4 (pin 4) |
-| 3 | LED+ | R1 (220Ω) → ESP32 GPIO 5 (pin 5) |
-| 4 | LED- | GND rail |
+| J4 Pin | Signal | Connects To                      |
+| ------ | ------ | -------------------------------- |
+| 1      | COM    | GND rail                         |
+| 2      | NO     | ESP32 GPIO 4 (pin 4)             |
+| 3      | LED+   | R1 (220Ω) → ESP32 GPIO 5 (pin 5) |
+| 4      | LED-   | GND rail                         |
 
 ### NO Button Header (J5)
 
-| J5 Pin | Signal | Connects To |
-|--------|--------|-------------|
-| 1 | COM | GND rail |
-| 2 | NO | ESP32 GPIO 6 (pin 6) |
-| 3 | LED+ | R2 (220Ω) → ESP32 GPIO 7 (pin 7) |
-| 4 | LED- | GND rail |
+| J5 Pin | Signal | Connects To                      |
+| ------ | ------ | -------------------------------- |
+| 1      | COM    | GND rail                         |
+| 2      | NO     | ESP32 GPIO 6 (pin 6)             |
+| 3      | LED+   | R2 (220Ω) → ESP32 GPIO 7 (pin 7) |
+| 4      | LED-   | GND rail                         |
 
-### Rotary Switch Signal Header (J6)
+### Rotary Encoder Header (J6)
 
-| J6 Pin | Signal | Connects To |
-|--------|--------|-------------|
-| 1 | 3.3V | 3.3V rail (top of resistor ladder) |
-| 2 | GND | GND rail (bottom of resistor ladder) |
-| 3 | SIG | ESP32 GPIO 1 (pin 37) - Wiper/Common |
+| J6 Pin | Signal | Connects To              |
+| ------ | ------ | ------------------------ |
+| 1      | GND    | GND rail                 |
+| 2      | A      | ESP32 GPIO 1 (pin 37)    |
+| 3      | B      | ESP32 GPIO 2 (pin 36)    |
 
-### Rotary Switch Positions Header (J7)
+_EC11 encoder recommended. Uses internal pullups on ESP32._
 
-Connect your SP8T rotary switch positions to this header.
-The resistor ladder is built into the PCB.
+### Neopixel Header (J7)
 
-| J7 Pin | Signal | On-board Connection |
-|--------|--------|---------------------|
-| 1 | POS1 | After R4 (510Ω from 3.3V) |
-| 2 | POS2 | After R5 (1kΩ from POS1) |
-| 3 | POS3 | After R6 (1kΩ from POS2) |
-| 4 | POS4 | After R7 (1kΩ from POS3) |
-| 5 | POS5 | After R8 (1kΩ from POS4) |
-| 6 | POS6 | After R9 (1kΩ from POS5) |
-| 7 | POS7 | After R10 (1kΩ from POS6) |
-| 8 | POS8 | After R11 (1kΩ from POS7), before R12 (510Ω to GND) |
+| J7 Pin | Signal | Connects To                       |
+| ------ | ------ | --------------------------------- |
+| 1      | 5V     | 5V rail                           |
+| 2      | GND    | GND rail                          |
+| 3      | DIN    | R3 (330Ω) → ESP32 GPIO 8 (pin 12) |
 
-**Resistor Ladder Schematic:**
-```
-3.3V ──R4(510Ω)──┬──POS1
-                 │
-              R5(1kΩ)
-                 │
-                 ├──POS2
-                 │
-              R6(1kΩ)
-                 │
-                 ├──POS3
-                ...
-                 │
-              R11(1kΩ)
-                 │
-                 ├──POS8
-                 │
-              R12(510Ω)
-                 │
-                GND
+_C1 (100µF) placed across 5V and GND near J7 for power smoothing_
 
-Wiper (Common) connects to all POS points through the switch
-and outputs to J6 Pin 3 (SIG) → GPIO 1
-```
+### Power (via ESP32 USB-C)
 
-### Neopixel Header (J8)
+Power is supplied through the ESP32 DevKit's USB-C port. No separate power connector needed.
 
-| J8 Pin | Signal | Connects To |
-|--------|--------|-------------|
-| 1 | 5V | 5V rail |
-| 2 | GND | GND rail |
-| 3 | DIN | R3 (330Ω) → ESP32 GPIO 8 (pin 12) |
+| Source         | Connects To | Notes                                |
+| -------------- | ----------- | ------------------------------------ |
+| ESP32 5V pin   | 5V rail     | Provides USB voltage for Neopixel    |
+| ESP32 3V3 pins | 3.3V rail   | Regulated by DevKit for OLED         |
+| ESP32 GND      | GND rail    | Common ground                        |
 
-### Power Input (J9)
+### Power LED (D1)
 
-| J9 Pin | Signal | Notes |
-|--------|--------|-------|
-| 1 | 5V | Main power input |
-| 2 | GND | Ground |
+| Component  | Connects To            |
+| ---------- | ---------------------- |
+| D1 Anode   | 5V rail via R13 (330Ω) |
+| D1 Cathode | GND rail               |
 
-*Note: ESP32 DevKit has onboard regulator, so 5V in provides 3.3V rail*
+_Power LED indicates USB power is connected_
+
+### Power Budget
+
+| Component              | Current (typical) |
+| ---------------------- | ----------------- | --- |
+| ESP32-S3 (WiFi active) | 200-300mA         |
+| 2× LED arcade buttons  | 40-100mA          |
+| 1× WS2811 Neopixel     | 60mA max          |
+| 1× Power LED           | 15mA              |
+| OLED SSD1322           | 100-150mA         |
+| **Total**              | **~500mA**        | P   |
+
+_Use a USB-C power adapter rated 5V 2A for headroom (any phone charger works)_
 
 ---
 
 ## EasyEDA Step-by-Step
 
 ### 1. Create New Project
+
 - Go to EasyEDA (easyeda.com)
 - File → New → Project
 - Name: "Murderhouse_ESP32_Terminal"
@@ -188,20 +187,24 @@ and outputs to J6 Pin 3 (SIG) → GPIO 1
 ### 2. Create Schematic
 
 #### Add Components:
+
 1. Search library for "Female Header" or use generic connector symbols
 2. Add resistors (search "0805 resistor" for SMD)
 3. Draw the nets as shown above
 
 #### Symbol Names:
+
 - Use "HDR-1x20" for ESP32 headers
 - Use "HDR-1x7", "HDR-1x4", etc. for breakouts
 - Use "R_0805" for resistors
 
 ### 3. Assign Footprints
+
 - Headers: 2.54mm pitch through-hole
 - Resistors: 0805 SMD (or 0603 for smaller board)
 
 ### 4. Convert to PCB
+
 - Design → Convert to PCB
 - Set board size: ~60mm x 80mm recommended
 
@@ -210,7 +213,7 @@ and outputs to J6 Pin 3 (SIG) → GPIO 1
 ```
 Suggested Layout (Top View):
 ┌────────────────────────────────────────────┐
-│  [J3 OLED]                    [J8 NEOPIX]  │
+│  [J3 OLED]                    [J7 NEOPIX]  │
 │   7-pin                         3-pin      │
 │                                            │
 │  ┌──────────────────────────────────────┐  │
@@ -220,26 +223,25 @@ Suggested Layout (Top View):
 │  │                                      │  │
 │  └──────────────────────────────────────┘  │
 │                                            │
-│   [R4-R12 Resistor Ladder]                │
+│                  [C1]                      │
 │                                            │
-│  [J4 YES]    [J7 ROTARY]    [J5 NO]       │
-│   4-pin       8-pin          4-pin        │
+│  [J4 YES]    [J6 ENCODER]    [J5 NO]      │
+│   4-pin        3-pin          4-pin       │
 │                                            │
-│              [J6 ROT SIG]                  │
-│               3-pin                        │
-│                                            │
-│  [J9 PWR]    [R1] [R2] [R3]               │
-│   2-pin       SMD resistors               │
+│  [D1 PWR LED]  [R1] [R2] [R3] [R4]        │
+│                 SMD resistors              │
 └────────────────────────────────────────────┘
 ```
 
 ### 6. Design Rules (JLCPCB Compatible)
+
 - Min trace width: 0.2mm (8mil)
 - Min clearance: 0.2mm
 - Min via: 0.3mm drill, 0.6mm pad
 - Use 0.3mm traces for signals, 0.5mm for power
 
 ### 7. Generate Gerbers
+
 - Fabrication → Gerber
 - Select "JLCPCB" preset
 - Download ZIP file
@@ -275,22 +277,21 @@ NO Button (4-pin arcade):
   LED+       → 3
   LED-       → 4
 
-Rotary Switch (SP8T):
-  Wiper/Common → J6 Pin 3
-  Position 1   → J7 Pin 1
-  Position 2   → J7 Pin 2
-  ...
-  Position 8   → J7 Pin 8
+Rotary Encoder (EC11):
+  Encoder Pin → J6 Pin
+  GND         → 1
+  A (CLK)     → 2
+  B (DT)      → 3
 
 Neopixel (WS2811):
-  Pixel Pin → J8 Pin
+  Pixel Pin → J7 Pin
   VCC (5V)  → 1
   GND       → 2
   DIN       → 3
 
 Power:
-  5V USB/PSU → J9 Pin 1
-  GND        → J9 Pin 2
+  Connect USB-C power brick to ESP32 DevKit USB-C port
+  (No external power wiring needed - 5V rail fed from ESP32 5V pin)
 ```
 
 ---
@@ -298,12 +299,14 @@ Power:
 ## Testing Checklist
 
 After assembly:
+
 - [ ] Check for shorts between 3.3V, 5V, and GND
 - [ ] Insert ESP32 module
-- [ ] Power on - check 3.3V rail with multimeter
+- [ ] Connect USB-C power - D1 (power LED) should illuminate
+- [ ] Check 3.3V and 5V rails with multimeter
 - [ ] Connect OLED - should show boot screen
 - [ ] Test buttons - LEDs should light when GPIO driven
-- [ ] Test rotary - ADC should read different values per position
+- [ ] Test encoder - rotating should move selection up/down
 - [ ] Test Neopixel - should show connection status color
 
 ---
@@ -311,6 +314,7 @@ After assembly:
 ## Files
 
 After designing in EasyEDA, export:
+
 - `Gerber_Murderhouse_Terminal.zip` - For JLCPCB fabrication
 - `BOM_Murderhouse_Terminal.csv` - Bill of materials
 - `PickAndPlace_Murderhouse_Terminal.csv` - For SMT assembly (optional)
@@ -324,4 +328,3 @@ After designing in EasyEDA, export:
 - Surface Finish: HASL or LeadFree HASL
 - Copper Weight: 1oz
 - Remove Order Number: Yes (cleaner look)
-

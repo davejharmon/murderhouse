@@ -41,10 +41,12 @@
 #define PIN_LED_NO      7   // LED output (PWM)
 
 // ============================================================================
-// PIN DEFINITIONS - ROTARY SWITCH - ESP32-S3
+// PIN DEFINITIONS - ROTARY ENCODER - ESP32-S3
 // ============================================================================
 
-#define PIN_ROTARY_ADC  1   // ADC1_CH0 input for resistor ladder
+#define PIN_ENCODER_A   1   // Encoder A (CLK) signal
+#define PIN_ENCODER_B   2   // Encoder B (DT) signal
+// Optional: #define PIN_ENCODER_SW  X  // Encoder push button (if needed)
 
 // ============================================================================
 // PIN DEFINITIONS - STATUS LED - ESP32-S3
@@ -62,8 +64,8 @@
 // Button debounce time in milliseconds
 #define DEBOUNCE_MS     50
 
-// Rotary switch read interval
-#define ROTARY_READ_MS  20
+// Rotary encoder poll interval
+#define ENCODER_POLL_MS  10
 
 // LED pulse period in milliseconds
 #define LED_PULSE_MS    1000
@@ -75,22 +77,12 @@
 #define WS_RECONNECT_MS 3000
 
 // ============================================================================
-// ROTARY SWITCH ADC THRESHOLDS
+// ROTARY ENCODER CONFIGURATION
 // ============================================================================
 
-// Series resistor ladder: 3.3V--[500]--Pos1--[1k]--Pos2--...--Pos8--[500]--GND
-// Total resistance: 8kΩ, giving linear voltage distribution
-// ADC values: Pos1=3834, Pos2=3327, Pos3=2817, Pos4=2308, Pos5=1787, Pos6=1278, Pos7=769, Pos8=261
-// Using midpoints for threshold detection
-#define ROTARY_POS_1_MIN  3580  // > 3580 = Position 1
-#define ROTARY_POS_2_MIN  3072  // 3072-3580 = Position 2
-#define ROTARY_POS_3_MIN  2562  // 2562-3072 = Position 3
-#define ROTARY_POS_4_MIN  2048  // 2048-2562 = Position 4
-#define ROTARY_POS_5_MIN  1532  // 1532-2048 = Position 5
-#define ROTARY_POS_6_MIN  1024  // 1024-1532 = Position 6
-#define ROTARY_POS_7_MIN  515   // 515-1024 = Position 7
-#define ROTARY_POS_8_MIN  100   // 100-515 = Position 8
-// < 100 = No position / disconnected
+// Pulses per detent (most EC11 encoders have 4 pulses per detent)
+// Set to 4 for full-step counting, 1 for quarter-step (more sensitive)
+#define ENCODER_PULSES_PER_DETENT  4
 
 // ============================================================================
 // LED PWM CONFIGURATION

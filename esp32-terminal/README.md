@@ -8,7 +8,7 @@ This terminal replicates the React player console experience on dedicated hardwa
 
 - **256x64 amber OLED display** showing game state
 - **Green/Red LED arcade buttons** for YES/NO actions
-- **8-position rotary switch** for target selection
+- **Rotary encoder** for target selection
 - **RGB status LED** indicating connection state
 
 The terminal connects via WiFi to the game server's WebSocket API and receives the same display state data as the React client.
@@ -23,7 +23,7 @@ The terminal connects via WiFi to the game server's WebSocket API and receives t
 | Display         | SSD1322 256x64 OLED (SPI, amber) | 3-line game display             |
 | YES Button      | 4-pin arcade button (green LED)  | Confirm selection / Use ability |
 | NO Button       | 4-pin arcade button (red LED)    | Abstain from vote               |
-| Rotary Switch   | SP8T 8-way rotary selector       | Navigate targets (UP/DOWN)      |
+| Rotary Encoder  | EC11 rotary encoder              | Navigate targets (UP/DOWN)      |
 | Power LED       | Through-hole red LED             | Power indicator                 |
 | Status LED      | WS2811 Neopixel RGB              | Connection status               |
 
@@ -33,8 +33,6 @@ The terminal connects via WiFi to the game server's WebSocket API and receives t
 | --------------- | --- | ----------------------------------- |
 | 220Ω resistor   | 2   | Button LED current limiting         |
 | 330Ω resistor   | 2   | Power LED + Neopixel data line      |
-| 500Ω resistor   | 2   | Rotary ladder ends (top + bottom)   |
-| 1kΩ resistor    | 7   | Rotary ladder between positions     |
 | 100µF capacitor | 1   | Neopixel power smoothing (optional) |
 
 ## Wiring Diagram
@@ -63,9 +61,10 @@ NO Button (Red):
   LED+ → GPIO 7 (via 220Ω resistor)
   LED- → GND
 
-Rotary Switch (Series Resistor Ladder):
-  3.3V → 500Ω → Pos1 → 1kΩ → Pos2 → 1kΩ → ... → Pos8 → 500Ω → GND
-  Common (wiper) → GPIO 1 (ADC1_CH0)
+Rotary Encoder (EC11):
+  GND → GND
+  A (CLK) → GPIO 1
+  B (DT)  → GPIO 2
 
 Power LED:
   Anode  → 3.3V (via 330Ω resistor)
@@ -110,23 +109,12 @@ Neopixel (WS2811):
     │ LED- │───────────────── GND                                   │
     └──────┘                  │                                     │
                               │                                     │
-    Rotary Switch (SP8T) - Series Resistor Ladder                  │
-                              │                                     │
-    3.3V ── 500Ω ─┬─ Pos1     │                                     │
-                  │    │      │                                     │
-                 1kΩ   │      │                                     │
-                  │    │      │                                     │
-                 Pos2  │      │                                     │
-                  │    │      │                                     │
-                 1kΩ  Common ─┼── GPIO 1 (ADC)                      │
-                  │  (wiper)  │                                     │
-                 ...          │                                     │
-                  │           │                                     │
-                 Pos8         │                                     │
-                  │           │                                     │
-                 500Ω         │                                     │
-                  │           │                                     │
-                 GND          │                                     │
+    Rotary Encoder (EC11)     │                                     │
+    ┌──────┐                  │                                     │
+    │ GND  │───────────────── GND                                   │
+    │ A    │─────────────────┼── GPIO 1                             │
+    │ B    │─────────────────┼── GPIO 2                             │
+    └──────┘                  │                                     │
                               │                                     │
     Neopixel (WS2811)         │                                     │
     ┌──────┐                  │                                     │

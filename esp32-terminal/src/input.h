@@ -1,4 +1,4 @@
-// Input Handler for Buttons and Rotary Switch
+// Input Handler for Buttons and Rotary Encoder
 #ifndef INPUT_H
 #define INPUT_H
 
@@ -13,7 +13,7 @@ void inputInit();
 // Returns the next input event (or NONE if no event)
 InputEvent inputPoll();
 
-// Get the current rotary position (1-8, or 0 if unknown)
+// Get the current encoder position (1-8 range, wrapping)
 uint8_t inputGetRotaryPosition();
 
 #endif // INPUT_H
