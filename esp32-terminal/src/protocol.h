@@ -80,6 +80,7 @@ enum class ConnectionState {
     BOOT,
     PLAYER_SELECT,   // Selecting player ID (1-9) before connecting
     WIFI_CONNECTING,
+    DISCOVERING,     // Broadcasting UDP to find server
     WS_CONNECTING,
     JOINING,
     CONNECTED,

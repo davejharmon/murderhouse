@@ -2,6 +2,7 @@
 // WebSocket server entry point
 
 import { WebSocketServer } from 'ws';
+import dgram from 'dgram';
 import { Game } from './Game.js';
 import { createHandlers, handleMessage } from './handlers/index.js';
 
@@ -33,6 +34,22 @@ const game = new Game(broadcast);
 const handlers = createHandlers(game);
 
 console.log(`[Server] WebSocket server running on ws://localhost:${PORT}`);
+
+// UDP discovery listener - ESP32 terminals broadcast to find the server
+const DISCOVERY_PORT = 8089;
+const udpServer = dgram.createSocket('udp4');
+
+udpServer.on('message', (msg, rinfo) => {
+  if (msg.toString() === 'MURDERHOUSE_DISCOVER') {
+    console.log(`[Discovery] Request from ${rinfo.address}:${rinfo.port}`);
+    const response = Buffer.from(`MURDERHOUSE_SERVER:${PORT}`);
+    udpServer.send(response, rinfo.port, rinfo.address);
+  }
+});
+
+udpServer.bind(DISCOVERY_PORT, () => {
+  console.log(`[Discovery] Listening for ESP32 broadcasts on UDP port ${DISCOVERY_PORT}`);
+});
 
 wss.on('connection', (ws) => {
   clients.add(ws);

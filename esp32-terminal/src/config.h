@@ -10,10 +10,15 @@
 #define WIFI_SSID "Paul Anka"
 #define WIFI_PASSWORD "andywarhol"
 
-// WebSocket server - UPDATE FOR YOUR SERVER
-#define WS_HOST "192.168.86.85"
+// WebSocket server - discovered automatically via UDP broadcast
 #define WS_PORT 8080
 #define WS_PATH "/"
+
+// UDP discovery
+#define DISCOVERY_PORT       8089
+#define DISCOVERY_TIMEOUT_MS 3000
+#define DISCOVERY_MSG        "MURDERHOUSE_DISCOVER"
+#define DISCOVERY_RESP       "MURDERHOUSE_SERVER:"
 
 // Player ID is now selected at boot via dial (1-9)
 // The player ID will be set dynamically as "player-N" where N is 1-9

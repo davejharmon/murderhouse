@@ -251,6 +251,12 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
             line3 = detail ? detail : "Searching for network...";
             break;
 
+        case ConnectionState::DISCOVERING:
+            line1 = "CONNECTING...";
+            line2 = "SCANNING";
+            line3 = detail ? detail : "Looking for server...";
+            break;
+
         case ConnectionState::WS_CONNECTING:
             line1 = "CONNECTING...";
             line2 = "SERVER";

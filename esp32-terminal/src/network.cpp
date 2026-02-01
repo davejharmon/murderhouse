@@ -2,11 +2,18 @@
 #include "network.h"
 #include "config.h"
 #include <WiFi.h>
+#include <WiFiUdp.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
 // WebSocket client
 static WebSocketsClient webSocket;
+
+// UDP discovery
+static WiFiUDP udp;
+static char serverHost[16] = "";  // Discovered server IP
+static uint16_t serverPort = WS_PORT;
+static unsigned long lastDiscoveryBroadcast = 0;
 
 // Player ID (set before init)
 static char playerId[16] = "1";  // Default to player 1
@@ -67,14 +74,66 @@ ConnectionState networkUpdate() {
                 Serial.print("WiFi connected. IP: ");
                 Serial.println(WiFi.localIP());
 
-                // Start WebSocket connection
-                webSocket.begin(WS_HOST, WS_PORT, WS_PATH);
-                webSocket.onEvent(onWebSocketEvent);
-                webSocket.setReconnectInterval(WS_RECONNECT_MS);
-
-                connState = ConnectionState::WS_CONNECTING;
+                if (serverHost[0] != '\0') {
+                    // Already discovered server (reconnecting), go straight to WS
+                    webSocket.begin(serverHost, serverPort, WS_PATH);
+                    webSocket.onEvent(onWebSocketEvent);
+                    webSocket.setReconnectInterval(WS_RECONNECT_MS);
+                    connState = ConnectionState::WS_CONNECTING;
+                } else {
+                    // Need to discover server first
+                    udp.begin(DISCOVERY_PORT);
+                    lastDiscoveryBroadcast = 0;  // Broadcast immediately
+                    connState = ConnectionState::DISCOVERING;
+                }
             }
             break;
+
+        case ConnectionState::DISCOVERING: {
+            unsigned long now2 = millis();
+            // Send broadcast periodically
+            if (now2 - lastDiscoveryBroadcast >= DISCOVERY_TIMEOUT_MS) {
+                Serial.println("Broadcasting discovery...");
+                udp.beginPacket(IPAddress(255, 255, 255, 255), DISCOVERY_PORT);
+                udp.print(DISCOVERY_MSG);
+                udp.endPacket();
+                lastDiscoveryBroadcast = now2;
+            }
+
+            // Check for response
+            int packetSize = udp.parsePacket();
+            if (packetSize > 0) {
+                char buf[64];
+                int len = udp.read(buf, sizeof(buf) - 1);
+                buf[len] = '\0';
+
+                // Check for valid response
+                if (strncmp(buf, DISCOVERY_RESP, strlen(DISCOVERY_RESP)) == 0) {
+                    // Parse port from response
+                    serverPort = atoi(buf + strlen(DISCOVERY_RESP));
+                    if (serverPort == 0) serverPort = WS_PORT;
+
+                    // Use the sender's IP as the server address
+                    IPAddress remoteIP = udp.remoteIP();
+                    snprintf(serverHost, sizeof(serverHost), "%d.%d.%d.%d",
+                             remoteIP[0], remoteIP[1], remoteIP[2], remoteIP[3]);
+
+                    Serial.print("Server found at ");
+                    Serial.print(serverHost);
+                    Serial.print(":");
+                    Serial.println(serverPort);
+
+                    udp.stop();
+
+                    // Connect WebSocket
+                    webSocket.begin(serverHost, serverPort, WS_PATH);
+                    webSocket.onEvent(onWebSocketEvent);
+                    webSocket.setReconnectInterval(WS_RECONNECT_MS);
+                    connState = ConnectionState::WS_CONNECTING;
+                }
+            }
+            break;
+        }
 
         case ConnectionState::WS_CONNECTING:
             webSocket.loop();
