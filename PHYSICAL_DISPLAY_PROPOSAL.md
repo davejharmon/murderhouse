@@ -18,6 +18,7 @@ All display states follow a consistent three-line format:
 ```
 
 ### Character Budget (256px width)
+
 - Line 1 (small): ~32 characters + glyphs
 - Line 2 (large): ~16 characters
 - Line 3 (small): ~32 characters
@@ -26,18 +27,18 @@ All display states follow a consistent three-line format:
 
 Inline glyphs for compact display. Physical displays render as bitmap icons, React renders as emoji/text.
 
-| Glyph ID | Physical | React | Meaning |
-|----------|----------|-------|---------|
-| `:pistol:` | gun icon | `*` | Pistol item |
-| `:phone:` | phone icon | `$` | Phone item |
-| `:crystal:` | orb icon | `@` | Crystal Ball |
-| `:wolf:` | wolf icon | `W` | Werewolf team |
-| `:village:` | house icon | `V` | Village team |
-| `:lock:` | lock icon | `!` | Selection locked |
-| `:check:` | checkmark | `+` | Confirmed |
-| `:x:` | X mark | `-` | Abstained |
-| `:alpha:` | crown | `A` | Alpha werewolf |
-| `:pack:` | pawprint | `P` | Pack suggestion |
+| Glyph ID    | Physical   | React | Meaning          |
+| ----------- | ---------- | ----- | ---------------- |
+| `:pistol:`  | gun icon   | `*`   | Pistol item      |
+| `:phone:`   | phone icon | `$`   | Phone item       |
+| `:crystal:` | orb icon   | `@`   | Crystal Ball     |
+| `:wolf:`    | wolf icon  | `W`   | Werewolf team    |
+| `:village:` | house icon | `V`   | Village team     |
+| `:lock:`    | lock icon  | `!`   | Selection locked |
+| `:check:`   | checkmark  | `+`   | Confirmed        |
+| `:x:`       | X mark     | `-`   | Abstained        |
+| `:alpha:`   | crown      | `A`   | Alpha werewolf   |
+| `:pack:`    | pawprint   | `P`   | Pack suggestion  |
 
 ## Display State Schema
 
@@ -46,15 +47,15 @@ Server sends this to clients. React interprets for web UI, ESP interprets for OL
 ```typescript
 interface DisplayState {
   line1: {
-    left: string;      // "NIGHT 2" or "DAY 1 > VOTE"
-    right: string;     // ":pistol: :phone:" glyph string
+    left: string; // "NIGHT 2" or "DAY 1 > VOTE"
+    right: string; // ":pistol: :phone:" glyph string
   };
   line2: {
-    text: string;      // "PLAYER 3" or "SELECT TARGET"
+    text: string; // "PLAYER 3" or "SELECT TARGET"
     style: 'normal' | 'locked' | 'abstained' | 'waiting';
   };
   line3: {
-    text: string;      // "YES to confirm" or "Swipe to select"
+    text: string; // "YES to confirm" or "Swipe to select"
   };
   leds: {
     yes: 'off' | 'dim' | 'bright' | 'pulse';
@@ -66,6 +67,7 @@ interface DisplayState {
 ## Example Display States
 
 ### Lobby - Waiting
+
 ```
 LOBBY
 WAITING FOR GAME
@@ -73,6 +75,7 @@ Game will begin soon
 ```
 
 ### Idle - Day Phase (Villager with Pistol)
+
 ```
 DAY 1                     :pistol:
 VILLAGER
@@ -80,6 +83,7 @@ Discuss and vote
 ```
 
 ### Idle - Night Phase (Alpha Werewolf)
+
 ```
 NIGHT 1              :alpha::wolf:
 LEAD THE PACK
@@ -87,6 +91,7 @@ Wait for kill event
 ```
 
 ### Event Active - Selecting Target
+
 ```
 DAY 1 > VOTE
 PLAYER 3
@@ -94,6 +99,7 @@ YES confirm • NO abstain
 ```
 
 ### Event Active - No Selection Yet
+
 ```
 DAY 1 > VOTE
 SELECT TARGET
@@ -101,6 +107,7 @@ Swipe to choose
 ```
 
 ### Selection Locked
+
 ```
 DAY 1 > VOTE              :lock:
 PLAYER 3
@@ -108,6 +115,7 @@ Selection locked
 ```
 
 ### Abstained
+
 ```
 DAY 1 > VOTE                 :x:
 ABSTAINED
@@ -115,6 +123,7 @@ Waiting for others
 ```
 
 ### Pack Kill - With Pack Suggestion
+
 ```
 NIGHT 1 > KILL      :pack: DEMI
 PLAYER 5
@@ -122,6 +131,7 @@ Pack suggests Demi
 ```
 
 ### Seer Investigation Result
+
 ```
 NIGHT 1 > INVESTIGATE
 DEMI IS EVIL
@@ -129,6 +139,7 @@ Remember this info
 ```
 
 ### Governor Pardon Prompt
+
 ```
 DAY 1 > PARDON
 PLAYER 7
@@ -136,6 +147,7 @@ YES pardon • NO execute
 ```
 
 ### Ability Mode - Pistol Selected
+
 ```
 DAY 1                     :pistol:
 USE PISTOL?
@@ -143,6 +155,7 @@ YES to shoot • Swipe for more
 ```
 
 ### Dead - Spectator
+
 ```
 ELIMINATED
 SPECTATOR MODE
@@ -150,6 +163,7 @@ Watch the game unfold
 ```
 
 ### Hunter Revenge (Dead but Active Event)
+
 ```
 REVENGE                   :skull:
 PLAYER 2
@@ -161,6 +175,7 @@ Take someone with you
 ### Phase 1: Abstract Display State (Server)
 
 1. **Add `getDisplayState()` to Player.js**
+
    ```js
    getDisplayState(game) {
      return {
@@ -173,6 +188,7 @@ Take someone with you
    ```
 
 2. **Include in `getPrivateState()`**
+
    ```js
    getPrivateState(game) {
      return {
@@ -195,26 +211,28 @@ Take someone with you
 ### Phase 2: TinyScreen Component (React)
 
 1. **Create `TinyScreen.jsx`** - Dedicated three-line display component
+
    ```jsx
    function TinyScreen({ display }) {
      return (
        <div className={styles.tinyScreen}>
          <div className={styles.line1}>
            <span className={styles.left}>{display.line1.left}</span>
-           <span className={styles.right}>{renderGlyphs(display.line1.right)}</span>
+           <span className={styles.right}>
+             {renderGlyphs(display.line1.right)}
+           </span>
          </div>
          <div className={`${styles.line2} ${styles[display.line2.style]}`}>
            {display.line2.text}
          </div>
-         <div className={styles.line3}>
-           {display.line3.text}
-         </div>
+         <div className={styles.line3}>{display.line3.text}</div>
        </div>
      );
    }
    ```
 
 2. **Glyph renderer for React**
+
    ```jsx
    const GLYPH_MAP = {
      ':pistol:': '*',
@@ -241,6 +259,7 @@ Take someone with you
 ### Phase 4: ESP32 Integration Protocol
 
 1. **Simplified WebSocket message for ESP**
+
    ```js
    // Server sends only what ESP needs
    {
@@ -254,6 +273,7 @@ Take someone with you
    ```
 
 2. **ESP sends only input events**
+
    ```js
    { type: 'ROTATE', direction: 1 }  // 1=up, -1=down
    { type: 'BUTTON', id: 'yes' }
@@ -270,25 +290,25 @@ Take someone with you
 
 Button LEDs indicate available actions:
 
-| State | YES LED | NO LED |
-|-------|---------|--------|
-| Idle, no abilities | off | off |
-| Idle, has ability | dim | off |
-| Event, no selection | off | dim (if can abstain) |
-| Event, has selection | bright | dim |
-| Locked/Abstained | off | off |
-| Waiting for event | pulse | off |
+| State                | YES LED | NO LED               |
+| -------------------- | ------- | -------------------- |
+| Idle, no abilities   | off     | off                  |
+| Idle, has ability    | dim     | off                  |
+| Event, no selection  | off     | dim (if can abstain) |
+| Event, has selection | bright  | dim                  |
+| Locked/Abstained     | off     | off                  |
+| Waiting for event    | pulse   | off                  |
 
 ## File Changes Summary
 
-| File | Changes |
-|------|---------|
-| `server/Player.js` | Add `getDisplayState()`, update `getPrivateState()` |
-| `shared/constants.js` | Add `GLYPH_IDS` mapping |
-| `client/components/TinyScreen.jsx` | New component for 3-line display |
-| `client/components/TinyScreen.module.css` | Styling for monospace 3-line layout |
-| `client/components/PlayerConsole.jsx` | Use `display` from props, delegate to TinyScreen |
-| `client/components/GlyphRenderer.jsx` | Helper to render glyph strings |
+| File                                      | Changes                                             |
+| ----------------------------------------- | --------------------------------------------------- |
+| `server/Player.js`                        | Add `getDisplayState()`, update `getPrivateState()` |
+| `shared/constants.js`                     | Add `GLYPH_IDS` mapping                             |
+| `client/components/TinyScreen.jsx`        | New component for 3-line display                    |
+| `client/components/TinyScreen.module.css` | Styling for monospace 3-line layout                 |
+| `client/components/PlayerConsole.jsx`     | Use `display` from props, delegate to TinyScreen    |
+| `client/components/GlyphRenderer.jsx`     | Helper to render glyph strings                      |
 
 ## Testing Strategy
 

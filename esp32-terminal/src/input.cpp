@@ -21,7 +21,7 @@ void inputInit() {
 
     // Initialize rotary encoder
     // Use full quadrature mode for accurate counting
-    ESP32Encoder::useInternalWeakPullResistors = UP;
+    ESP32Encoder::useInternalWeakPullResistors = puType::up;
     encoder.attachFullQuad(PIN_ENCODER_A, PIN_ENCODER_B);
     encoder.clearCount();
     lastEncoderCount = 0;

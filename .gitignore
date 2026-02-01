@@ -55,3 +55,10 @@ Thumbs.db
 # Optional: coverage
 # =========================
 coverage/
+
+# =========================
+# Generated concept art
+# =========================
+terminal_concept_art.svg
+terminal_concept_art.py
+terminal_concept_art.png

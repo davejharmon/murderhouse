@@ -22,12 +22,16 @@ _Note: Power supplied via ESP32 DevKit USB-C port - no separate power header nee
 
 ### Resistors (0805 SMD recommended)
 
-| Ref | Value | Qty | LCSC Part | Purpose            |
-| --- | ----- | --- | --------- | ------------------ |
-| R1  | 220Ω  | 1   | C17557    | YES button LED     |
-| R2  | 220Ω  | 1   | C17557    | NO button LED      |
-| R3  | 330Ω  | 1   | C17630    | Neopixel data line |
-| R4  | 330Ω  | 1   | C17630    | Power LED resistor |
+| Ref | Value | Qty | LCSC Part | Purpose              |
+| --- | ----- | --- | --------- | -------------------- |
+| R1  | 220Ω  | 1   | C17557    | YES button LED       |
+| R2  | 220Ω  | 1   | C17557    | NO button LED        |
+| R3  | 330Ω  | 1   | C17630    | Neopixel data line   |
+| R4  | 330Ω  | 1   | C17630    | Power LED resistor   |
+| R7  | 330Ω  | 1   | C17630    | I2C status LED (D2)* |
+| R8  | 330Ω  | 1   | C17630    | Heartbeat LED (D3)*  |
+
+_*R7 and R8 are optional - only populate with corresponding LEDs_
 
 ### Capacitors
 
@@ -37,9 +41,13 @@ _Note: Power supplied via ESP32 DevKit USB-C port - no separate power header nee
 
 ### LEDs
 
-| Ref | Component   | LCSC Part | Purpose         |
-| --- | ----------- | --------- | --------------- |
-| D1  | Red LED 3mm | C84256    | Power indicator |
+| Ref | Component     | LCSC Part | Purpose              |
+| --- | ------------- | --------- | -------------------- |
+| D1  | Red LED 3mm   | C84256    | Power indicator      |
+| D2  | Blue LED 3mm  | C84258    | I2C device detected* |
+| D3  | Red LED 3mm   | C84256    | Heartbeat pulse*     |
+
+_*D2 and D3 are optional - only populate if using I2C TRRS or AD8232 expansions_
 
 ### Rotary Encoder
 
@@ -48,6 +56,24 @@ _Note: Power supplied via ESP32 DevKit USB-C port - no separate power header nee
 | SW1 | EC11 Rotary Encoder| C318884   | Navigation dial      |
 
 _EC11 is a standard 5-pin encoder with detents. Only 3 pins used (GND, A, B). Push-button pin optional._
+
+### Optional: Heart Rate Monitor (AD8232)
+
+| Ref | Component          | Pins | LCSC Part | Notes                      |
+| --- | ------------------ | ---- | --------- | -------------------------- |
+| J8  | AD8232 Breakout    | 1x6  | C2337     | GND,3V3,OUT,LO+,LO-,SDN    |
+
+_AD8232 is a single-lead heart rate monitor. Connect electrode pads to RA/LA/RL pads on breakout._
+
+### Optional: I2C Expansion (TRRS)
+
+| Ref | Component          | LCSC Part | Notes                       |
+| --- | ------------------ | --------- | --------------------------- |
+| J9  | 3.5mm TRRS Jack    | C145819   | PJ-320A or equivalent       |
+| R5  | 4.7kΩ              | C17673    | I2C SDA pullup (optional)   |
+| R6  | 4.7kΩ              | C17673    | I2C SCL pullup (optional)   |
+
+_TRRS pinout: Tip=SDA, Ring1=SCL, Ring2=3.3V, Sleeve=GND. Directly compatible with I2C sensors._
 
 ---
 
@@ -68,24 +94,26 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
          GPIO 5   ─┤5  (YES_LED)   36├─ GPIO 2  (ENCODER_B)
          GPIO 6   ─┤6  (NO_BTN)    35├─ GPIO 42 (ENCODER_SW)
          GPIO 7   ─┤7  (NO_LED)    34├─ GPIO 41
-         GPIO 15  ─┤8              33├─ GPIO 40
-         GPIO 16  ─┤9              32├─ GPIO 39
-         GPIO 17  ─┤10             31├─ GPIO 38
-         GPIO 18  ─┤11             30├─ GPIO 37
+         GPIO 15  ─┤8  (I2C_SDA)*  33├─ GPIO 40
+         GPIO 16  ─┤9  (I2C_SCL)*  32├─ GPIO 39
+         GPIO 17  ─┤10 (AD_LO+)*   31├─ GPIO 38
+         GPIO 18  ─┤11 (AD_LO-)*   30├─ GPIO 37
          GPIO 8   ─┤12 (NEOPIXEL)  29├─ GPIO 36
-         GPIO 3   ─┤13             28├─ GPIO 35
+         GPIO 3   ─┤13 (AD_OUT)*   28├─ GPIO 35
          GPIO 46  ─┤14             27├─ GPIO 0
          GPIO 9   ─┤15 (OLED_DC)   26├─ GPIO 45
          GPIO 10  ─┤16 (OLED_CS)   25├─ GPIO 48
          GPIO 11  ─┤17 (OLED_MOSI) 24├─ GPIO 47
          GPIO 12  ─┤18 (OLED_CLK)  23├─ GPIO 21
-         GPIO 13  ─┤19             22├─ GPIO 20
-         GPIO 14  ─┤20 (OLED_RST)  21├─ GPIO 19
+         GPIO 13  ─┤19 (AD_SDN)*   22├─ GPIO 20 (HB_LED)*
+         GPIO 14  ─┤20 (OLED_RST)  21├─ GPIO 19 (I2C_LED)*
                     └─────────────────┘
                          USB-C
 
         5V pin location (active when USB connected):
         Pin 40 side, near GND - connect to 5V rail
+
+        * = Optional expansion (AD8232 heart monitor, I2C TRRS)
 ```
 
 ---
@@ -163,6 +191,49 @@ Power is supplied through the ESP32 DevKit's USB-C port. No separate power conne
 
 _Power LED indicates USB power is connected_
 
+### Optional: AD8232 Heart Monitor Header (J8)
+
+| J8 Pin | Signal | Connects To              |
+| ------ | ------ | ------------------------ |
+| 1      | GND    | GND rail                 |
+| 2      | 3.3V   | 3.3V rail                |
+| 3      | OUTPUT | ESP32 GPIO 3 (pin 13)    |
+| 4      | LO+    | ESP32 GPIO 17 (pin 10)   |
+| 5      | LO-    | ESP32 GPIO 18 (pin 11)   |
+| 6      | SDN    | ESP32 GPIO 13 (pin 19)   |
+
+_AD8232 OUTPUT is analog (0-3.3V). GPIO 3 is ADC1_CH2. LO+/LO- go HIGH when electrodes detach._
+
+### Optional: I2C TRRS Jack (J9)
+
+| J9 Pin  | Signal | Connects To                        |
+| ------- | ------ | ---------------------------------- |
+| Tip     | SDA    | ESP32 GPIO 15 (pin 8) via R5 4.7kΩ |
+| Ring 1  | SCL    | ESP32 GPIO 16 (pin 9) via R6 4.7kΩ |
+| Ring 2  | 3.3V   | 3.3V rail                          |
+| Sleeve  | GND    | GND rail                           |
+
+_Standard I2C over TRRS. Pullups R5/R6 optional if target device has internal pullups._
+_Compatible with I2C sensor breakouts wired to 3.5mm TRRS plugs._
+
+### Optional: I2C Status LED (D2)
+
+| Component  | Connects To                       |
+| ---------- | --------------------------------- |
+| D2 Anode   | R7 (330Ω) → ESP32 GPIO 19 (pin 21)|
+| D2 Cathode | GND rail                          |
+
+_Blue LED illuminates when I2C device detected on TRRS port. Active HIGH._
+
+### Optional: Heartbeat LED (D3)
+
+| Component  | Connects To                       |
+| ---------- | --------------------------------- |
+| D3 Anode   | R8 (330Ω) → ESP32 GPIO 20 (pin 22)|
+| D3 Cathode | GND rail                          |
+
+_Red LED pulses with detected heartbeat from AD8232. Driven by peak detection in firmware._
+
 ### Power Budget
 
 | Component              | Current (typical) |
@@ -172,7 +243,14 @@ _Power LED indicates USB power is connected_
 | 1× WS2811 Neopixel     | 60mA max          |
 | 1× Power LED           | 15mA              |
 | OLED SSD1322           | 100-150mA         |
-| **Total**              | **~500mA**        |
+| **Base Total**         | **~500mA**        |
+| ---------------------- | ----------------- |
+| _Optional:_            |                   |
+| AD8232 Heart Monitor   | ~1mA              |
+| Heartbeat LED (D3)     | ~10mA             |
+| I2C Sensor (typical)   | 1-10mA            |
+| I2C Status LED (D2)    | ~10mA             |
+| **Max Total**          | **~540mA**        |
 
 _Use a USB-C power adapter rated 5V 2A for headroom (any phone charger works)_
 
@@ -208,31 +286,35 @@ _Use a USB-C power adapter rated 5V 2A for headroom (any phone charger works)_
 ### 4. Convert to PCB
 
 - Design → Convert to PCB
-- Set board size: ~60mm x 80mm recommended
+- Set board size: ~70mm x 85mm recommended (or 60x80mm if omitting optional headers)
 
 ### 5. PCB Layout Tips
 
 ```
 Suggested Layout (Top View):
-┌────────────────────────────────────────────┐
-│  [J3 OLED]                    [J7 NEOPIX]  │
-│   7-pin                         3-pin      │
-│                                            │
-│  ┌──────────────────────────────────────┐  │
-│  │                                      │  │
-│  │    [J1]  ESP32-S3-DevKit  [J2]      │  │
-│  │   1x20                    1x20      │  │
-│  │                                      │  │
-│  └──────────────────────────────────────┘  │
-│                                            │
-│                  [C1]                      │
-│                                            │
-│  [J4 YES]    [J6 ENCODER]    [J5 NO]      │
-│   4-pin        5-pin          4-pin       │
-│                                            │
-│  [D1 PWR LED]  [R1] [R2] [R3] [R4]        │
-│                 SMD resistors              │
-└────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  [J3 OLED]                          [J7 NEOPIX]    │
+│   7-pin                               3-pin        │
+│                                                    │
+│  ┌──────────────────────────────────────┐  [D2]    │
+│  │                                      │  I2C     │
+│  │    [J1]  ESP32-S3-DevKit  [J2]      │  [J9]    │
+│  │   1x20                    1x20      │  TRRS    │
+│  │                                      │  (opt)   │
+│  └──────────────────────────────────────┘          │
+│                                                    │
+│                  [C1]                   [D3] [J8]  │
+│                                         HB  AD8232│
+│  [J4 YES]    [J6 ENCODER]    [J5 NO]       6-pin  │
+│   4-pin        5-pin          4-pin        (opt)  │
+│                                                    │
+│  [D1 PWR]  [R1-R4]  [R5-R6 opt]  [R7-R8 opt]      │
+│             SMD resistors                         │
+└────────────────────────────────────────────────────┘
+
+LED placement notes:
+- D2 (blue): Near TRRS jack, indicates I2C device connected
+- D3 (red):  Near AD8232 header, pulses with heartbeat
 ```
 
 ### 6. Design Rules (JLCPCB Compatible)
@@ -296,6 +378,30 @@ Neopixel (WS2811):
 Power:
   Connect USB-C power brick to ESP32 DevKit USB-C port
   (No external power wiring needed - 5V rail fed from ESP32 5V pin)
+
+Optional - AD8232 Heart Monitor:
+  Breakout Pin → J8 Pin
+  GND          → 1
+  3.3V         → 2
+  OUTPUT       → 3
+  LO+          → 4
+  LO-          → 5
+  SDN          → 6
+
+  Electrode pads connect to AD8232 breakout:
+  - RA (Right Arm) - typically right wrist or chest
+  - LA (Left Arm)  - typically left wrist or chest
+  - RL (Right Leg) - reference, typically lower body
+
+Optional - I2C TRRS (J9):
+  Standard 3.5mm TRRS cable wiring:
+  Tip    → SDA (data)
+  Ring1  → SCL (clock)
+  Ring2  → 3.3V (power)
+  Sleeve → GND
+
+  Compatible I2C sensors can be wired to TRRS plugs for
+  quick connect/disconnect (e.g., pulse oximeter, temp sensor)
 ```
 
 ---
@@ -312,6 +418,15 @@ After assembly:
 - [ ] Test buttons - LEDs should light when GPIO driven
 - [ ] Test encoder - rotating should move selection up/down
 - [ ] Test Neopixel - should show connection status color
+
+Optional expansions (if populated):
+
+- [ ] AD8232: Attach electrodes, verify analog signal on GPIO 3
+- [ ] AD8232: LO+/LO- go HIGH when leads disconnected
+- [ ] AD8232: D3 (heartbeat LED) pulses with detected beats
+- [ ] I2C TRRS: Scan for devices with I2C scanner sketch
+- [ ] I2C TRRS: Verify 3.3V on Ring2, GND on Sleeve
+- [ ] I2C TRRS: D2 (blue LED) lights when device detected
 
 ---
 
