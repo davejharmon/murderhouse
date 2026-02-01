@@ -141,6 +141,7 @@ ConnectionState networkUpdate() {
                 // Send join message
                 StaticJsonDocument<128> doc;
                 doc["playerId"] = playerId;
+                doc["source"] = "terminal";
                 JsonObject payload = doc.as<JsonObject>();
                 sendMessage(ClientMsg::JOIN, &payload);
                 connState = ConnectionState::JOINING;
@@ -174,6 +175,7 @@ ConnectionState networkUpdate() {
                 // WebSocket reconnected, rejoin game
                 StaticJsonDocument<128> doc;
                 doc["playerId"] = playerId;
+                doc["source"] = "terminal";
                 JsonObject payload = doc.as<JsonObject>();
                 sendMessage(ClientMsg::REJOIN, &payload);
                 connState = ConnectionState::JOINING;

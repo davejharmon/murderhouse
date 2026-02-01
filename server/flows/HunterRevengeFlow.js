@@ -86,7 +86,7 @@ export class HunterRevengeFlow extends InterruptFlow {
       playerResolved: false, // Host resolves, or auto-resolve on selection
     });
 
-    this.game.addLog(`${player.name} was the Hunter and gets a revenge shot!`);
+    this.game.addLog(`${player.getNameWithEmoji()} gets a revenge shot`);
 
     return { interrupt: true, flowId: HunterRevengeFlow.id };
   }

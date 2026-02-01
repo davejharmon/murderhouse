@@ -21,32 +21,27 @@ static uint8_t selectedPlayer = 1;  // 1-9
 static bool playerSelectDirty = true;
 static bool playerConfirmed = false;
 
-// Reset detection state (hold both buttons for 3 seconds)
-static unsigned long bothButtonsHeldSince = 0;
+// Reset detection state (hold encoder button for 3 seconds)
+static unsigned long encoderBtnHeldSince = 0;
 static bool resetMessageShown = false;
 static const unsigned long RESET_HOLD_MS = 3000;      // Time to hold before showing message
 static const unsigned long RESET_CONFIRM_MS = 2000;   // Additional time before restart
 
-// Check if both buttons are currently pressed (raw read)
-bool areBothButtonsHeld() {
-    // Buttons are active LOW (pullup)
-    return (digitalRead(PIN_BTN_YES) == LOW) && (digitalRead(PIN_BTN_NO) == LOW);
-}
-
-// Check for reset gesture (hold both buttons for 3 seconds)
+// Check for reset gesture (hold encoder button for 3+2 seconds)
 // Returns true if reset is triggered (caller should not continue normal loop)
 bool checkResetGesture() {
     unsigned long now = millis();
 
-    if (areBothButtonsHeld()) {
+    // Encoder button is active LOW (pullup)
+    if (digitalRead(PIN_ENCODER_SW) == LOW) {
         // Start tracking if not already
-        if (bothButtonsHeldSince == 0) {
-            bothButtonsHeldSince = now;
+        if (encoderBtnHeldSince == 0) {
+            encoderBtnHeldSince = now;
             resetMessageShown = false;
-            Serial.println("Both buttons held - reset timer started");
+            Serial.println("Encoder button held - reset timer started");
         }
 
-        unsigned long heldFor = now - bothButtonsHeldSince;
+        unsigned long heldFor = now - encoderBtnHeldSince;
 
         // After 3 seconds, show restart message
         if (heldFor >= RESET_HOLD_MS && !resetMessageShown) {
@@ -67,8 +62,8 @@ bool checkResetGesture() {
 
         return resetMessageShown;  // Block normal input while showing reset message
     } else {
-        // Buttons released - cancel reset
-        if (bothButtonsHeldSince != 0) {
+        // Button released - cancel reset
+        if (encoderBtnHeldSince != 0) {
             if (resetMessageShown) {
                 Serial.println("Reset cancelled");
                 // Restore display based on current state
@@ -78,7 +73,7 @@ bool checkResetGesture() {
                     displayDirty = true;  // Force display refresh
                 }
             }
-            bothButtonsHeldSince = 0;
+            encoderBtnHeldSince = 0;
             resetMessageShown = false;
         }
         return false;

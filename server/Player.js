@@ -85,6 +85,11 @@ export class Player {
     return this.connections.some(ws => ws && ws.readyState === 1);
   }
 
+  // Terminal connection status (true if any ESP32 terminal is connected)
+  get terminalConnected() {
+    return this.connections.some(ws => ws && ws.readyState === 1 && ws.source === 'terminal');
+  }
+
   // Legacy getter for backward compatibility
   get ws() {
     return this.connections[0] || null;
@@ -206,6 +211,7 @@ export class Player {
       status: this.status,
       isAlive: this.isAlive,
       connected: this.connected,
+      terminalConnected: this.terminalConnected,
       // Role only shown if dead
       role: this.status === PlayerStatus.DEAD ? this.role?.id : null,
       roleName: this.status === PlayerStatus.DEAD ? this.role?.name : null,
@@ -610,10 +616,7 @@ export class Player {
 
   // Send message to this player (all connections)
   send(type, payload) {
-    if (this.connections.length === 0) {
-      console.log(`[Player ${this.id}] Failed to send ${type}: no connections`);
-      return false;
-    }
+    if (this.connections.length === 0) return false;
 
     const message = JSON.stringify({ type, payload });
     let sentCount = 0;
@@ -629,21 +632,14 @@ export class Player {
       }
     }
 
-    if (sentCount === 0) {
-      console.log(`[Player ${this.id}] Failed to send ${type}: all ${this.connections.length} connections closed`);
-      return false;
-    }
+    if (sentCount === 0) return false;
 
     return true;
   }
 
   // Helper: Send updated private state to this player
   syncState(game) {
-    const sent = this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
-    if (!sent) {
-      console.log(`[Player ${this.id}] syncState failed - ws not connected`);
-    }
-    return sent;
+    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
   }
 
   // Add a new connection (supports multiple simultaneous connections)
@@ -653,7 +649,6 @@ export class Player {
     // Don't add duplicates
     if (!this.connections.includes(ws)) {
       this.connections.push(ws);
-      console.log(`[Player ${this.id}] addConnection: now has ${this.connections.length} connection(s)`);
     }
     this.lastSeen = Date.now();
   }
@@ -663,13 +658,11 @@ export class Player {
     const index = this.connections.indexOf(ws);
     if (index !== -1) {
       this.connections.splice(index, 1);
-      console.log(`[Player ${this.id}] removeConnection: now has ${this.connections.length} connection(s)`);
     }
   }
 
   // Legacy method for backward compatibility
   setConnection(ws) {
-    console.log(`[Player ${this.id}] setConnection called, ws=${!!ws}, readyState=${ws?.readyState}`);
     if (ws === null) {
       // Clear all connections (legacy behavior for explicit disconnect)
       this.connections = [];

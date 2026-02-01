@@ -18,6 +18,7 @@ void inputInit() {
     // Configure button pins with internal pullup
     pinMode(PIN_BTN_YES, INPUT_PULLUP);
     pinMode(PIN_BTN_NO, INPUT_PULLUP);
+    pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
 
     // Initialize rotary encoder
     // Use full quadrature mode for accurate counting

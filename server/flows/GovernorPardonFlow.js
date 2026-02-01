@@ -121,7 +121,7 @@ export class GovernorPardonFlow extends InterruptFlow {
       false // Don't jump - tally slide is already shown
     );
 
-    this.game.addLog(`${condemned.name} awaits the governor's decision...`);
+    this.game.addLog(`${condemned.getNameWithEmoji()} awaits the Governor's decision`);
 
     return { interrupt: true, flowId: GovernorPardonFlow.id };
   }

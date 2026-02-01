@@ -98,7 +98,8 @@ export class Game {
 
     this.players.set(id, player);
 
-    this.addLog(`${player.name} joined the game`);
+    const via = ws.source === 'terminal' ? 'terminal' : 'web';
+    this.addLog(`${player.name} joined via ${via}`);
     this.broadcastPlayerList();
 
     return { success: true, player };
@@ -118,7 +119,7 @@ export class Game {
     if (!player) return { success: false, error: 'Player not found' };
 
     this.players.delete(id);
-    this.addLog(`${player.name} left the game`);
+    this.addLog(`${player.name} left`);
     this.broadcastPlayerList();
 
     return { success: true };
@@ -143,13 +144,14 @@ export class Game {
     if (!player) return { success: false, error: 'Player not found' };
 
     const wasConnected = player.connected;
+    const hadTerminal = player.terminalConnected;
     player.setConnection(ws);
 
-    // Only log reconnect if player wasn't connected, otherwise log additional connection
+    const via = ws.source === 'terminal' ? 'terminal' : 'web';
     if (!wasConnected) {
-      this.addLog(`${player.name} reconnected`);
-    } else {
-      this.addLog(`${player.name} +connection (${player.connections.length})`);
+      this.addLog(`${player.name} reconnected via ${via}`);
+    } else if (ws.source === 'terminal' && !hadTerminal) {
+      this.addLog(`${player.name} terminal connected`);
     }
 
     return { success: true, player };
@@ -180,7 +182,7 @@ export class Game {
     // Build pending events for this phase
     this.buildPendingEvents();
 
-    this.addLog('Game started - Day 1');
+    this.addLog('Game started — Day 1');
     this.pushSlide({
       type: 'gallery',
       title: 'DAY 1',
@@ -365,7 +367,7 @@ export class Game {
       });
     }
 
-    this.addLog(`${event.name} event started`);
+    this.addLog(`${event.name} started`);
 
     // Special handling for shoot event - show immediate slide
     if (eventId === 'shoot' && participants.length > 0) {
@@ -484,7 +486,7 @@ export class Game {
       });
     }
 
-    this.addLog(`${name} event started`);
+    this.addLog(`${name} started`);
     this.broadcastGameState();
 
     return { success: true };
@@ -522,7 +524,6 @@ export class Game {
       this.pendingEvents.push('customEvent');
     }
 
-    this.addLog(`Custom event created: ${config.description}`);
     this.broadcastGameState();
 
     return { success: true };
@@ -586,7 +587,7 @@ export class Game {
       });
     }
 
-    this.addLog(`Custom event started: ${config.description}`);
+    this.addLog(`Custom event started — ${config.description}`);
 
     // Show slide when custom event starts
     this.pushSlide(
@@ -668,23 +669,6 @@ export class Game {
         // Broadcast pack state for werewolf events
         if (this.shouldBroadcastPackState(eventId, player)) {
           this.broadcastPackState();
-        }
-
-        // Log the selection (skip for player-resolved events as they log in onSelection)
-        if (!instance.event.playerResolved) {
-          const verb = instance.event.verbPastTense || eventId;
-          if (targetId === null) {
-            this.addLog(
-              `${player.getNameWithEmoji()} abstained from ${eventId}`
-            );
-          } else {
-            const target = this.getPlayer(targetId);
-            if (target) {
-              this.addLog(
-                `${player.getNameWithEmoji()} ${verb} ${target.getNameWithEmoji()}`
-              );
-            }
-          }
         }
 
         // Check if event has immediate slide generation on selection
@@ -860,7 +844,7 @@ export class Game {
     // Remove from active events
     this.activeEvents.delete(eventId);
 
-    this.addLog(`${event.name} event skipped by host`);
+    this.addLog(`${event.name} skipped`);
     this.broadcastGameState();
 
     return { success: true };
@@ -1062,7 +1046,7 @@ export class Game {
       });
     }
 
-    this.addLog(`${event.name} runoff started (Round ${instance.runoffRound})`);
+    this.addLog(`${event.name} runoff — Round ${instance.runoffRound}`);
     this.broadcastGameState();
 
     return { success: true, runoff: true };
@@ -1091,7 +1075,7 @@ export class Game {
 
     const winnerName = winner === Team.VILLAGE ? 'VILLAGERS' : 'WEREWOLVES';
 
-    this.addLog(`Game over - ${winnerName} win!`);
+    this.addLog(`Game over — ${winnerName} win!`);
 
     this.pushSlide({
       type: 'victory',
@@ -1114,7 +1098,6 @@ export class Game {
     if (!player) return false;
 
     player.kill(cause);
-    this.addLog(`${player.name} died (${cause})`);
 
     // Check for onDeath passives
     if (player.role.passives?.onDeath) {
@@ -1148,7 +1131,7 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player) return false;
     player.revive(cause);
-    this.addLog(`${player.name} revived (${cause})`);
+    this.addLog(`${player.getNameWithEmoji()} revived`);
     return true;
   }
 
@@ -1164,7 +1147,7 @@ export class Game {
     }
 
     player.addItem(itemDef);
-    this.addLog(`${player.name} received ${itemDef.name}`);
+    this.addLog(`${player.getNameWithEmoji()} received ${itemDef.name}`);
     return { success: true };
   }
 
@@ -1175,7 +1158,6 @@ export class Game {
     const depleted = player.useItem(itemId);
     if (depleted) {
       player.removeItem(itemId);
-      this.addLog(`${player.name}'s ${itemId} was consumed`);
     }
     return true;
   }
@@ -1186,7 +1168,7 @@ export class Game {
         const linked = this.getPlayer(player.linkedTo);
         if (linked && !linked.isAlive) {
           this.killPlayer(player.id, 'heartbreak');
-          this.addLog(`${player.name} died of a broken heart`);
+          this.addLog(`${player.getNameWithEmoji()} died of heartbreak`);
           // Queue heartbreak death slide (queueDeathSlide handles hunter revenge automatically)
           this.queueDeathSlide(this.createDeathSlide(player, 'heartbreak'), false);
         }
@@ -1363,14 +1345,6 @@ export class Game {
 
   broadcastSlides() {
     const currentSlide = this.getCurrentSlide();
-    console.log('[Game] broadcastSlides:', {
-      queueLen: this.slideQueue.length,
-      currentIndex: this.currentSlideIndex,
-      hasCurrentSlide: !!currentSlide,
-      slideType: currentSlide?.type,
-      hasScreen: !!this.screen,
-    });
-
     const slideData = {
       queue: this.slideQueue,
       currentIndex: this.currentSlideIndex,
@@ -1384,7 +1358,6 @@ export class Game {
   }
 
   sendToScreen(type, payload) {
-    console.log('[Game] sendToScreen:', { type, hasScreen: !!this.screen, readyState: this.screen?.readyState });
     if (this.screen && this.screen.readyState === 1) {
       this.screen.send(JSON.stringify({ type, payload }));
     }

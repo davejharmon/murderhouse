@@ -105,6 +105,14 @@
   font-size: 0.75rem;
 }
 
+.terminal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--color-accent-green);
+  font-size: 0.75rem;
+}
+
 .info {
   text-align: center;
   margin-bottom: var(--space-md);

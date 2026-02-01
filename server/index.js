@@ -33,7 +33,7 @@ const game = new Game(broadcast);
 // Create handlers
 const handlers = createHandlers(game);
 
-console.log(`[Server] WebSocket server running on ws://localhost:${PORT}`);
+console.log(`[Server] Running on ws://localhost:${PORT}`);
 
 // UDP discovery listener - ESP32 terminals broadcast to find the server
 const DISCOVERY_PORT = 8089;
@@ -41,19 +41,15 @@ const udpServer = dgram.createSocket('udp4');
 
 udpServer.on('message', (msg, rinfo) => {
   if (msg.toString() === 'MURDERHOUSE_DISCOVER') {
-    console.log(`[Discovery] Request from ${rinfo.address}:${rinfo.port}`);
     const response = Buffer.from(`MURDERHOUSE_SERVER:${PORT}`);
     udpServer.send(response, rinfo.port, rinfo.address);
   }
 });
 
-udpServer.bind(DISCOVERY_PORT, () => {
-  console.log(`[Discovery] Listening for ESP32 broadcasts on UDP port ${DISCOVERY_PORT}`);
-});
+udpServer.bind(DISCOVERY_PORT);
 
 wss.on('connection', (ws) => {
   clients.add(ws);
-  console.log(`[Server] Client connected (${clients.size} total)`);
 
   ws.on('message', (message) => {
     handleMessage(handlers, ws, message.toString());
@@ -61,14 +57,12 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     clients.delete(ws);
-    console.log(`[Server] Client disconnected (${clients.size} total), playerId=${ws.playerId}`);
 
     // Remove this connection from the player's connection list
     if (ws.playerId) {
       const player = game.getPlayer(ws.playerId);
       if (player) {
         player.removeConnection(ws);
-        console.log(`[Server] Removed connection for player ${ws.playerId}, ${player.connections.length} remaining`);
         // Broadcast updated player list (connected status may have changed)
         game.broadcastPlayerList();
       }

@@ -15,27 +15,16 @@ export function createHandlers(game) {
     // === Connection Handlers ===
 
     [ClientMsg.JOIN]: (ws, payload) => {
-      const { playerId } = payload;
-      console.log(
-        `[JOIN] playerId=${playerId}, ws.readyState=${ws.readyState}`
-      );
+      const { playerId, source } = payload;
+      ws.source = source || 'web';
 
       // Check if player already exists (reconnection)
       const existing = game.getPlayer(playerId);
-      console.log(`[JOIN] existing player found: ${!!existing}`);
       if (existing) {
         const result = game.reconnectPlayer(playerId, ws);
-        console.log(
-          `[JOIN] reconnectPlayer result:`,
-          result.success,
-          result.error || ''
-        );
         if (result.success) {
           ws.playerId = playerId;
           ws.clientType = 'player';
-          console.log(
-            `[JOIN] Added connection for ${ws.playerId}, total connections: ${existing.connections.length}`
-          );
           send(ws, ServerMsg.WELCOME, {
             playerId,
             reconnected: true,
@@ -69,7 +58,8 @@ export function createHandlers(game) {
     },
 
     [ClientMsg.REJOIN]: (ws, payload) => {
-      const { playerId } = payload;
+      const { playerId, source } = payload;
+      ws.source = source || 'web';
       const result = game.reconnectPlayer(playerId, ws);
 
       if (result.success) {
@@ -97,6 +87,7 @@ export function createHandlers(game) {
       ws.clientType = 'host';
       send(ws, ServerMsg.WELCOME, { role: 'host' });
       send(ws, ServerMsg.GAME_STATE, game.getGameState({ audience: 'host' }));
+      send(ws, ServerMsg.PLAYER_LIST, game.getPlayersBySeat().map(p => p.getPublicState()));
       send(ws, ServerMsg.SLIDE_QUEUE, {
         queue: game.slideQueue,
         currentIndex: game.currentSlideIndex,
@@ -137,19 +128,11 @@ export function createHandlers(game) {
     },
 
     [ClientMsg.SELECT_UP]: (ws) => {
-      console.log(`[SELECT_UP] ws.playerId=${ws.playerId}`);
       const player = game.getPlayer(ws.playerId);
-      if (!player) {
-        console.log(`[SELECT_UP] Player not found for id=${ws.playerId}`);
-        return { success: false, error: 'Not a player' };
-      }
+      if (!player) return { success: false, error: 'Not a player' };
 
       // Find active event and valid targets
       for (const [eventId, instance] of game.activeEvents) {
-        console.log(
-          `[SELECT_UP] Checking event ${eventId}, participants:`,
-          instance.participants
-        );
         if (instance.participants.includes(player.id)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
@@ -406,6 +389,7 @@ export function createHandlers(game) {
         return { success: false, error: 'Player not found' };
       }
       game.killPlayer(payload.playerId, 'host');
+      game.addLog(`${player.getNameWithEmoji()} killed by host`);
       // Queue death slide (queueDeathSlide handles hunter revenge automatically)
       game.queueDeathSlide(game.createDeathSlide(player, 'host'), true);
       game.broadcastGameState();
@@ -480,7 +464,7 @@ export function createHandlers(game) {
       }
       const removed = player.removeItem(payload.itemId);
       if (removed) {
-        game.addLog(`${player.name} lost ${payload.itemId}`);
+        game.addLog(`${player.getNameWithEmoji()} lost ${payload.itemId}`);
         game.broadcastGameState();
         return { success: true };
       }
@@ -614,7 +598,7 @@ export function handleMessage(handlers, ws, message) {
       send(ws, ServerMsg.ERROR, { message: result.error });
     }
   } catch (e) {
-    console.error(`Error handling ${type}:`, e);
+    console.error(`[Server] Error handling ${type}:`, e);
     send(ws, ServerMsg.ERROR, { message: 'Internal server error' });
   }
 }

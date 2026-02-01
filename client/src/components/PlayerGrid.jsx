@@ -37,6 +37,7 @@ function getCardStateKey(props) {
     player.portrait,
     player.seatNumber,
     player.connected,
+    player.terminalConnected,
     player.role,
     player.roleName,
     player.roleColor,
@@ -101,6 +102,7 @@ const PlayerCard = memo(function PlayerCard({
           className={styles.portraitImage}
         />
         {!player.connected && <div className={styles.disconnected}>●</div>}
+        {player.terminalConnected && <div className={styles.terminal}>▣</div>}
       </div>
 
       {/* Info */}
