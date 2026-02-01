@@ -151,6 +151,18 @@ export const LedState = {
   PULSE: 'pulse',
 };
 
+// Status LED states for neopixel (game state indicator)
+export const StatusLed = {
+  LOBBY: 'lobby',
+  DAY: 'day',
+  NIGHT: 'night',
+  VOTING: 'voting',
+  LOCKED: 'locked',
+  ABSTAINED: 'abstained',
+  DEAD: 'dead',
+  GAME_OVER: 'gameOver',
+};
+
 // Display line styles
 export const DisplayStyle = {
   NORMAL: 'normal',

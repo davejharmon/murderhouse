@@ -87,6 +87,9 @@ void onDisplayUpdate(const DisplayState& state) {
 
     // Update button LEDs from display state
     ledsSetFromDisplay(state);
+
+    // Update neopixel from game state
+    ledsSetGameState(state.statusLed);
 }
 
 void setup() {

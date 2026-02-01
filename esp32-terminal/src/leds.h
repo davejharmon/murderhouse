@@ -24,6 +24,9 @@ void ledsSetStatus(ConnectionState state);
 // Set neopixel to a custom color
 void ledsSetStatusColor(uint8_t r, uint8_t g, uint8_t b);
 
+// Set neopixel from game state (overrides connection status when in-game)
+void ledsSetGameState(GameLedState state);
+
 // Turn off all LEDs
 void ledsOff();
 

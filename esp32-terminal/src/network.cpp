@@ -384,6 +384,9 @@ static void parsePlayerState(JsonObject& payload) {
     currentDisplayState.leds.yes = parseLedState(leds["yes"] | "off");
     currentDisplayState.leds.no = parseLedState(leds["no"] | "off");
 
+    // Parse status LED (neopixel game state)
+    currentDisplayState.statusLed = parseGameLedState(display["statusLed"] | "");
+
     // Notify callback
     if (displayCallback != nullptr) {
         displayCallback(currentDisplayState);

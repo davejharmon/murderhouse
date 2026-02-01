@@ -195,18 +195,38 @@ Inline glyph tokens are rendered as characters:
 | BRIGHT | 100%       | Primary action ready       |
 | PULSE  | 20-100%    | Waiting/loading (1s cycle) |
 
-### Neopixel Status
+### Neopixel Status (GPIO 8)
 
-| Connection State     | Color  | Pattern    |
-| -------------------- | ------ | ---------- |
-| Booting              | White  | Steady     |
-| Player selection     | Purple | Pulse      |
-| WiFi connecting      | Blue   | Slow pulse |
-| WebSocket connecting | Yellow | Fast pulse |
-| Joining game         | Cyan   | Steady     |
-| Connected            | Green  | Steady     |
-| Reconnecting         | Orange | Fast pulse |
-| Error                | Red    | Steady     |
+The WS2811 neopixel on GPIO 8 indicates the terminal's connection state. Brightness is fixed at ~20% (50/255). Pulsing states use a 1-second sine wave cycle that fades between 20% and 100% of the colour value.
+
+| Connection State     | Colour | RGB           | Pattern | Meaning                                   |
+| -------------------- | ------ | ------------- | ------- | ----------------------------------------- |
+| Boot                 | White  | (100,100,100) | Steady  | Firmware initializing                     |
+| Player select        | Purple | (150, 0, 255) | Pulse   | Waiting for player ID selection via dial  |
+| WiFi connecting      | Blue   | (0, 0, 255)   | Pulse   | Connecting to WiFi network                |
+| Discovering server   | —      | —             | —       | Keeps previous colour (blue from WiFi)    |
+| WebSocket connecting | Yellow | (255,200, 0)  | Pulse   | Found server, opening WebSocket           |
+| Joining game         | Cyan   | (0, 255, 255) | Steady  | WebSocket open, sending join message      |
+| Connected            | Green  | (0, 255, 0)   | Steady  | In game, receiving player state           |
+| Reconnecting         | Orange | (255,100, 0)  | Pulse   | Lost connection, attempting to reconnect  |
+| Error                | Red    | (255, 0, 0)   | Steady  | Connection or join failed                 |
+
+**Quick read**: Pulsing = transitioning/waiting. Steady = stable state. Green = good. Red = bad.
+
+Once connected, the neopixel switches to **game state colours** driven by the server's `statusLed` field in the display object:
+
+| Game State         | Colour    | RGB           | Pattern | Meaning                                    |
+| ------------------ | --------- | ------------- | ------- | ------------------------------------------ |
+| Lobby              | White     | (100,100,100) | Steady  | Waiting for game to start                  |
+| Day (idle)         | Green     | (0, 255, 0)   | Steady  | Daytime, no active event                   |
+| Night (idle)       | Blue      | (0, 0, 255)   | Steady  | Nighttime, no active event                 |
+| Voting / selecting | Yellow    | (255,200, 0)  | Pulse   | Active event, selecting or awaiting target |
+| Vote locked        | Green     | (0, 255, 0)   | Steady  | Selection confirmed and locked in          |
+| Abstained          | Dim white | (60, 60, 60)  | Steady  | Player abstained from event                |
+| Dead               | Red       | (255, 0, 0)   | Steady  | Player eliminated, spectating              |
+| Game over          | White     | (100,100,100) | Steady  | Game finished                              |
+
+**Quick read**: Green = day/safe. Blue = night. Yellow pulse = needs your attention. Red = dead.
 
 ## Input Handling
 

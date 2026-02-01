@@ -182,6 +182,59 @@ void ledsSetStatus(ConnectionState state) {
     }
 }
 
+void ledsSetGameState(GameLedState state) {
+    switch (state) {
+        case GameLedState::NONE:
+            // No game state - don't change neopixel
+            return;
+
+        case GameLedState::LOBBY:
+            statusR = 100; statusG = 100; statusB = 100;
+            statusPulse = false;
+            break;
+
+        case GameLedState::DAY:
+            statusR = 0; statusG = 255; statusB = 0;
+            statusPulse = false;
+            break;
+
+        case GameLedState::NIGHT:
+            statusR = 0; statusG = 0; statusB = 255;
+            statusPulse = false;
+            break;
+
+        case GameLedState::VOTING:
+            statusR = 255; statusG = 200; statusB = 0;
+            statusPulse = true;
+            break;
+
+        case GameLedState::LOCKED:
+            statusR = 0; statusG = 255; statusB = 0;
+            statusPulse = false;
+            break;
+
+        case GameLedState::ABSTAINED:
+            statusR = 60; statusG = 60; statusB = 60;
+            statusPulse = false;
+            break;
+
+        case GameLedState::DEAD:
+            statusR = 255; statusG = 0; statusB = 0;
+            statusPulse = false;
+            break;
+
+        case GameLedState::GAME_OVER:
+            statusR = 100; statusG = 100; statusB = 100;
+            statusPulse = false;
+            break;
+    }
+
+    if (!statusPulse) {
+        neopixel.setPixelColor(0, neopixel.Color(statusR, statusG, statusB));
+        neopixel.show();
+    }
+}
+
 void ledsOff() {
     ledsSetYes(LedState::OFF);
     ledsSetNo(LedState::OFF);

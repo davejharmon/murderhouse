@@ -73,6 +73,35 @@ inline DisplayStyle parseDisplayStyle(const String& style) {
 }
 
 // ============================================================================
+// GAME STATUS LED STATES (neopixel during gameplay)
+// ============================================================================
+
+enum class GameLedState {
+    NONE,       // No game state (use connection colour)
+    LOBBY,
+    DAY,
+    NIGHT,
+    VOTING,
+    LOCKED,
+    ABSTAINED,
+    DEAD,
+    GAME_OVER
+};
+
+// Parse game LED state from string
+inline GameLedState parseGameLedState(const String& state) {
+    if (state == "lobby") return GameLedState::LOBBY;
+    if (state == "day") return GameLedState::DAY;
+    if (state == "night") return GameLedState::NIGHT;
+    if (state == "voting") return GameLedState::VOTING;
+    if (state == "locked") return GameLedState::LOCKED;
+    if (state == "abstained") return GameLedState::ABSTAINED;
+    if (state == "dead") return GameLedState::DEAD;
+    if (state == "gameOver") return GameLedState::GAME_OVER;
+    return GameLedState::NONE;
+}
+
+// ============================================================================
 // CONNECTION STATES
 // ============================================================================
 
@@ -130,6 +159,9 @@ struct DisplayState {
         LedState no;
     } leds;
 
+    // Status LED (neopixel game state)
+    GameLedState statusLed;
+
     // Default constructor
     DisplayState() {
         line1.left = "CONNECTING";
@@ -139,6 +171,7 @@ struct DisplayState {
         line3.text = "Please wait";
         leds.yes = LedState::OFF;
         leds.no = LedState::OFF;
+        statusLed = GameLedState::NONE;
     }
 };
 

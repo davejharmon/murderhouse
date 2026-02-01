@@ -10,6 +10,7 @@ import {
   Glyphs,
   LedState,
   DisplayStyle,
+  StatusLed,
 } from '../shared/constants.js';
 
 // Action labels for each event type (confirm action / abstain action)
@@ -309,13 +310,17 @@ export class Player {
     const getLine1 = (evtName = null, evtId = null) =>
       this._getLine1(phase, dayCount, evtName, evtId);
 
+    // Helper: status LED colour for current phase (day/night)
+    const phaseLed = phase === GamePhase.DAY ? StatusLed.DAY : StatusLed.NIGHT;
+
     // === LOBBY ===
     if (phase === GamePhase.LOBBY) {
       return this._display(
         { left: getLine1(), right: '' },
         { text: 'WAITING', style: DisplayStyle.NORMAL },
         { text: 'Game will begin soon' },
-        { yes: LedState.OFF, no: LedState.OFF }
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.LOBBY
       );
     }
 
@@ -325,7 +330,8 @@ export class Player {
         { left: getLine1(), right: '' },
         { text: 'FINISHED', style: DisplayStyle.NORMAL },
         { text: 'Thanks for playing' },
-        { yes: LedState.OFF, no: LedState.OFF }
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.GAME_OVER
       );
     }
 
@@ -335,7 +341,8 @@ export class Player {
         { left: getLine1(), right: Glyphs.SKULL },
         { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
         { text: 'Watch the game unfold' },
-        { yes: LedState.OFF, no: LedState.OFF }
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.DEAD
       );
     }
 
@@ -345,7 +352,8 @@ export class Player {
         { left: getLine1(eventName, activeEventId), right: Glyphs.X },
         { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
         { text: 'Waiting for others' },
-        { yes: LedState.OFF, no: LedState.OFF }
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.ABSTAINED
       );
     }
 
@@ -360,7 +368,8 @@ export class Player {
         { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
         { text: line2Text, style: DisplayStyle.LOCKED },
         { text: 'Selection locked' },
-        { yes: LedState.OFF, no: LedState.OFF }
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.LOCKED
       );
     }
 
@@ -380,7 +389,8 @@ export class Player {
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: line2Text, style: DisplayStyle.NORMAL },
         { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
-        { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF }
+        { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
+        StatusLed.VOTING
       );
     }
 
@@ -394,7 +404,8 @@ export class Player {
         { left: getLine1(eventName, activeEventId), right: packHint },
         { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
         { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
-        { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF }
+        { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
+        StatusLed.VOTING
       );
     }
 
@@ -406,7 +417,8 @@ export class Player {
         { left: getLine1(), right: this._getInventoryGlyphs() },
         { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
         { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
-        { yes: LedState.DIM, no: LedState.OFF }
+        { yes: LedState.DIM, no: LedState.OFF },
+        phaseLed
       );
     }
 
@@ -419,15 +431,16 @@ export class Player {
       { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
       { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
       { text: idleTip },
-      { yes: LedState.OFF, no: LedState.OFF }
+      { yes: LedState.OFF, no: LedState.OFF },
+      phaseLed
     );
   }
 
   /**
    * Create a display state object
    */
-  _display(line1, line2, line3, leds) {
-    return { line1, line2, line3, leds };
+  _display(line1, line2, line3, leds, statusLed) {
+    return { line1, line2, line3, leds, statusLed };
   }
 
   /**
