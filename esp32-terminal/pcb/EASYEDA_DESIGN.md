@@ -10,9 +10,9 @@ Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3
 
 | Ref | Component      | Pins        | LCSC Part | Notes                     |
 | --- | -------------- | ----------- | --------- | ------------------------- |
-| J1  | ESP32 Left     | 1x20 Female | C2337     | 2.54mm pitch              |
-| J2  | ESP32 Right    | 1x20 Female | C2337     | 2.54mm pitch              |
-| J3  | OLED Display   | 1x7 Female  | C2337     | VCC,GND,DIN,CLK,CS,DC,RST |
+| J1  | ESP32 Left     | 1x22 Female | C2337     | 2.54mm pitch              |
+| J2  | ESP32 Right    | 1x22 Female | C2337     | 2.54mm pitch              |
+| J3  | OLED Display   | 1x7 Female  | C2337     | CS,DC,RES,SDA,SCK,VCC,GND |
 | J4  | YES Button     | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
 | J5  | NO Button      | 1x4 Female  | C2337     | COM,NO,LED+,LED-          |
 | J6  | Rotary Encoder | 1x5 Female  | C2337     | GND,A,B,SW,GND            |
@@ -87,31 +87,30 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
 ```
                     ESP32-S3-DevKitC-1
                     ┌─────────────────┐
-              3V3  ─┤1              40├─ GND
-              3V3  ─┤2              39├─ TX
-              RST  ─┤3              38├─ RX
-         GPIO 4   ─┤4  (YES_BTN)   37├─ GPIO 1  (ENCODER_A)
-         GPIO 5   ─┤5  (YES_LED)   36├─ GPIO 2  (ENCODER_B)
-         GPIO 6   ─┤6  (NO_BTN)    35├─ GPIO 42 (ENCODER_SW)
-         GPIO 7   ─┤7  (NO_LED)    34├─ GPIO 41
-         GPIO 15  ─┤8  (I2C_SDA)*  33├─ GPIO 40
-         GPIO 16  ─┤9  (I2C_SCL)*  32├─ GPIO 39
-         GPIO 17  ─┤10 (AD_LO+)*   31├─ GPIO 38
-         GPIO 18  ─┤11 (AD_LO-)*   30├─ GPIO 37
-         GPIO 8   ─┤12 (NEOPIXEL)  29├─ GPIO 36
-         GPIO 3   ─┤13 (AD_OUT)*   28├─ GPIO 35
-         GPIO 46  ─┤14             27├─ GPIO 0
-         GPIO 9   ─┤15 (OLED_DC)   26├─ GPIO 45
-         GPIO 10  ─┤16 (OLED_CS)   25├─ GPIO 48
-         GPIO 11  ─┤17 (OLED_MOSI) 24├─ GPIO 47
-         GPIO 12  ─┤18 (OLED_CLK)  23├─ GPIO 21
-         GPIO 13  ─┤19 (AD_SDN)*   22├─ GPIO 20 (HB_LED)*
-         GPIO 14  ─┤20 (OLED_RST)  21├─ GPIO 19 (I2C_LED)*
+              3V3  ─┤1              44├─ GND
+              3V3  ─┤2              43├─ TX
+              RST  ─┤3              42├─ RX
+         GPIO 4   ─┤4  (YES_BTN)   41├─ GPIO 1  (ENCODER_A)
+         GPIO 5   ─┤5  (YES_LED)   40├─ GPIO 2  (ENCODER_B)
+         GPIO 6   ─┤6  (NO_BTN)    39├─ GPIO 42 (ENCODER_SW)
+         GPIO 7   ─┤7  (NO_LED)    38├─ GPIO 41
+         GPIO 15  ─┤8  (I2C_SDA)*  37├─ GPIO 40
+         GPIO 16  ─┤9  (I2C_SCL)*  36├─ GPIO 39
+         GPIO 17  ─┤10 (AD_LO+)*   35├─ GPIO 38
+         GPIO 18  ─┤11 (AD_LO-)*   34├─ GPIO 37
+         GPIO 8   ─┤12 (NEOPIXEL)  33├─ GPIO 36
+         GPIO 3   ─┤13 (AD_OUT)*   32├─ GPIO 35
+         GPIO 46  ─┤14             31├─ GPIO 0
+         GPIO 9   ─┤15 (OLED_DC)   30├─ GPIO 45
+         GPIO 10  ─┤16 (OLED_CS)   29├─ GPIO 48
+         GPIO 11  ─┤17 (OLED_MOSI) 28├─ GPIO 47
+         GPIO 12  ─┤18 (OLED_CLK)  27├─ GPIO 21
+         GPIO 13  ─┤19 (AD_SDN)*   26├─ GPIO 20 (HB_LED)*
+         GPIO 14  ─┤20 (OLED_RST)  25├─ GPIO 19 (I2C_LED)*
+               5V  ─┤21             24├─ GND
+              GND  ─┤22             23├─ GND
                     └─────────────────┘
                          USB-C
-
-        5V pin location (active when USB connected):
-        Pin 40 side, near GND - connect to 5V rail
 
         * = Optional expansion (AD8232 heart monitor, I2C TRRS)
 ```
@@ -124,13 +123,13 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
 
 | J3 Pin | Signal | Connects To            |
 | ------ | ------ | ---------------------- |
-| 1      | VCC    | 3.3V rail              |
-| 2      | GND    | GND rail               |
-| 3      | DIN    | ESP32 GPIO 11 (pin 17) |
-| 4      | CLK    | ESP32 GPIO 12 (pin 18) |
-| 5      | CS     | ESP32 GPIO 10 (pin 16) |
-| 6      | DC     | ESP32 GPIO 9 (pin 15)  |
-| 7      | RST    | ESP32 GPIO 14 (pin 20) |
+| 1      | CS     | ESP32 GPIO 10 (pin 16) |
+| 2      | DC     | ESP32 GPIO 9 (pin 15)  |
+| 3      | RES    | ESP32 GPIO 14 (pin 20) |
+| 4      | SDA    | ESP32 GPIO 11 (pin 17) |
+| 5      | SCK    | ESP32 GPIO 12 (pin 18) |
+| 6      | VCC    | 3.3V rail              |
+| 7      | GND    | GND rail               |
 
 ### YES Button Header (J4)
 
@@ -178,7 +177,7 @@ Power is supplied through the ESP32 DevKit's USB-C port. No separate power conne
 
 | Source         | Connects To | Notes                                |
 | -------------- | ----------- | ------------------------------------ |
-| ESP32 5V pin   | 5V rail     | Provides USB voltage for Neopixel    |
+| ESP32 5V pin (pin 21) | 5V rail | Provides USB voltage for Neopixel |
 | ESP32 3V3 pins | 3.3V rail   | Regulated by DevKit for OLED         |
 | ESP32 GND      | GND rail    | Common ground                        |
 
@@ -274,7 +273,7 @@ _Use a USB-C power adapter rated 5V 2A for headroom (any phone charger works)_
 
 #### Symbol Names:
 
-- Use "HDR-1x20" for ESP32 headers
+- Use "HDR-1x22" for ESP32 headers
 - Use "HDR-1x7", "HDR-1x4", etc. for breakouts
 - Use "R_0805" for resistors
 
@@ -299,7 +298,7 @@ Suggested Layout (Top View):
 │  ┌──────────────────────────────────────┐  [D2]    │
 │  │                                      │  I2C     │
 │  │    [J1]  ESP32-S3-DevKit  [J2]      │  [J9]    │
-│  │   1x20                    1x20      │  TRRS    │
+│  │   1x22                    1x22      │  TRRS    │
 │  │                                      │  (opt)   │
 │  └──────────────────────────────────────┘          │
 │                                                    │
@@ -339,13 +338,13 @@ After assembling the PCB, connect:
 ```
 OLED Display (SSD1322):
   Display Pin → J3 Pin
-  VCC        → 1
-  GND        → 2
-  DIN/MOSI   → 3
-  CLK/SCK    → 4
-  CS         → 5
-  DC         → 6
-  RST        → 7
+  CS         → 1
+  DC         → 2
+  RES        → 3
+  SDA/MOSI   → 4
+  SCK/CLK    → 5
+  VCC        → 6
+  GND        → 7
 
 YES Button (4-pin arcade):
   Button Pin → J4 Pin
