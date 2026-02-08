@@ -19,7 +19,14 @@
   --color-accent-red: #ef4444;
   --color-accent-amber: #fbbf24;
   --color-accent-purple: #a78bfa;
-  
+
+  /* OLED amber palette (matches ESP32 SSD1322 monochrome display) */
+  --oled-amber:        #ffb000;   /* Full brightness amber */
+  --oled-amber-bright: #ffc840;   /* Boosted for LOCKED emphasis */
+  --oled-amber-dim:    #805800;   /* ~50% for muted/abstained */
+  --oled-amber-faint:  #403000;   /* ~25% for borders/subtle elements */
+  --oled-bg:           #0a0800;   /* Warm near-black */
+
   /* Role colors */
   --color-village: #7eb8da;
   --color-werewolf: #c94c4c;

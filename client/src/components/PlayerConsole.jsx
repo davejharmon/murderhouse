@@ -95,7 +95,11 @@ export default function PlayerConsole({
     }
   };
 
-  // Determine button states (maps to LED states on physical device)
+  // Server-driven LED states for YES/NO buttons
+  const yesLed = player?.display?.leds?.yes || 'off';
+  const noLed = player?.display?.leds?.no || 'off';
+
+  // Client-side interactivity (keep disabled logic for touch)
   const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || inAbilityMode;
   const canAbstain = eventPrompt?.allowAbstain !== false;
   const noEnabled = hasActiveEvent && !confirmedTarget && !abstained && canAbstain;
@@ -103,22 +107,14 @@ export default function PlayerConsole({
 
   return (
     <div className={`${styles.console} ${isDead ? styles.dead : ''} ${compact ? styles.compact : ''}`}>
-      {/* Header with player identity */}
-      <header className={styles.header}>
-        <div className={styles.seatRow}>
-          <StatusLed status={player?.display?.statusLed} />
-          <span className={styles.seatNumber}>#{player?.seatNumber}</span>
-        </div>
-        <div className={styles.playerName}>{player?.name}</div>
-        {player?.roleName && (
-          <div className={styles.role} style={{ color: player.roleColor }}>
-            {player.roleName}
-          </div>
-        )}
-      </header>
+      {/* Indicator LEDs — matches physical terminal panel */}
+      <div className={styles.indicators}>
+        <div className={styles.powerLed} title="D1 Power" />
+        <StatusLed status={player?.display?.statusLed} />
+      </div>
 
       {/* OLED Display - 256x64 simulation */}
-      <TinyScreen display={player?.display} />
+      <TinyScreen display={player?.display} compact={compact} />
 
       {/* Physical Controls: Always visible like physical buttons */}
       <div className={styles.controls}>
@@ -143,7 +139,7 @@ export default function PlayerConsole({
 
           {/* YES - Green LED button */}
           <button
-            className={`${styles.yesButton} ${yesEnabled ? styles.active : ''}`}
+            className={`${styles.yesButton} ${styles[`led_yes_${yesLed}`] || ''}`}
             onClick={handleYes}
             disabled={!yesEnabled}
           >
@@ -152,7 +148,7 @@ export default function PlayerConsole({
 
           {/* NO - Red LED button */}
           <button
-            className={`${styles.noButton} ${noEnabled ? styles.active : ''}`}
+            className={`${styles.noButton} ${styles[`led_no_${noLed}`] || ''}`}
             onClick={handleNo}
             disabled={!noEnabled}
           >

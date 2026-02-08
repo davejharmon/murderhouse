@@ -16,43 +16,22 @@
   opacity: 0.5;
 }
 
-/* Header - Player Identity */
-.header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-md) 0;
-  border-bottom: 1px solid #333;
-}
-
-.seatRow {
+/* Indicator LEDs — D1 power + neopixel status */
+.indicators {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  padding: var(--space-sm) 0;
 }
 
-.seatNumber {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: #666;
-  letter-spacing: 0.1em;
-}
-
-.playerName {
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin: var(--space-xs) 0;
-  color: #fff;
-}
-
-.role {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+/* D1 Power LED — yellow, always on (wired to 5V rail via R4) */
+.powerLed {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e6a800;
+  box-shadow: 0 0 6px rgba(230, 168, 0, 0.5), 0 0 12px rgba(230, 168, 0, 0.2);
+  flex-shrink: 0;
 }
 
 /* Controls Container */
@@ -61,12 +40,17 @@
   padding: var(--space-md) 0;
 }
 
-/* Button Row - Horizontal layout */
+/* Button Row - Horizontal layout with gap between nav and action pairs */
 .buttonRow {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* Visual separator between nav pair and action pair */
+.buttonRow > :nth-child(2) {
+  margin-right: var(--space-md);
 }
 
 /* Navigation Buttons (Rotary switch simulation) */
@@ -76,22 +60,24 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: #1a1a1a;
+  background: radial-gradient(circle at 40% 35%, #222, #161616);
   border: 2px solid #333;
   border-radius: 50%;
   color: #888;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
   transition: all 0.15s ease;
 }
 
 .navButton:hover:not(:disabled) {
-  background: #252525;
+  background: radial-gradient(circle at 40% 35%, #2a2a2a, #1a1a1a);
   border-color: #555;
   color: #fff;
 }
 
 .navButton:active:not(:disabled) {
   transform: scale(0.95);
-  background: #333;
+  background: radial-gradient(circle at 50% 50%, #2a2a2a, #1a1a1a);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 
 .navButton:disabled {
@@ -104,7 +90,7 @@
   line-height: 1;
 }
 
-/* YES Button - Green LED arcade button */
+/* === YES Button - Green LED arcade button === */
 .yesButton {
   display: flex;
   align-items: center;
@@ -122,28 +108,61 @@
   transition: all 0.15s ease;
 }
 
-.yesButton.active {
+.yesButton:disabled {
+  cursor: not-allowed;
+}
+
+/* YES LED states */
+.led_yes_off {
+  background: #111;
+  border-color: #1a2a1a;
+  color: rgba(74, 222, 128, 0.15);
+  box-shadow: none;
+}
+
+.led_yes_dim {
+  background: #1a2a1a;
+  border-color: rgba(74, 222, 128, 0.3);
+  color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
+}
+
+.led_yes_bright {
   background: #2a5a2a;
   border-color: #4ade80;
   color: #4ade80;
   box-shadow: 0 0 20px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.2);
 }
 
-.yesButton.active:hover:not(:disabled) {
+.led_yes_bright:hover:not(:disabled) {
   background: #3a6a3a;
   box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3);
 }
 
-.yesButton.active:active:not(:disabled) {
+.led_yes_bright:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-.yesButton:disabled {
-  opacity: 0.2;
-  cursor: not-allowed;
+.led_yes_pulse {
+  animation: yesLedPulse 1s ease-in-out infinite;
 }
 
-/* NO Button - Red LED arcade button */
+@keyframes yesLedPulse {
+  0%, 100% {
+    background: #1a2a1a;
+    border-color: rgba(74, 222, 128, 0.3);
+    color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
+  }
+  50% {
+    background: #2a5a2a;
+    border-color: #4ade80;
+    color: #4ade80;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.2);
+  }
+}
+
+/* === NO Button - Red LED arcade button === */
 .noButton {
   display: flex;
   align-items: center;
@@ -161,25 +180,58 @@
   transition: all 0.15s ease;
 }
 
-.noButton.active {
+.noButton:disabled {
+  cursor: not-allowed;
+}
+
+/* NO LED states */
+.led_no_off {
+  background: #111;
+  border-color: #2a1a1a;
+  color: rgba(239, 68, 68, 0.15);
+  box-shadow: none;
+}
+
+.led_no_dim {
+  background: #2a1a1a;
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.1);
+}
+
+.led_no_bright {
   background: #5a2a2a;
   border-color: #ef4444;
   color: #ef4444;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
-.noButton.active:hover:not(:disabled) {
+.led_no_bright:hover:not(:disabled) {
   background: #6a3a3a;
   box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
 }
 
-.noButton.active:active:not(:disabled) {
+.led_no_bright:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-.noButton:disabled {
-  opacity: 0.2;
-  cursor: not-allowed;
+.led_no_pulse {
+  animation: noLedPulse 1s ease-in-out infinite;
+}
+
+@keyframes noLedPulse {
+  0%, 100% {
+    background: #2a1a1a;
+    border-color: rgba(239, 68, 68, 0.3);
+    color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.1);
+  }
+  50% {
+    background: #5a2a2a;
+    border-color: #ef4444;
+    color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+  }
 }
 
 /* ===== COMPACT MODE ===== */
@@ -190,26 +242,14 @@
   padding: 6px;
 }
 
-.compact .header {
-  padding: 4px 0;
-  border-bottom: 1px solid #222;
+.compact .indicators {
+  padding: 2px 0;
+  gap: 6px;
 }
 
-.compact .seatRow {
-  gap: 4px;
-}
-
-.compact .seatNumber {
-  font-size: 0.55rem;
-}
-
-.compact .playerName {
-  font-size: 0.85rem;
-  margin: 2px 0;
-}
-
-.compact .role {
-  font-size: 0.55rem;
+.compact .powerLed {
+  width: 5px;
+  height: 5px;
 }
 
 .compact .controls {
@@ -218,6 +258,10 @@
 
 .compact .buttonRow {
   gap: 3px;
+}
+
+.compact .buttonRow > :nth-child(2) {
+  margin-right: 6px;
 }
 
 .compact .navButton {
