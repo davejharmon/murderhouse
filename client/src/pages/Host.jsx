@@ -116,6 +116,9 @@ export default function Host() {
     send(ClientMsg.GIVE_ITEM, { playerId, itemId });
   const handleRemoveItem = (playerId, itemId) =>
     send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
+  const handleSavePresets = () => send(ClientMsg.SAVE_PLAYER_PRESETS);
+  const handleLoadPresets = () => send(ClientMsg.LOAD_PLAYER_PRESETS);
+
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
   const handleDebugAutoSelectAll = (eventId) =>
@@ -179,6 +182,15 @@ export default function Host() {
               <button className='danger' onClick={handleResetGame}>
                 Reset
               </button>
+            </div>
+          </section>
+
+          {/* Player Presets */}
+          <section className={styles.section}>
+            <h2>Player Presets</h2>
+            <div className={styles.buttonGroup}>
+              <button onClick={handleSavePresets}>Save</button>
+              <button onClick={handleLoadPresets}>Load</button>
             </div>
           </section>
 

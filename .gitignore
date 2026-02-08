@@ -52,6 +52,11 @@ Thumbs.db
 .claude/
 
 # =========================
+# Player presets (user data)
+# =========================
+server/player-presets.json
+
+# =========================
 # Optional: coverage
 # =========================
 coverage/

@@ -78,6 +78,10 @@ export const ClientMsg = {
   GIVE_ITEM: 'giveItem',
   REMOVE_ITEM: 'removeItem',
 
+  // Player presets
+  SAVE_PLAYER_PRESETS: 'savePlayerPresets',
+  LOAD_PLAYER_PRESETS: 'loadPlayerPresets',
+
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',
   DEBUG_AUTO_SELECT_ALL: 'debugAutoSelectAll',

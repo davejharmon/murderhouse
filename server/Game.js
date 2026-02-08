@@ -15,6 +15,12 @@ import { getRole, roleDistribution } from './definitions/roles.js';
 import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
 import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PRESETS_PATH = path.join(__dirname, 'player-presets.json');
 
 export class Game {
   constructor(broadcast) {
@@ -31,6 +37,7 @@ export class Game {
     ]);
 
     this.reset();
+    this.loadPlayerPresets();
   }
 
   reset() {
@@ -112,6 +119,45 @@ export class Game {
       name: player.name,
       portrait: player.portrait,
     });
+  }
+
+  savePlayerPresets() {
+    const presets = {};
+    for (const player of this.players.values()) {
+      presets[player.id] = { name: player.name, portrait: player.portrait };
+    }
+    fs.writeFileSync(PRESETS_PATH, JSON.stringify(presets, null, 2));
+    const count = Object.keys(presets).length;
+    this.addLog(`Saved ${count} player presets`);
+    console.log(`[Server] Saved ${count} player presets`);
+    return count;
+  }
+
+  loadPlayerPresets() {
+    if (!fs.existsSync(PRESETS_PATH)) return 0;
+    try {
+      const presets = JSON.parse(fs.readFileSync(PRESETS_PATH, 'utf-8'));
+      let count = 0;
+      for (const [id, data] of Object.entries(presets)) {
+        this.playerCustomizations.set(id, { name: data.name, portrait: data.portrait });
+        // Update any currently connected player
+        const player = this.players.get(id);
+        if (player) {
+          player.name = data.name;
+          player.portrait = data.portrait;
+        }
+        count++;
+      }
+      if (this.players.size > 0) {
+        this.addLog(`Loaded ${count} player presets`);
+        this.broadcastPlayerList();
+      }
+      console.log(`[Server] Loaded ${count} player presets`);
+      return count;
+    } catch (e) {
+      console.error('[Server] Failed to load player presets:', e.message);
+      return 0;
+    }
   }
 
   removePlayer(id) {

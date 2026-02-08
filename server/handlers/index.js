@@ -471,6 +471,24 @@ export function createHandlers(game) {
       return { success: false, error: 'Item not found in inventory' };
     },
 
+    // === Player Presets ===
+
+    [ClientMsg.SAVE_PLAYER_PRESETS]: (ws) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const count = game.savePlayerPresets();
+      return { success: true, count };
+    },
+
+    [ClientMsg.LOAD_PLAYER_PRESETS]: (ws) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const count = game.loadPlayerPresets();
+      return { success: true, count };
+    },
+
     // === Debug Actions ===
 
     [ClientMsg.DEBUG_AUTO_SELECT]: (ws, payload) => {
