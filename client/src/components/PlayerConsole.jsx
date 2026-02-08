@@ -138,7 +138,7 @@ export default function PlayerConsole({
             <span className={styles.arrow}>▼</span>
           </button>
 
-          {/* YES - Green LED button */}
+          {/* YES - Yellow LED button */}
           <button
             className={`${styles.yesButton} ${styles[`led_yes_${yesLed}`] || ''}`}
             onClick={handleYes}

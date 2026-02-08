@@ -103,17 +103,17 @@
   line-height: 1;
 }
 
-/* === YES Button - Green LED arcade button === */
+/* === YES Button - Yellow LED arcade button === */
 .yesButton {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: #1a2a1a;
-  border: 3px solid #2a4a2a;
+  background: #1a1800;
+  border: 3px solid #3a3000;
   border-radius: 50%;
-  color: #3a5a3a;
+  color: #4a4020;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 700;
@@ -125,35 +125,35 @@
   cursor: not-allowed;
 }
 
-/* YES LED states */
+/* YES LED states — Yellow LED */
 .led_yes_off {
   background: #111;
-  border-color: #1a2a1a;
-  color: rgba(74, 222, 128, 0.15);
+  border-color: #1a1800;
+  color: rgba(230, 168, 0, 0.15);
   box-shadow: none;
 }
 
 .led_yes_dim {
-  background: #1a2a1a;
-  border-color: rgba(74, 222, 128, 0.3);
-  color: rgba(74, 222, 128, 0.5);
-  box-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
+  background: #1a1800;
+  border-color: rgba(230, 168, 0, 0.3);
+  color: rgba(230, 168, 0, 0.5);
+  box-shadow: 0 0 6px rgba(230, 168, 0, 0.1);
 }
 
 .led_yes_bright {
-  background: #2a5a2a;
-  border-color: #4ade80;
-  color: #4ade80;
+  background: #3a2e00;
+  border-color: #e6a800;
+  color: #e6a800;
   box-shadow:
-    0 0 20px rgba(74, 222, 128, 0.4),
-    inset 0 0 10px rgba(74, 222, 128, 0.2);
+    0 0 20px rgba(230, 168, 0, 0.4),
+    inset 0 0 10px rgba(230, 168, 0, 0.2);
 }
 
 .led_yes_bright:hover:not(:disabled) {
-  background: #3a6a3a;
+  background: #4a3e00;
   box-shadow:
-    0 0 30px rgba(74, 222, 128, 0.6),
-    inset 0 0 15px rgba(74, 222, 128, 0.3);
+    0 0 30px rgba(230, 168, 0, 0.6),
+    inset 0 0 15px rgba(230, 168, 0, 0.3);
 }
 
 .led_yes_bright:active:not(:disabled) {
@@ -167,18 +167,18 @@
 @keyframes yesLedPulse {
   0%,
   100% {
-    background: #1a2a1a;
-    border-color: rgba(74, 222, 128, 0.3);
-    color: rgba(74, 222, 128, 0.5);
-    box-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
+    background: #1a1800;
+    border-color: rgba(230, 168, 0, 0.3);
+    color: rgba(230, 168, 0, 0.5);
+    box-shadow: 0 0 6px rgba(230, 168, 0, 0.1);
   }
   50% {
-    background: #2a5a2a;
-    border-color: #4ade80;
-    color: #4ade80;
+    background: #3a2e00;
+    border-color: #e6a800;
+    color: #e6a800;
     box-shadow:
-      0 0 20px rgba(74, 222, 128, 0.4),
-      inset 0 0 10px rgba(74, 222, 128, 0.2);
+      0 0 20px rgba(230, 168, 0, 0.4),
+      inset 0 0 10px rgba(230, 168, 0, 0.2);
   }
 }
 
