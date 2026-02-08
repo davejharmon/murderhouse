@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { GamePhase, PlayerStatus } from '@shared/constants.js';
 import TinyScreen from './TinyScreen';
+import StatusLed from './StatusLed';
 import styles from './PlayerConsole.module.css';
 
 export default function PlayerConsole({
@@ -104,7 +105,10 @@ export default function PlayerConsole({
     <div className={`${styles.console} ${isDead ? styles.dead : ''} ${compact ? styles.compact : ''}`}>
       {/* Header with player identity */}
       <header className={styles.header}>
-        <div className={styles.seatNumber}>#{player?.seatNumber}</div>
+        <div className={styles.seatRow}>
+          <StatusLed status={player?.display?.statusLed} />
+          <span className={styles.seatNumber}>#{player?.seatNumber}</span>
+        </div>
         <div className={styles.playerName}>{player?.name}</div>
         {player?.roleName && (
           <div className={styles.role} style={{ color: player.roleColor }}>

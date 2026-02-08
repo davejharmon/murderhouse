@@ -1,0 +1,25 @@
+/* client/src/components/StatusLed.module.css */
+/* Neopixel status LED indicator */
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pulse {
+  animation: ledPulse 1s ease-in-out infinite;
+}
+
+@keyframes ledPulse {
+  0%, 100% {
+    opacity: 0.3;
+    filter: brightness(0.5);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}

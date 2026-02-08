@@ -25,6 +25,12 @@
   border-bottom: 1px solid #333;
 }
 
+.seatRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .seatNumber {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -187,6 +193,10 @@
 .compact .header {
   padding: 4px 0;
   border-bottom: 1px solid #222;
+}
+
+.compact .seatRow {
+  gap: 4px;
 }
 
 .compact .seatNumber {
