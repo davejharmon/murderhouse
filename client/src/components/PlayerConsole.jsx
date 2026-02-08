@@ -111,6 +111,7 @@ export default function PlayerConsole({
       <div className={styles.indicators}>
         <div className={styles.powerLed} title="D1 Power" />
         <StatusLed status={player?.display?.statusLed} />
+        <span className={styles.playerLabel}>#{player?.seatNumber} {player?.name}</span>
       </div>
 
       {/* OLED Display - 256x64 simulation */}

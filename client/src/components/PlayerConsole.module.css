@@ -24,13 +24,26 @@
   padding: var(--space-sm) 0;
 }
 
+/* Player label — QoL for host identification */
+.playerLabel {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* D1 Power LED — yellow, always on (wired to 5V rail via R4) */
 .powerLed {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background-color: #e6a800;
-  box-shadow: 0 0 6px rgba(230, 168, 0, 0.5), 0 0 12px rgba(230, 168, 0, 0.2);
+  box-shadow:
+    0 0 6px rgba(230, 168, 0, 0.5),
+    0 0 12px rgba(230, 168, 0, 0.2);
   flex-shrink: 0;
 }
 
@@ -131,12 +144,16 @@
   background: #2a5a2a;
   border-color: #4ade80;
   color: #4ade80;
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.2);
+  box-shadow:
+    0 0 20px rgba(74, 222, 128, 0.4),
+    inset 0 0 10px rgba(74, 222, 128, 0.2);
 }
 
 .led_yes_bright:hover:not(:disabled) {
   background: #3a6a3a;
-  box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3);
+  box-shadow:
+    0 0 30px rgba(74, 222, 128, 0.6),
+    inset 0 0 15px rgba(74, 222, 128, 0.3);
 }
 
 .led_yes_bright:active:not(:disabled) {
@@ -148,7 +165,8 @@
 }
 
 @keyframes yesLedPulse {
-  0%, 100% {
+  0%,
+  100% {
     background: #1a2a1a;
     border-color: rgba(74, 222, 128, 0.3);
     color: rgba(74, 222, 128, 0.5);
@@ -158,7 +176,9 @@
     background: #2a5a2a;
     border-color: #4ade80;
     color: #4ade80;
-    box-shadow: 0 0 20px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.2);
+    box-shadow:
+      0 0 20px rgba(74, 222, 128, 0.4),
+      inset 0 0 10px rgba(74, 222, 128, 0.2);
   }
 }
 
@@ -203,12 +223,16 @@
   background: #5a2a2a;
   border-color: #ef4444;
   color: #ef4444;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+  box-shadow:
+    0 0 20px rgba(239, 68, 68, 0.4),
+    inset 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
 .led_no_bright:hover:not(:disabled) {
   background: #6a3a3a;
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
+  box-shadow:
+    0 0 30px rgba(239, 68, 68, 0.6),
+    inset 0 0 15px rgba(239, 68, 68, 0.3);
 }
 
 .led_no_bright:active:not(:disabled) {
@@ -220,7 +244,8 @@
 }
 
 @keyframes noLedPulse {
-  0%, 100% {
+  0%,
+  100% {
     background: #2a1a1a;
     border-color: rgba(239, 68, 68, 0.3);
     color: rgba(239, 68, 68, 0.5);
@@ -230,7 +255,9 @@
     background: #5a2a2a;
     border-color: #ef4444;
     color: #ef4444;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+    box-shadow:
+      0 0 20px rgba(239, 68, 68, 0.4),
+      inset 0 0 10px rgba(239, 68, 68, 0.2);
   }
 }
 
@@ -250,6 +277,10 @@
 .compact .powerLed {
   width: 5px;
   height: 5px;
+}
+
+.compact .playerLabel {
+  font-size: 0.8rem;
 }
 
 .compact .controls {
