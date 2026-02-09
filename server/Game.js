@@ -23,11 +23,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PRESETS_PATH = path.join(__dirname, 'player-presets.json');
 
 export class Game {
-  constructor(broadcast) {
+  constructor(broadcast, sendToHostFn, sendToScreenFn) {
     this.broadcast = broadcast; // Function to send to all clients
-    this.host = null;
+    this._sendToHost = sendToHostFn; // Function to find & send to host from clients set
+    this._sendToScreen = sendToScreenFn; // Function to find & send to screen from clients set
+    this.host = null; // Legacy reference (kept for handler compat)
     this.slideIdCounter = 0; // Unique ID counter for slides
-    this.screen = null;
+    this.screen = null; // Legacy reference (kept for handler compat)
     this.playerCustomizations = new Map(); // Persist player names/portraits across resets
 
     // Initialize interrupt flows (these persist across resets)
@@ -216,6 +218,9 @@ export class Game {
     // Assign roles
     this.assignRoles();
 
+    // Set tutorial tips for each player
+    this._setTutorialTips();
+
     // Start day 1
     this.phase = GamePhase.DAY;
     this.dayCount = 1;
@@ -259,6 +264,25 @@ export class Game {
       const roleId = shuffled[i];
       const role = getRole(roleId);
       playerList[i].assignRole(role);
+    }
+  }
+
+  _setTutorialTips() {
+    for (const player of this.players.values()) {
+      player.showIdleRole = true;
+      if (player.role.team === Team.WEREWOLF) {
+        // Find packmates
+        const packmates = [...this.players.values()]
+          .filter(p => p.id !== player.id && p.role.team === Team.WEREWOLF);
+        if (packmates.length > 0) {
+          const names = packmates.map(p => p.name).join(', ');
+          player.tutorialTip = `Packmate: ${names}`;
+        } else {
+          player.tutorialTip = 'Lone wolf';
+        }
+      } else {
+        player.tutorialTip = player.role.tip || 'Good luck!';
+      }
     }
   }
 
@@ -466,9 +490,11 @@ export class Game {
     if (eventId === 'vote') {
       this.pushSlide(
         {
-          type: 'title',
+          type: 'gallery',
           title: 'ELIMINATION VOTE',
           subtitle: 'Choose who to eliminate',
+          playerIds: this.getAlivePlayers().map(p => p.id),
+          targetsOnly: true,
           style: SlideStyle.NEUTRAL,
         },
         true
@@ -670,12 +696,17 @@ export class Game {
 
     this.addLog(`Custom event started — ${config.description}`);
 
-    // Show slide when custom event starts
+    // Show slide when custom event starts — gallery of eligible targets
+    const customTargets = config.rewardType === 'resurrection'
+      ? [...this.players.values()].filter(p => !p.isAlive)
+      : this.getAlivePlayers();
     this.pushSlide(
       {
-        type: 'title',
-        title: 'CUSTOM EVENT',
+        type: 'gallery',
+        title: 'CUSTOM VOTE',
         subtitle: config.description,
+        playerIds: customTargets.map(p => p.id),
+        targetsOnly: true,
         style: SlideStyle.NEUTRAL,
       },
       true
@@ -1098,14 +1129,37 @@ export class Game {
       return { success: false, error: 'Event not active' };
     }
 
-    const { event, participants } = instance;
-
-    // Set runoff state
+    // Set runoff state but DON'T clear player selections or send prompts yet.
+    // Players stay in LOCKED state showing their previous vote until the
+    // runoff gallery slide becomes current (via _onSlideActivated).
     instance.runoffCandidates = frontrunners;
     instance.runoffRound = (instance.runoffRound || 0) + 1;
     instance.results = {}; // Clear previous votes
 
-    // Clear player selections
+    // Queue runoff slide with eligible candidates (after the tally slide)
+    this.pushSlide({
+      type: 'gallery',
+      title: `RUNOFF VOTE #${instance.runoffRound}`,
+      subtitle: 'Choose who to eliminate',
+      playerIds: frontrunners,
+      targetsOnly: true,
+      style: SlideStyle.NEUTRAL,
+      activateRunoff: eventId,
+    }, false);
+
+    this.addLog(`${instance.event.name} runoff — Round ${instance.runoffRound}`);
+    this.broadcastGameState();
+
+    return { success: true, runoff: true };
+  }
+
+  _activateRunoff(eventId) {
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) return;
+
+    const { event, participants } = instance;
+
+    // Now clear player selections and send new prompts
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
@@ -1113,7 +1167,6 @@ export class Game {
       }
     }
 
-    // Re-notify participants with updated targets
     const runoffParticipants = participants
       .map((pid) => this.getPlayer(pid))
       .filter((p) => p);
@@ -1126,7 +1179,6 @@ export class Game {
         player.currentSelection = targets[0].id;
       }
 
-      // Get description (use custom description if available)
       const baseDescription = instance.config?.description || event.description;
       const description = `RUNOFF VOTE (Round ${instance.runoffRound}): ${baseDescription}`;
 
@@ -1139,10 +1191,7 @@ export class Game {
       });
     }
 
-    this.addLog(`${event.name} runoff — Round ${instance.runoffRound}`);
     this.broadcastGameState();
-
-    return { success: true, runoff: true };
   }
 
   // === Win Conditions ===
@@ -1333,6 +1382,7 @@ export class Game {
     if (this.currentSlideIndex < this.slideQueue.length - 1) {
       this.currentSlideIndex++;
       this.broadcastSlides();
+      this._onSlideActivated();
     }
   }
 
@@ -1340,6 +1390,16 @@ export class Game {
     if (this.currentSlideIndex > 0) {
       this.currentSlideIndex--;
       this.broadcastSlides();
+    }
+  }
+
+  _onSlideActivated() {
+    const slide = this.slideQueue[this.currentSlideIndex];
+    if (!slide) return;
+
+    if (slide.activateRunoff) {
+      this._activateRunoff(slide.activateRunoff);
+      delete slide.activateRunoff; // Only fire once
     }
   }
 
@@ -1415,6 +1475,9 @@ export class Game {
   broadcastPlayerList() {
     const players = this.getPlayersBySeat().map((p) => p.getPublicState());
     this.broadcast(ServerMsg.PLAYER_LIST, players);
+    // Host needs full player info (broadcast only sends public state which hides roles)
+    const hostPlayers = this.getPlayersBySeat().map((p) => p.getPrivateState());
+    this.sendToHost(ServerMsg.PLAYER_LIST, hostPlayers);
   }
 
   // Check if pack state should be broadcast for this event/player combination
@@ -1445,21 +1508,15 @@ export class Game {
     };
     this.broadcast(ServerMsg.SLIDE_QUEUE, slideData);
 
-    if (this.screen) {
-      this.sendToScreen(ServerMsg.SLIDE, currentSlide);
-    }
+    this.sendToScreen(ServerMsg.SLIDE, currentSlide);
   }
 
   sendToScreen(type, payload) {
-    if (this.screen && this.screen.readyState === 1) {
-      this.screen.send(JSON.stringify({ type, payload }));
-    }
+    this._sendToScreen(type, payload);
   }
 
   sendToHost(type, payload) {
-    if (this.host && this.host.readyState === 1) {
-      this.host.send(JSON.stringify({ type, payload }));
-    }
+    this._sendToHost(type, payload);
   }
 
   // === State Getters ===

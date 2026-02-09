@@ -13,23 +13,24 @@ import {
   StatusLed,
 } from '../shared/constants.js';
 
-// Action labels for each event type (confirm action / abstain action)
+// Action labels for each event type (confirm action / abstain action / select prompt)
 const EVENT_ACTIONS = {
-  vote: { confirm: 'VOTE', abstain: 'ABSTAIN' },
-  pardon: { confirm: 'PARDON', abstain: 'CONDEMN' },
-  hunt: { confirm: 'KILL', abstain: 'ABSTAIN' },
-  kill: { confirm: 'KILL', abstain: 'ABSTAIN' },
-  investigate: { confirm: 'REVEAL', abstain: 'ABSTAIN' },
-  protect: { confirm: 'PROTECT', abstain: 'ABSTAIN' },
-  shoot: { confirm: 'SHOOT', abstain: 'ABSTAIN' },
-  suspect: { confirm: 'SUSPECT', abstain: 'ABSTAIN' },
-  vigil: { confirm: 'KILL', abstain: 'ABSTAIN' },
-  customEvent: { confirm: 'CONFIRM', abstain: 'ABSTAIN' },
+  vote:          { confirm: 'VOTE',    abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
+  pardon:        { confirm: 'PARDON',  abstain: 'CONDEMN', prompt: 'PARDON' },
+  hunt:          { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
+  kill:          { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'TARGET SOMEONE' },
+  investigate:   { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
+  protect:       { confirm: 'PROTECT', abstain: 'ABSTAIN', prompt: 'PROTECT SOMEONE' },
+  shoot:         { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
+  suspect:       { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
+  vigil:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
+  customEvent:   { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
+  hunterRevenge: { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
 };
 
 // Get action labels for an event (with fallback)
 function getEventActions(eventId) {
-  return EVENT_ACTIONS[eventId] || { confirm: 'CONFIRM', abstain: 'ABSTAIN' };
+  return EVENT_ACTIONS[eventId] || { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'SELECT SOMEONE' };
 }
 
 let nextSeatNumber = 1;
@@ -66,6 +67,10 @@ export class Player {
     this.abstained = false; // Whether player has abstained from current event
     this.pendingEvents = new Set(); // Events waiting for this player
     this.lastEventResult = null; // { message } shown on TinyScreen after event resolves
+
+    // Tutorial
+    this.tutorialTip = null; // Role tip shown on TinyScreen line 3 during idle
+    this.showIdleRole = false; // Show role name on line 2 during idle (game start only)
 
     // History
     this.investigations = [];
@@ -116,6 +121,8 @@ export class Player {
     this.abstained = false;
     this.pendingEvents.clear();
     this.lastEventResult = null;
+    this.tutorialTip = null;
+    this.showIdleRole = false;
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
@@ -315,6 +322,11 @@ export class Player {
     // Helper: status LED colour for current phase (day/night)
     const phaseLed = phase === GamePhase.DAY ? StatusLed.DAY : StatusLed.NIGHT;
 
+    // Clear role reveal once player enters any event
+    if (this.showIdleRole && hasActiveEvent) {
+      this.showIdleRole = false;
+    }
+
     // === LOBBY ===
     if (phase === GamePhase.LOBBY) {
       return this._display(
@@ -388,9 +400,11 @@ export class Player {
         : targetName.toUpperCase();
 
       return this._display(
-        { left: getLine1(eventName, activeEventId), right: packHint },
+        { left: getLine1(eventName, activeEventId), right: '' },
         { text: line2Text, style: DisplayStyle.NORMAL },
-        { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
+        packHint
+          ? { left: actions.confirm, center: packHint, right: canAbstain ? actions.abstain : '' }
+          : { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
         { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
         StatusLed.VOTING
       );
@@ -402,10 +416,24 @@ export class Player {
       const canAbstain = ctx.eventContext?.allowAbstain !== false;
       const actions = getEventActions(activeEventId);
 
+      // Special display for pardon event - show condemned player's name
+      if (activeEventId === 'pardon') {
+        const condemnedName = game?.flows?.get('pardon')?.state?.condemnedName || 'Unknown';
+        return this._display(
+          { left: getLine1(eventName, activeEventId), right: '' },
+          { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
+          { left: actions.confirm, right: actions.abstain },
+          { yes: LedState.BRIGHT, no: LedState.DIM },
+          StatusLed.VOTING
+        );
+      }
+
       return this._display(
-        { left: getLine1(eventName, activeEventId), right: packHint },
-        { text: 'SELECT TARGET', style: DisplayStyle.WAITING },
-        { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
+        { left: getLine1(eventName, activeEventId), right: '' },
+        { text: actions.prompt, style: DisplayStyle.WAITING },
+        packHint
+          ? { left: 'Use dial', center: packHint, right: canAbstain ? actions.abstain : '' }
+          : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
         { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
         StatusLed.VOTING
       );
@@ -435,15 +463,22 @@ export class Player {
       );
     }
 
-    // === IDLE STATE ===
-    const idleTip = phase === GamePhase.DAY
-      ? 'Discuss and vote'
-      : 'Waiting...';
+    // === GAME START (role reveal, before first event) ===
+    if (this.showIdleRole) {
+      return this._display(
+        { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
+        { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
+        { text: this.tutorialTip || '[tip missing]' },
+        { yes: LedState.OFF, no: LedState.OFF },
+        phaseLed
+      );
+    }
 
+    // === IDLE STATE ===
     return this._display(
       { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
-      { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
-      { text: idleTip },
+      { text: '', style: DisplayStyle.NORMAL },
+      { text: this.tutorialTip || '[tip missing]' },
       { yes: LedState.OFF, no: LedState.OFF },
       phaseLed
     );
@@ -570,7 +605,7 @@ export class Player {
     const topTarget = game.getPlayer(topTargetId);
 
     if (topTarget) {
-      return `${Glyphs.PACK}${topTarget.name.toUpperCase()}`;
+      return `${Glyphs.WOLF} ${topTarget.name.toUpperCase()}`;
     }
     return '';
   }

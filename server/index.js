@@ -27,8 +27,28 @@ function broadcast(type, payload) {
   }
 }
 
+// Send to host function — finds host from live clients set
+function sendToHost(type, payload) {
+  const message = JSON.stringify({ type, payload });
+  for (const client of clients) {
+    if (client.readyState === 1 && client.clientType === 'host') {
+      client.send(message);
+    }
+  }
+}
+
+// Send to screen function — finds screen from live clients set
+function sendToScreen(type, payload) {
+  const message = JSON.stringify({ type, payload });
+  for (const client of clients) {
+    if (client.readyState === 1 && client.clientType === 'screen') {
+      client.send(message);
+    }
+  }
+}
+
 // Create game instance
-const game = new Game(broadcast);
+const game = new Game(broadcast, sendToHost, sendToScreen);
 
 // Create handlers
 const handlers = createHandlers(game);

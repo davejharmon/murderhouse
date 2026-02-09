@@ -1,5 +1,5 @@
 // client/src/pages/Screen.jsx
-import { useEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus } from '@shared/constants.js';
@@ -250,6 +250,24 @@ export default function Screen() {
   const renderGallery = (slide) => {
     const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
 
+    // targetsOnly mode: just title, subtitle, then gallery — no werewolf tracker
+    if (slide.targetsOnly) {
+      return (
+        <div key={slide.id} className={styles.slide}>
+          {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+          {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+          <div className={styles.gallery}>
+            {players.map((p) => (
+              <div key={p.id} className={styles.playerThumb}>
+                <img src={`/images/players/${p.portrait}`} alt={p.name} />
+                <span className={styles.thumbName}>{p.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Filter out dead werewolves from main gallery
     const playersWithoutDeadWerewolves = players.filter(p =>
       p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf'
@@ -370,13 +388,32 @@ export default function Screen() {
     );
   };
 
+  // Auto-scale slide content to fit viewport
+  const wrapperRef = useRef(null);
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const slide = wrapper?.firstElementChild;
+    if (!slide) return;
+
+    // Reset scale to measure natural size
+    slide.style.transform = '';
+
+    const availableH = wrapper.clientHeight;
+    const naturalH = slide.offsetHeight;
+
+    if (naturalH > availableH) {
+      const scale = availableH / naturalH;
+      slide.style.transform = `scale(${scale})`;
+    }
+  }, [effectiveSlide, gameState]);
+
   return (
     <div className={styles.container}>
       <div className={styles.navLinks}>
         <Link to='/host'>Host</Link>
         <Link to='/debug'>Debug</Link>
       </div>
-      <div key={effectiveSlide?.id} className={styles.slideWrapper}>
+      <div key={effectiveSlide?.id} ref={wrapperRef} className={styles.slideWrapper}>
         {renderSlide()}
       </div>
     </div>

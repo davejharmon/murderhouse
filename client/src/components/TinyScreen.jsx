@@ -228,6 +228,12 @@ function renderDisplay(ctx, display, color) {
 
     drawSegments(ctx, l3Left, MARGIN_X, LINE3_Y, FONT_6x10)
 
+    if (line3.center) {
+      const l3Center = parseGlyphs(line3.center)
+      const centerW = measureSegments(l3Center, FONT_6x10)
+      drawSegments(ctx, l3Center, Math.floor((W - centerW) / 2), LINE3_Y, FONT_6x10)
+    }
+
     if (l3Right.length > 0) {
       const rightW = measureSegments(l3Right, FONT_6x10)
       drawSegments(ctx, l3Right, W - MARGIN_X - rightW, LINE3_Y, FONT_6x10)

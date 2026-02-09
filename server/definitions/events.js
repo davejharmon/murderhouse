@@ -103,7 +103,7 @@ const events = {
       // Find max votes
       const maxVotes = Math.max(...Object.values(tally));
       const frontrunners = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes
+        (id) => tally[id] === maxVotes,
       );
 
       if (frontrunners.length > 1) {
@@ -115,7 +115,11 @@ const events = {
           const victim = game.getPlayer(winnerId);
           // Don't kill yet - let Game.js handle it after checking for governor
 
-          const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+          const teamDisplayNames = {
+            village: 'VILLAGER',
+            werewolf: 'WEREWOLF',
+            neutral: 'INDEPENDENT',
+          };
           const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
           return {
             success: true,
@@ -147,7 +151,11 @@ const events = {
       const victim = game.getPlayer(frontrunners[0]);
       // Don't kill yet - let Game.js handle it after checking for governor
 
-      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamDisplayNames = {
+        village: 'VILLAGER',
+        werewolf: 'WEREWOLF',
+        neutral: 'INDEPENDENT',
+      };
       const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         success: true,
@@ -221,7 +229,11 @@ const events = {
         // Kill the target
         game.killPlayer(target.id, 'vigilante');
 
-        const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+        const teamDisplayNames = {
+          village: 'VILLAGER',
+          werewolf: 'WEREWOLF',
+          neutral: 'INDEPENDENT',
+        };
         const teamName = teamDisplayNames[target.role?.team] || 'PLAYER';
         kills.push({
           vigilanteId,
@@ -287,7 +299,7 @@ const events = {
             p.role.id === 'villager' ||
             p.role.id === 'hunter' ||
             p.role.id === 'vigilante' ||
-            p.role.id === 'governor'
+            p.role.id === 'governor',
         );
     },
 
@@ -323,7 +335,7 @@ const events = {
 
       const messages = suspicions.map(
         (s) =>
-          `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`
+          `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`,
       );
 
       return {
@@ -343,9 +355,7 @@ const events = {
     priority: 60,
 
     participants: (game) => {
-      return game
-        .getAlivePlayers()
-        .filter((p) => p.role.id === 'alpha'); // Only alphas
+      return game.getAlivePlayers().filter((p) => p.role.id === 'alpha'); // Only alphas
     },
 
     validTargets: (actor, game) => {
@@ -372,7 +382,7 @@ const events = {
       // Find victim (ties resolved randomly)
       const maxVotes = Math.max(...Object.values(tally));
       const candidates = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes
+        (id) => tally[id] === maxVotes,
       );
       const victimId =
         candidates[Math.floor(Math.random() * candidates.length)];
@@ -397,7 +407,11 @@ const events = {
 
       game.killPlayer(victim.id, 'werewolf');
 
-      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamDisplayNames = {
+        village: 'VILLAGER',
+        werewolf: 'WEREWOLF',
+        neutral: 'INDEPENDENT',
+      };
       const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         success: true,
@@ -426,9 +440,7 @@ const events = {
     priority: 55, // Before kill (60)
 
     participants: (game) => {
-      return game
-        .getAlivePlayers()
-        .filter((p) => p.role.id === 'werewolf'); // Only regular werewolves
+      return game.getAlivePlayers().filter((p) => p.role.id === 'werewolf'); // Only regular werewolves
     },
 
     validTargets: (actor, game) => {
@@ -457,7 +469,7 @@ const events = {
 
       const messages = suggestions.map(
         (s) =>
-          `${s.werewolf.getNameWithEmoji()} suggested ${s.target.getNameWithEmoji()}`
+          `${s.werewolf.getNameWithEmoji()} suggested ${s.target.getNameWithEmoji()}`,
       );
 
       return {
@@ -511,7 +523,7 @@ const events = {
           targetId,
           target,
           isEvil,
-          privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}.`,
+          privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}`,
         });
       }
 
@@ -524,7 +536,7 @@ const events = {
         (inv) =>
           `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${
             inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'
-          }`
+          }`,
       );
 
       return {
@@ -578,7 +590,7 @@ const events = {
       // Log protections
       const messages = protections.map(
         (p) =>
-          `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`
+          `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`,
       );
 
       return {
@@ -644,7 +656,11 @@ const events = {
       // Consume the pistol use
       game.consumeItem(shooterId, 'pistol');
 
-      const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+      const teamDisplayNames = {
+        village: 'VILLAGER',
+        werewolf: 'WEREWOLF',
+        neutral: 'INDEPENDENT',
+      };
       const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
       return {
         message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()}`,
@@ -740,7 +756,7 @@ const events = {
       // Find winner
       const maxVotes = Math.max(...Object.values(tally));
       const frontrunners = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes
+        (id) => tally[id] === maxVotes,
       );
 
       if (frontrunners.length > 1) {
@@ -767,7 +783,7 @@ const events = {
         config,
         game,
         tally,
-        false
+        false,
       );
     },
   },

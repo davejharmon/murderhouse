@@ -87,7 +87,7 @@ export function createHandlers(game) {
       ws.clientType = 'host';
       send(ws, ServerMsg.WELCOME, { role: 'host' });
       send(ws, ServerMsg.GAME_STATE, game.getGameState({ audience: 'host' }));
-      send(ws, ServerMsg.PLAYER_LIST, game.getPlayersBySeat().map(p => p.getPublicState()));
+      send(ws, ServerMsg.PLAYER_LIST, game.getPlayersBySeat().map(p => p.getPrivateState()));
       send(ws, ServerMsg.SLIDE_QUEUE, {
         queue: game.slideQueue,
         currentIndex: game.currentSlideIndex,

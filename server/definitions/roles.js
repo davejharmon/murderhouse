@@ -42,6 +42,7 @@ const roles = {
     description: 'A simple villager trying to survive.',
     color: '#7eb8da',
     emoji: '👨‍🌾',
+    tip: 'Good luck!',
     events: {
       vote: {},
       suspect: {},
@@ -56,6 +57,7 @@ const roles = {
     description: 'The pack leader who makes the final kill.',
     color: '#c94c4c',
     emoji: '👑',
+    tip: null, // Dynamic: shows packmate name
     events: {
       vote: {},
       kill: {
@@ -95,6 +97,7 @@ const roles = {
     description: 'A member of the pack who hunts for the Alpha.',
     color: '#c94c4c',
     emoji: '🐺',
+    tip: null, // Dynamic: shows packmate name
     events: {
       vote: {},
       hunt: {
@@ -115,6 +118,7 @@ const roles = {
     description: 'Blessed with visions, you can peer into souls.',
     color: '#9b7ed9',
     emoji: '🔮',
+    tip: 'Investigate each night',
     events: {
       vote: {},
       investigate: {
@@ -144,6 +148,7 @@ const roles = {
     description: 'Your medical expertise can save lives.',
     color: '#7ed9a6',
     emoji: '🧑‍⚕️',
+    tip: 'Protect someone each night',
     events: {
       vote: {},
       protect: {
@@ -174,6 +179,7 @@ const roles = {
     description: 'When you die, you take someone with you.',
     color: '#d9a67e',
     emoji: '🔫',
+    tip: 'Revenge shot on death',
     events: {
       vote: {},
       suspect: {},
@@ -195,6 +201,7 @@ const roles = {
     description: 'You can kill one person during the night. Choose wisely.',
     color: '#8b7355',
     emoji: '🤠',
+    tip: 'One kill per game',
     events: {
       vote: {},
       vigil: {
@@ -213,6 +220,7 @@ const roles = {
       'You can pardon someone from elimination after votes are cast.',
     color: '#d4af37',
     emoji: '🎩',
+    tip: 'Pardon the condemned',
     events: {
       vote: {},
     },
@@ -226,6 +234,7 @@ const roles = {
     description: 'You bind two souls together in love.',
     color: '#e991c9',
     emoji: '💘',
+    tip: 'Link two lovers',
     events: {
       vote: {},
       link: {
