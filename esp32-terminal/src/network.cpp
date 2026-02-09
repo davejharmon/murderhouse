@@ -373,10 +373,11 @@ static void parsePlayerState(JsonObject& payload) {
     currentDisplayState.line2.text = line2["text"] | "";
     currentDisplayState.line2.style = parseDisplayStyle(line2["style"] | "normal");
 
-    // Parse line3 (supports both centered text and left/right aligned)
+    // Parse line3 (supports centered text, left/right, and left/center/right)
     JsonObject line3 = display["line3"];
     currentDisplayState.line3.text = line3["text"] | "";
     currentDisplayState.line3.left = line3["left"] | "";
+    currentDisplayState.line3.center = line3["center"] | "";
     currentDisplayState.line3.right = line3["right"] | "";
 
     // Parse LEDs

@@ -146,10 +146,11 @@ struct DisplayState {
         DisplayStyle style;  // Visual style variant
     } line2;
 
-    // Line 3: Tutorial/tip (supports both centered text and left/right aligned)
+    // Line 3: Tutorial/tip (supports centered text, left/right, and left/center/right)
     struct {
         String text;   // Centered text (used if left/right empty)
         String left;   // Left-aligned (above YES button)
+        String center; // Center-aligned (e.g., pack hint)
         String right;  // Right-aligned (above NO button)
     } line3;
 

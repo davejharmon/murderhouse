@@ -172,6 +172,12 @@ void displayRender(const DisplayState& state) {
             String leftText = renderGlyphs(state.line3.left);
             u8g2.drawStr(MARGIN_X, LINE3_Y, leftText.c_str());
         }
+        // Center-aligned text (e.g., pack hint)
+        if (state.line3.center.length() > 0) {
+            String centerText = renderGlyphs(state.line3.center);
+            int centerWidth = u8g2.getStrWidth(centerText.c_str());
+            u8g2.drawStr((DISPLAY_WIDTH - centerWidth) / 2, LINE3_Y, centerText.c_str());
+        }
         // Right-aligned text (above NO button)
         if (state.line3.right.length() > 0) {
             String rightText = renderGlyphs(state.line3.right);
