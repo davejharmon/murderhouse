@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 const PLAYER_COUNT = 9;
 const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:8080`
-  : `ws://${window.location.host}`;
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
 export default function DebugGrid() {
   const [playerStates, setPlayerStates] = useState({});
