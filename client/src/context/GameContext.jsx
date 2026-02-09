@@ -78,7 +78,7 @@ export function GameProvider({ children }) {
         // Clear event prompt if its event is no longer in pendingEvents
         setEventPrompt(prev => {
           if (!prev) return null;
-          if (!payload.pendingEvents || !payload.pendingEvents.includes(prev.eventId)) {
+          if (!payload?.pendingEvents || !payload.pendingEvents.includes(prev.eventId)) {
             return null;
           }
           return prev;

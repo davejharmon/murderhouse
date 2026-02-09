@@ -48,15 +48,19 @@ esp32-terminal/
 ## Architecture
 
 ### Communication
+
 All clients (web + ESP32) connect via WebSocket to the Node.js server on port 8080. ESP32 terminals auto-discover the server via UDP broadcast on port 8089. One player ID can have multiple simultaneous connections (web + ESP32).
 
 ### Game Logic — Three Layers
+
 1. **Declarative Definitions** (`server/definitions/`) — Roles, events, and items are data-driven. Roles declare their team, event participation, passives, and win conditions. Events declare participants, targets, resolution logic, and slides.
 2. **State Machine** (`server/Game.js`) — Manages phase transitions (LOBBY → DAY/NIGHT → GAME_OVER), event resolution by priority, death propagation, win condition checks, and slide queues.
 3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics (hunter revenge, governor pardon) that pause normal resolution with their own internal state machines.
 
 ### Display Format
+
 All interfaces share a 3-line display format:
+
 - Line 1: Context (player number, role, phase, event)
 - Line 2: Main content (target name, result)
 - Line 3: Instructions (button labels)
@@ -64,13 +68,16 @@ All interfaces share a 3-line display format:
 Glyphs like `:wolf:`, `:pistol:` render as emoji in React, ASCII on ESP32.
 
 ### WebSocket Messages
+
 ```
 Client → Server:  { type: "confirm" | "selectDown" | "useItem" | ..., payload: {} }
 Server → Client:  { type: "playerState" | "eventPrompt" | "slide" | ..., payload: {} }
 ```
+
 Message types defined in `shared/constants.js` (ServerMsg, ClientMsg).
 
 ### Event Resolution
+
 Events resolve by priority order. Each returns `{ success, outcome, victim?, slide?, silent? }`. Results queue as slides for the big screen. Host advances slides manually or via auto-advance.
 
 ## Tech Stack

@@ -330,6 +330,10 @@ export function createHandlers(game) {
         return { success: false, error: 'Not host' };
       }
       game.reset();
+      // Broadcast to ALL clients so orphaned player connections clear stale state
+      game.broadcast(ServerMsg.PLAYER_STATE, null);
+      game.broadcast(ServerMsg.GAME_STATE, game.getGameState({ audience: 'public' }));
+      // Host and screen get their specific states
       game.broadcastGameState();
       game.broadcastSlides();
       return { success: true };

@@ -263,6 +263,38 @@ export class Game {
   }
 
   nextPhase() {
+    // Auto-resolve remaining events so resolution effects aren't lost
+    if (this.activeEvents.size > 0) {
+      const pending = [...this.activeEvents.entries()]
+        .filter(([, inst]) => !inst.managedByFlow)
+        .sort((a, b) => a[1].event.priority - b[1].event.priority);
+
+      for (const [eventId, instance] of pending) {
+        const { event, results } = instance;
+        const resolution = event.resolve(results, this);
+
+        if (!resolution.silent) {
+          this.eventResults.push(resolution);
+          this.addLog(resolution.message);
+        }
+
+        // Deliver private results (e.g., seer investigations) to living players
+        if (resolution.investigations) {
+          for (const inv of resolution.investigations) {
+            const player = this.getPlayer(inv.seerId);
+            if (player?.isAlive) {
+              player.lastEventResult = { message: inv.privateMessage };
+              player.send(ServerMsg.EVENT_RESULT, {
+                eventId: 'investigate',
+                message: inv.privateMessage,
+                data: inv,
+              });
+            }
+          }
+        }
+      }
+    }
+
     // Clear protection and player event state
     for (const player of this.players.values()) {
       player.isProtected = false;
@@ -393,6 +425,7 @@ export class Game {
     for (const player of participants) {
       player.pendingEvents.add(eventId);
       player.clearSelection();
+      player.lastEventResult = null;
 
       const targets = event.validTargets(player, this);
 
@@ -511,6 +544,7 @@ export class Game {
 
       player.pendingEvents.add(eventId);
       player.clearSelection();
+      player.lastEventResult = null;
 
       const targets = getValidTargets(playerId);
 
@@ -618,6 +652,7 @@ export class Game {
     for (const player of participants) {
       player.pendingEvents.add('customEvent');
       player.clearSelection();
+      player.lastEventResult = null;
 
       const targets = event.validTargets(player, this);
 
@@ -831,6 +866,7 @@ export class Game {
       for (const inv of resolution.investigations) {
         const seer = this.getPlayer(inv.seerId);
         if (seer) {
+          seer.lastEventResult = { message: inv.privateMessage };
           seer.send(ServerMsg.EVENT_RESULT, {
             eventId: 'investigate',
             message: inv.privateMessage,
@@ -967,6 +1003,17 @@ export class Game {
 
       // Remove vote from active events before starting pardon
       this.activeEvents.delete(eventId);
+
+      // Clean up vote participants (vote is resolved, only the kill consequence is deferred)
+      for (const pid of participants) {
+        const player = this.getPlayer(pid);
+        if (player) {
+          player.pendingEvents.delete(eventId);
+          player.clearSelection();
+          player.syncState(this);
+        }
+      }
+
       this.broadcastGameState();
 
       // Start the pardon flow (handles execution, slides, cleanup)

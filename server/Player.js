@@ -65,6 +65,7 @@ export class Player {
     this.confirmedSelection = null; // Locked in choice
     this.abstained = false; // Whether player has abstained from current event
     this.pendingEvents = new Set(); // Events waiting for this player
+    this.lastEventResult = null; // { message } shown on TinyScreen after event resolves
 
     // History
     this.investigations = [];
@@ -114,6 +115,7 @@ export class Player {
     this.confirmedSelection = null;
     this.abstained = false;
     this.pendingEvents.clear();
+    this.lastEventResult = null;
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
@@ -418,6 +420,17 @@ export class Player {
         { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
         { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
         { yes: LedState.DIM, no: LedState.OFF },
+        phaseLed
+      );
+    }
+
+    // === EVENT RESULT (e.g., seer investigation) ===
+    if (this.lastEventResult) {
+      return this._display(
+        { left: getLine1(), right: Glyphs.CHECK },
+        { text: this.lastEventResult.message, style: DisplayStyle.NORMAL },
+        { text: '' },
+        { yes: LedState.OFF, no: LedState.OFF },
         phaseLed
       );
     }
