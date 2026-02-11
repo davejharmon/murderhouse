@@ -7,7 +7,7 @@
     "server": "node server/index.js",
     "client": "cd client && npm run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build",
     "start": "node server/web.js",
     "web": "node server/web.js",
     "test": "vitest run",
