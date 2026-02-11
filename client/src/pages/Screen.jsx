@@ -152,13 +152,22 @@ export default function Screen() {
 
     return (
       <div key={slide.id} className={styles.slide}>
+        {slide.title && (
+          <h1 className={styles.title} style={{ color: getSlideColor(slide) }}>
+            {slide.title}
+          </h1>
+        )}
         <div className={styles.playerReveal}>
           <img
             src={`/images/players/${player.portrait}`}
             alt={player.name}
             className={styles.largePortrait}
           />
-          <h1 className={styles.title}>{player.name}</h1>
+          {slide.subtitle ? (
+            <h2 className={styles.deathName}>{slide.subtitle}</h2>
+          ) : (
+            <h1 className={styles.title}>{player.name}</h1>
+          )}
           {slide.revealRole && player.role && (
             <p
               className={styles.roleReveal}

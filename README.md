@@ -1,6 +1,6 @@
 # Murderhouse
 
-A real-time multiplayer Werewolf/Mafia game designed for "eyes open" gameplay. All night actions happen on private mobile devices - no one closes their eyes.
+A real-time multiplayer Werewolf/Mafia game designed for "eyes open" gameplay. All night actions happen on private mobile devices or ESP32 physical terminals - no one closes their eyes. Supports 4-10 players.
 
 ## Quick Start
 
@@ -17,7 +17,9 @@ Open in your browser:
 - **Landing**: http://localhost:5173/
 - **Host Dashboard**: http://localhost:5173/host
 - **Big Screen**: http://localhost:5173/screen (projector/TV)
-- **Players**: http://localhost:5173/player/1 through /player/9
+- **Players**: http://localhost:5173/player/1 through /player/10
+
+For production/remote deployment, `server/web.js` serves the built client over HTTP alongside the WebSocket server on a single port.
 
 ## How to Play
 
@@ -26,25 +28,28 @@ Open in your browser:
 1. Display big screen on projector/TV
 2. Each player opens their player console on mobile
 3. Host opens dashboard to control game flow
-4. Start game when 4-9 players ready
+4. Start game when 4-10 players ready
 
 ### Day Phase
 
 1. Players discuss and debate who to eliminate
 2. Host initiates vote when ready
 3. Players select target on their devices
-4. Majority vote eliminates player (ties go to runoff)
+4. Majority vote eliminates player (ties go to runoff, 3+ runoffs break randomly)
 
 ### Night Phase
 
 1. Each role acts secretly on their device:
    - **Villager**: Suspect someone (tracking only)
-   - **Werewolf**: Vote with other wolves to kill
-   - **Seer**: Investigate if someone is evil
+   - **Alpha Werewolf**: Choose final kill target from pack suggestions
+   - **Werewolf**: Suggest targets to the alpha
+   - **Seer**: Investigate if someone is a werewolf
    - **Doctor**: Protect someone from death
-   - **Hunter**: When killed, revenge kill someone
-   - **Cupid**: Link two players (if one dies, both die)
-2. Host resolves events in order
+   - **Vigilante**: One-time night kill (single use per game)
+   - **Hunter**: Normal villager, but gets revenge kill when dying
+   - **Governor**: Can pardon condemned players after a day vote
+   - **Cupid**: Link two lovers at game start (if one dies, both die)
+2. Host resolves events in priority order
 3. Deaths revealed on big screen
 
 ### Win Conditions
@@ -52,63 +57,154 @@ Open in your browser:
 - **Village wins**: All werewolves eliminated
 - **Werewolves win**: Equal or outnumber villagers
 
+## Roles
+
+| Role          | Team     | Night Action | Special                                               |
+| ------------- | -------- | ------------ | ----------------------------------------------------- |
+| **Villager**  | Village  | Suspect      | —                                                     |
+| **Seer**      | Village  | Investigate  | Learns if target is werewolf                          |
+| **Doctor**    | Village  | Protect      | Prevents one kill per night                           |
+| **Hunter**    | Village  | —            | Revenge kill on death (interrupt flow)                |
+| **Vigilante** | Village  | Kill (once)  | One-shot night kill, then becomes villager            |
+| **Governor**  | Village  | —            | Can pardon a condemned player once per game           |
+| **Cupid**     | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both |
+| **Alpha**     | Werewolf | Kill         | Final kill decision; promotes successor on death      |
+| **Werewolf**  | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
+
+Role distribution scales from 4 players (alpha, seer, 2 villagers) to 10 players (alpha, werewolf, seer, doctor, hunter, vigilante, governor, 3 villagers).
+
+## Items
+
+| Item             | Uses | Effect                                                               |
+| ---------------- | ---- | -------------------------------------------------------------------- |
+| **Pistol**       | 1    | Shoot a player during the day (player-initiated, instant resolution) |
+| **Phone**        | 1    | Grants pardon ability (same as Governor, consumed on use)            |
+| **Crystal Ball** | 1    | Investigate a player (same as Seer)                                  |
+
+Items are given by the host. Items with `startsEvent` (pistol, crystal ball) appear in the player's ability selector when idle. Items stack if the same type is given twice.
+
 ## Features
 
 ### Player Interface
 
 - **UP/DOWN buttons**: Navigate targets/abilities
-- **YES button**: Confirm selection (immutable)
-- **NO button**: Abstain from action (immutable)
+- **YES button**: Confirm selection (immutable once locked)
+- **NO button**: Abstain from action (immutable once locked)
 
 ### Physical Terminals
 
 ESP32-based physical terminals can be used alongside or instead of mobile devices:
 
 - **Dial** to select player ID (1-9) on boot
-- **Rotary switch** navigates targets (same as swipe)
+- **Rotary switch** navigates targets (same as UP/DOWN)
 - **Arcade buttons** for YES/NO actions with LED feedback
-- **OLED display** shows same game state as mobile
+- **OLED display** shows same 3-line game state as mobile
 - **Multi-connection**: Web client and physical terminal can control the same player simultaneously
 
 See `esp32-terminal/README.md` for hardware setup.
 
 ### Items & Custom Votes
 
-- Host can give items (pistol) or initiate custom votes
-- Custom votes can award items, change roles, or resurrect players
-- Items add special abilities (e.g., pistol lets you shoot during day)
+- Host can give items or initiate custom votes at any time
+- Custom votes can award items, change roles, or resurrect dead players
+- Custom votes use the same runoff logic as standard day votes
 
 ### Governor Pardon
 
-- Governor can pardon the eliminated player
-- Pardon happens after vote results revealed
-- Can only pardon once per game
+- After a vote eliminates a player, governor (or phone holder) can pardon
+- Pardon is an interrupt flow that pauses normal resolution
+- Governor role can pardon once per game; phone item is consumed on use
+
+### Werewolf Pack
+
+- Werewolves see each other's selections in real-time during hunt/kill events
+- Pack hint shows the most popular target among packmates
+- Alpha makes the final kill decision; non-alpha wolves suggest via the hunt event
 
 ## Architecture
 
 ```
 murderhouse/
 ├── shared/
-│   └── constants.js        # Message types, phases, enums
+│   └── constants.js              # Enums, message types, glyphs, config
 ├── server/
-│   ├── definitions/        # Declarative game rules
-│   │   ├── roles.js        # Role definitions
-│   │   ├── events.js       # Event definitions
-│   │   └── items.js        # Item definitions
-│   ├── flows/              # Complex multi-step flows
-│   │   ├── InterruptFlow.js       # Base class for interrupt flows
-│   │   ├── HunterRevengeFlow.js   # Hunter death revenge logic
-│   │   └── GovernorPardonFlow.js  # Vote pardon logic
-│   ├── Game.js             # Game state machine
-│   ├── Player.js           # Player model
-│   └── index.js            # WebSocket server
-└── client/
-    └── src/
-        ├── pages/          # Player, Host, Screen, Landing
-        └── components/     # Reusable UI components
+│   ├── index.js                  # WebSocket server (port 8080) + UDP discovery (8089)
+│   ├── web.js                    # Production mode: Express serves client + WebSocket
+│   ├── Game.js                   # Core state machine (~1600 lines)
+│   ├── Player.js                 # Player model + display state (~740 lines)
+│   ├── handlers/
+│   │   └── index.js              # WebSocket message routing (~630 lines)
+│   ├── definitions/              # Declarative game rules
+│   │   ├── roles.js              # 9 roles with events, passives, win conditions
+│   │   ├── events.js             # 10 events with resolution logic
+│   │   └── items.js              # 3 items (pistol, phone, crystalBall)
+│   ├── flows/                    # Interrupt flows for multi-step mechanics
+│   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
+│   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill
+│   │   └── GovernorPardonFlow.js # Vote condemn → pardon/execute decision
+│   └── player-presets.json       # Saved player name/portrait presets
+├── client/
+│   ├── vite.config.js            # Path aliases: @ → src/, @shared → shared/
+│   └── src/
+│       ├── main.jsx              # App entry point
+│       ├── App.jsx               # Router setup
+│       ├── context/
+│       │   └── GameContext.jsx    # Central WebSocket state management
+│       ├── pages/
+│       │   ├── Landing.jsx       # Join/create game
+│       │   ├── Player.jsx        # Player console page
+│       │   ├── Host.jsx          # Host dashboard
+│       │   ├── Screen.jsx        # Big screen projector display
+│       │   └── DebugGrid.jsx     # 9-player debug grid
+│       ├── components/
+│       │   ├── PlayerConsole.jsx  # Full player terminal (screen + buttons)
+│       │   ├── TinyScreen.jsx    # Canvas-based OLED simulator (256×64)
+│       │   ├── oledFonts.js      # Bitmap font data matching ESP32 U8G2
+│       │   ├── PixelGlyph.jsx    # Glyph renderer for TinyScreen
+│       │   ├── StatusLed.jsx     # Neopixel status LED indicator
+│       │   ├── PlayerGrid.jsx    # Player overview grid (host/screen)
+│       │   ├── EventPanel.jsx    # Event controls for host
+│       │   ├── SlideControls.jsx # Slide navigation for host
+│       │   ├── GameLog.jsx       # Game event log display
+│       │   ├── CustomEventModal.jsx    # Custom event configuration
+│       │   ├── PortraitSelectorModal.jsx # Player portrait picker
+│       │   └── Modal.jsx         # Reusable modal component
+│       └── styles/
+│           └── global.css        # Severance-inspired aesthetic
+└── esp32-terminal/
+    ├── platformio.ini            # ESP32-S3, PlatformIO config
+    ├── src/
+    │   ├── main.cpp              # Entry point, setup/loop
+    │   ├── display.cpp/.h        # SSD1322 OLED rendering (U8g2)
+    │   ├── input.cpp/.h          # Rotary encoder + arcade buttons
+    │   ├── leds.cpp/.h           # WS2811 neopixel button LEDs
+    │   ├── network.cpp/.h        # WiFi + WebSocket + UDP discovery
+    │   ├── protocol.h            # Message parsing
+    │   └── config.h              # WiFi credentials, pin assignments
+    └── pcb/                      # EasyEDA PCB design files
 ```
 
-Game rules are declarative - roles and events defined in `/server/definitions/`. Events resolve by priority order (protect, investigate, shoot, vote, kill, suspect). Complex interrupt-based features (Hunter revenge, Governor pardon) are consolidated in `/server/flows/` with explicit state machines.
+### Three-Layer Game Logic
+
+1. **Declarative Definitions** (`server/definitions/`) — Roles, events, and items are data-driven. Roles declare their team, event participation, passives, and win conditions. Events declare participants, targets, aggregation type, and resolution logic.
+
+2. **State Machine** (`server/Game.js`) — Manages phase transitions (LOBBY → DAY ↔ NIGHT → GAME_OVER), event lifecycle (pending → active → resolved), death propagation with linked death cascades, win condition checks, and the slide queue for the big screen.
+
+3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics that pause normal resolution. Each flow has its own state machine (idle → active → resolving → idle) and creates flow-managed events via `Game._startFlowEvent()`.
+
+### Event Resolution Pipeline
+
+1. Phase starts → `buildPendingEvents()` filters events with eligible participants
+2. Host starts event → creates instance, sends prompts to participants
+3. Players act → selections recorded; some events resolve immediately (shoot)
+4. Host resolves → outcome computed, slides queued, deaths processed
+5. Death cascade → `killPlayer()` queues deaths sequentially; each fires onDeath passives (hunter revenge, alpha promotion) then propagates linked deaths (cupid lovers)
+6. Win check → runs after every kill and phase transition
+7. Phase transition → clears all event state, advances day counter
+
+### Event Priority Order
+
+Events resolve by priority (lower = earlier): protect (10) → investigate (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → kill (60) → suspect (80).
 
 ## Debug Mode
 
@@ -117,23 +213,82 @@ Set `DEBUG_MODE = true` in `shared/constants.js`:
 - Access `/debug` for 9-player grid view
 - Auto-select buttons on host dashboard
 
+## Testing
+
+Server-only tests using [Vitest](https://vitest.dev/). See [`server/TESTING.md`](server/TESTING.md) for the full test framework design.
+
+```bash
+npm test              # Run all server tests once
+npm run test:watch    # Watch mode (re-runs on file change)
+```
+
 ## Known Technical Debt & Refactoring Opportunities
 
-To be reconsidered - old list too out of date.
+### High Impact
 
-## Buglist
+1. **Runoff logic duplicated between vote and customEvent** — Shared helpers extracted (`tallyVotes`, `checkRunoff`, `getRunoffTargets`) at top of `events.js`. Verify no voting regressions then delete this entry.
 
-(none)
+   **Test cases** (run `npm run dev`, 4+ players, open host + player consoles):
+   - [✔️] **Day vote — clear majority**: All players vote for same target → target eliminated, slide shows result
+   - [✔️] **Day vote — tie → runoff**: Split votes evenly between 2 targets → runoff starts with only those 2 as targets
+   - [✔️] **Day vote — 3+ runoffs → random tiebreak**: Force 3 consecutive ties → game picks randomly, slide says "TIEBREAKER"
+   - [✔️] **Day vote — all abstain**: Every player abstains → no elimination, "No one was eliminated" outcome
+   - [❌] **Custom vote**: Host creates custom vote → same tally/runoff/tiebreak behavior as day vote
+   - [ ] **Custom vote — runoff**: Force tie in custom vote → runoff with correct candidates
+
+2. **Flow-managed events split logic between Game and Flow** — `Game._startFlowEvent()` creates minimal event objects with a `managedByFlow` flag, but resolution logic lives in the flow classes while event lifecycle management lives in Game. This makes interrupt flows hard to trace and debug. Consider having flows return resolution results directly rather than reaching back into Game internals.
+
+3. **Death cascade ordering** — `killPlayer()` now uses a queued death system with a re-entrancy guard. Nested calls (from linked deaths or flow resolutions) enqueue and return; the top-level call drains the queue sequentially via `_processDeathEffects()`. Verify no death-handling regressions then delete this entry.
+
+   **Test cases** (run `npm run dev`, 5+ players, include hunter + cupid + alpha roles):
+   - [ ] **Normal kills**: Vote elimination, werewolf kill, vigilante kill, pistol shot — target dies, slide shown
+   - [ ] **Linked deaths (cupid lovers)**: Link two players via cupid, kill one → partner dies of heartbreak, heartbreak slide queued
+   - [ ] **Hunter revenge**: Kill a hunter → revenge flow triggers, hunter picks target, target dies
+   - [ ] **Alpha promotion**: Kill the alpha werewolf → a regular werewolf gets promoted to alpha, pack state broadcasts
+   - [ ] **Cascade — hunter + cupid link**: Kill a hunter who is cupid-linked → revenge flow fires AND partner dies of heartbreak (both effects resolve)
+   - [ ] **Re-kill guard**: Verify killing an already-dead player is a no-op (no duplicate slides or logs)
+
+4. **Player display state is monolithic** — `_buildDisplay()` decomposed into 11 named methods (`_displayLobby`, `_displayGameOver`, `_displayDead`, etc.) with a ~30-line dispatcher. Verify no visual regressions then delete this entry.
+
+   **Test cases** (run `npm run dev`, open host + `/player/1`):
+   - [ ] **Lobby**: TinyScreen shows "WAITING" / "Game will begin soon", both LEDs off
+   - [ ] **Game start**: Start game → role name shown on line 2, tutorial tip on line 3
+   - [ ] **Idle**: After first event resolves, line 2 blank, tutorial tip on line 3, role glyph on line 1 right
+   - [ ] **Event no selection**: Host starts vote → "VOTE FOR SOMEONE" on line 2 (waiting style), "Use dial" on line 3 left
+   - [ ] **Event with selection**: Scroll to a target → target name on line 2, YES LED bright, confirm/abstain labels on line 3
+   - [ ] **Confirmed**: Press YES → "Selection locked" on line 3, lock glyph on line 1 right
+   - [ ] **Abstained**: Press NO instead → "ABSTAINED" on line 2, X glyph, both LEDs off
+   - [ ] **Event result**: Seer investigates → check glyph, result message on line 2
+   - [ ] **Ability mode**: Give pistol via host → "USE PISTOL?" on line 2, YES LED dim
+   - [ ] **Dead**: Kill a player → skull glyph, "SPECTATOR" on line 2
+   - [ ] **Game over**: End game → "FINISHED" / "Thanks for playing"
+
+### Medium Impact
+
+5. **Event result dual-tracking** — Player selections exist in both `event.instance.results` (for aggregation) and `player.confirmedSelection` (for display). These are synchronized manually at multiple points. A single source of truth with derived queries would reduce bugs.
+
+6. **Phase transition cleanup** — `nextPhase()` has 80+ lines of manual state clearing (pending events, active events, player selections, flow states). Easy to miss something when adding new features. A `Player.resetForPhase()` method and centralized cleanup would help.
+
+7. **Hardcoded role/item IDs throughout Game.js** — String literals like `"alpha"`, `"werewolf"`, `"governor"`, `"pistol"`, `"phone"` are scattered across Game.js and handlers. These should reference constants from `shared/constants.js` or the definition files.
+
+8. **No event definition validation** — `resolveEvent()` doesn't validate that all required participants have responded before resolving. Missing a required response silently produces unexpected results. Runtime schema validation on event definitions would catch misconfigurations early.
+
+### Low Impact
+
+9. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
+
+10. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
+
+11. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
 
 ## Improvements
 
-- Add a line 3 statement to team werewolf on day 1 game start identifying partner.
+- Add a line 3 statement to team werewolf on day 1 game start identifying partner
 - Add glyphs for inventory
-- Improve spacing on terminal screen to allow bigger glyphs.
-- Resolve issues
-  -- Make sure when event ends all tiny screns get a relevant message
-  -- Governor should get a pardoned/denied resolution message.
-  -- Add seer statements on resolve
-- Clean up display for werewolf packsense.
-- Add suspect functionality.
-- Add slide to game end that shows score including suspect.
+- Improve spacing on terminal screen to allow bigger glyphs
+- Governor should get a pardoned/denied resolution message on their TinyScreen
+- Add seer investigation result statements on event resolve
+- Make sure when event ends all TinyScreens get a relevant message
+- Clean up display for werewolf packsense
+- Add suspect functionality
+- Add slide to game end that shows score including suspect tracking

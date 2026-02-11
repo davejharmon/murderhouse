@@ -310,16 +310,14 @@ export class Player {
   }
 
   /**
-   * Build the display object based on current state
+   * Build the display object based on current state.
+   * Priority-ordered dispatcher — each state extracted to its own method.
    */
   _buildDisplay(game, ctx) {
-    const { phase, dayCount, hasActiveEvent, activeEventId, eventName } = ctx;
+    const { phase, hasActiveEvent, activeEventId, eventName } = ctx;
 
-    // Helper to get line1 with current context
     const getLine1 = (evtName = null, evtId = null) =>
-      this._getLine1(phase, dayCount, evtName, evtId);
-
-    // Helper: status LED colour for current phase (day/night)
+      this._getLine1(phase, ctx.dayCount, evtName, evtId);
     const phaseLed = phase === GamePhase.DAY ? StatusLed.DAY : StatusLed.NIGHT;
 
     // Clear role reveal once player enters any event
@@ -327,154 +325,165 @@ export class Player {
       this.showIdleRole = false;
     }
 
-    // === LOBBY ===
-    if (phase === GamePhase.LOBBY) {
-      return this._display(
-        { left: getLine1(), right: '' },
-        { text: 'WAITING', style: DisplayStyle.NORMAL },
-        { text: 'Game will begin soon' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        StatusLed.LOBBY
-      );
-    }
+    // Priority-ordered state dispatch
+    if (phase === GamePhase.LOBBY)          return this._displayLobby(getLine1);
+    if (phase === GamePhase.GAME_OVER)      return this._displayGameOver(getLine1);
+    if (!this.isAlive && !hasActiveEvent)    return this._displayDead(getLine1);
+    if (this.abstained)                      return this._displayAbstained(getLine1, eventName, activeEventId);
+    if (this.confirmedSelection)             return this._displayConfirmed(game, getLine1, eventName, activeEventId);
+    if (hasActiveEvent && this.currentSelection)
+      return this._displayEventWithSelection(game, ctx, getLine1, activeEventId, eventName);
+    if (hasActiveEvent)
+      return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
 
-    // === GAME OVER ===
-    if (phase === GamePhase.GAME_OVER) {
-      return this._display(
-        { left: getLine1(), right: '' },
-        { text: 'FINISHED', style: DisplayStyle.NORMAL },
-        { text: 'Thanks for playing' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        StatusLed.GAME_OVER
-      );
-    }
-
-    // === DEAD (no active event) ===
-    if (!this.isAlive && !hasActiveEvent) {
-      return this._display(
-        { left: getLine1(), right: Glyphs.SKULL },
-        { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
-        { text: 'Watch the game unfold' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        StatusLed.DEAD
-      );
-    }
-
-    // === ABSTAINED ===
-    if (this.abstained) {
-      return this._display(
-        { left: getLine1(eventName, activeEventId), right: Glyphs.X },
-        { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
-        { text: 'Waiting for others' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        StatusLed.ABSTAINED
-      );
-    }
-
-    // === CONFIRMED SELECTION ===
-    if (this.confirmedSelection) {
-      const targetName = game?.getPlayer(this.confirmedSelection)?.name || 'Unknown';
-      // Special display for pardon event - show "PARDONING {NAME}"
-      const line2Text = activeEventId === 'pardon'
-        ? `PARDONING ${targetName.toUpperCase()}`
-        : targetName.toUpperCase();
-      return this._display(
-        { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
-        { text: line2Text, style: DisplayStyle.LOCKED },
-        { text: 'Selection locked' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        StatusLed.LOCKED
-      );
-    }
-
-    // === EVENT ACTIVE WITH SELECTION ===
-    if (hasActiveEvent && this.currentSelection) {
-      const targetName = game?.getPlayer(this.currentSelection)?.name || 'Unknown';
-      const packHint = this._getPackHint(game, activeEventId);
-      const canAbstain = ctx.eventContext?.allowAbstain !== false;
-      const actions = getEventActions(activeEventId);
-
-      // Special display for pardon event - show "PARDON {NAME}?"
-      const line2Text = activeEventId === 'pardon'
-        ? `PARDON ${targetName.toUpperCase()}?`
-        : targetName.toUpperCase();
-
-      return this._display(
-        { left: getLine1(eventName, activeEventId), right: '' },
-        { text: line2Text, style: DisplayStyle.NORMAL },
-        packHint
-          ? { left: actions.confirm, center: packHint, right: canAbstain ? actions.abstain : '' }
-          : { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
-        { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
-        StatusLed.VOTING
-      );
-    }
-
-    // === EVENT ACTIVE NO SELECTION ===
-    if (hasActiveEvent) {
-      const packHint = this._getPackHint(game, activeEventId);
-      const canAbstain = ctx.eventContext?.allowAbstain !== false;
-      const actions = getEventActions(activeEventId);
-
-      // Special display for pardon event - show condemned player's name
-      if (activeEventId === 'pardon') {
-        const condemnedName = game?.flows?.get('pardon')?.state?.condemnedName || 'Unknown';
-        return this._display(
-          { left: getLine1(eventName, activeEventId), right: '' },
-          { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-          { left: actions.confirm, right: actions.abstain },
-          { yes: LedState.BRIGHT, no: LedState.DIM },
-          StatusLed.VOTING
-        );
-      }
-
-      return this._display(
-        { left: getLine1(eventName, activeEventId), right: '' },
-        { text: actions.prompt, style: DisplayStyle.WAITING },
-        packHint
-          ? { left: 'Use dial', center: packHint, right: canAbstain ? actions.abstain : '' }
-          : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
-        { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
-        StatusLed.VOTING
-      );
-    }
-
-    // === ABILITY MODE (idle with usable items) ===
     const usableAbilities = this._getUsableAbilities();
-    if (usableAbilities.length > 0 && this.isAlive) {
-      const ability = usableAbilities[0]; // Show first ability
+    if (usableAbilities.length > 0 && this.isAlive)
+      return this._displayAbilityMode(getLine1, phaseLed, usableAbilities);
+
+    if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
+    if (this.showIdleRole)    return this._displayGameStart(getLine1, phaseLed);
+    return this._displayIdle(getLine1, phaseLed);
+  }
+
+  // --- Display state methods (called by _buildDisplay) ---
+
+  _displayLobby(getLine1) {
+    return this._display(
+      { left: getLine1(), right: '' },
+      { text: 'WAITING', style: DisplayStyle.NORMAL },
+      { text: 'Game will begin soon' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.LOBBY
+    );
+  }
+
+  _displayGameOver(getLine1) {
+    return this._display(
+      { left: getLine1(), right: '' },
+      { text: 'FINISHED', style: DisplayStyle.NORMAL },
+      { text: 'Thanks for playing' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.GAME_OVER
+    );
+  }
+
+  _displayDead(getLine1) {
+    return this._display(
+      { left: getLine1(), right: Glyphs.SKULL },
+      { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
+      { text: 'Watch the game unfold' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.DEAD
+    );
+  }
+
+  _displayAbstained(getLine1, eventName, activeEventId) {
+    return this._display(
+      { left: getLine1(eventName, activeEventId), right: Glyphs.X },
+      { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
+      { text: 'Waiting for others' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.ABSTAINED
+    );
+  }
+
+  _displayConfirmed(game, getLine1, eventName, activeEventId) {
+    const targetName = game?.getPlayer(this.confirmedSelection)?.name || 'Unknown';
+    // Special display for pardon event - show "PARDONING {NAME}"
+    const line2Text = activeEventId === 'pardon'
+      ? `PARDONING ${targetName.toUpperCase()}`
+      : targetName.toUpperCase();
+    return this._display(
+      { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
+      { text: line2Text, style: DisplayStyle.LOCKED },
+      { text: 'Selection locked' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.LOCKED
+    );
+  }
+
+  _displayEventWithSelection(game, ctx, getLine1, activeEventId, eventName) {
+    const targetName = game?.getPlayer(this.currentSelection)?.name || 'Unknown';
+    const packHint = this._getPackHint(game, activeEventId);
+    const canAbstain = ctx.eventContext?.allowAbstain !== false;
+    const actions = getEventActions(activeEventId);
+
+    // Special display for pardon event - show "PARDON {NAME}?"
+    const line2Text = activeEventId === 'pardon'
+      ? `PARDON ${targetName.toUpperCase()}?`
+      : targetName.toUpperCase();
+
+    return this._display(
+      { left: getLine1(eventName, activeEventId), right: '' },
+      { text: line2Text, style: DisplayStyle.NORMAL },
+      packHint
+        ? { left: actions.confirm, center: packHint, right: canAbstain ? actions.abstain : '' }
+        : { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
+      { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
+      StatusLed.VOTING
+    );
+  }
+
+  _displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName) {
+    const packHint = this._getPackHint(game, activeEventId);
+    const canAbstain = ctx.eventContext?.allowAbstain !== false;
+    const actions = getEventActions(activeEventId);
+
+    // Special display for pardon event - show condemned player's name
+    if (activeEventId === 'pardon') {
+      const condemnedName = game?.flows?.get('pardon')?.state?.condemnedName || 'Unknown';
       return this._display(
-        { left: getLine1(), right: this._getInventoryGlyphs() },
-        { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-        { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
-        { yes: LedState.DIM, no: LedState.OFF },
-        phaseLed
+        { left: getLine1(eventName, activeEventId), right: '' },
+        { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
+        { left: actions.confirm, right: actions.abstain },
+        { yes: LedState.BRIGHT, no: LedState.DIM },
+        StatusLed.VOTING
       );
     }
 
-    // === EVENT RESULT (e.g., seer investigation) ===
-    if (this.lastEventResult) {
-      return this._display(
-        { left: getLine1(), right: Glyphs.CHECK },
-        { text: this.lastEventResult.message, style: DisplayStyle.NORMAL },
-        { text: '' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        phaseLed
-      );
-    }
+    return this._display(
+      { left: getLine1(eventName, activeEventId), right: '' },
+      { text: actions.prompt, style: DisplayStyle.WAITING },
+      packHint
+        ? { left: 'Use dial', center: packHint, right: canAbstain ? actions.abstain : '' }
+        : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
+      { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
+      StatusLed.VOTING
+    );
+  }
 
-    // === GAME START (role reveal, before first event) ===
-    if (this.showIdleRole) {
-      return this._display(
-        { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
-        { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
-        { text: this.tutorialTip || '[tip missing]' },
-        { yes: LedState.OFF, no: LedState.OFF },
-        phaseLed
-      );
-    }
+  _displayAbilityMode(getLine1, phaseLed, usableAbilities) {
+    const ability = usableAbilities[0]; // Show first ability
+    return this._display(
+      { left: getLine1(), right: this._getInventoryGlyphs() },
+      { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
+      { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
+      { yes: LedState.DIM, no: LedState.OFF },
+      phaseLed
+    );
+  }
 
-    // === IDLE STATE ===
+  _displayEventResult(getLine1, phaseLed) {
+    return this._display(
+      { left: getLine1(), right: Glyphs.CHECK },
+      { text: this.lastEventResult.message, style: DisplayStyle.NORMAL },
+      { text: '' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      phaseLed
+    );
+  }
+
+  _displayGameStart(getLine1, phaseLed) {
+    return this._display(
+      { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
+      { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
+      { text: this.tutorialTip || '[tip missing]' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      phaseLed
+    );
+  }
+
+  _displayIdle(getLine1, phaseLed) {
     return this._display(
       { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
       { text: '', style: DisplayStyle.NORMAL },

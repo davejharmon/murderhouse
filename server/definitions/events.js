@@ -2,8 +2,47 @@
 // Declarative event definitions
 // Events are actions that players can take during specific phases
 
-import { GamePhase, Team, SlideStyle } from '../../shared/constants.js';
+import { GamePhase, Team, SlideStyle, SlideType } from '../../shared/constants.js';
 import { getRole } from './roles.js';
+
+/** Map team to display name for slides/messages */
+function getTeamDisplayName(role) {
+  const names = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' }
+  return names[role?.team] || 'PLAYER'
+}
+
+/** Count votes from results map, skipping abstentions */
+function tallyVotes(results) {
+  const tally = {}
+  for (const [, targetId] of Object.entries(results)) {
+    if (targetId === null) continue
+    tally[targetId] = (tally[targetId] || 0) + 1
+  }
+  const isEmpty = Object.keys(tally).length === 0
+  const maxVotes = isEmpty ? 0 : Math.max(...Object.values(tally))
+  const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes)
+  return { tally, maxVotes, frontrunners, isEmpty }
+}
+
+/** Check if frontrunners tie should trigger runoff or random tiebreak.
+ *  Returns runoff result, tieBreaker result, or null (clear winner). */
+function checkRunoff(frontrunners, tally, runoffRound, eventName) {
+  if (frontrunners.length <= 1) return null
+  if (runoffRound >= 3) {
+    const winnerId = frontrunners[Math.floor(Math.random() * frontrunners.length)]
+    return { tieBreaker: true, winnerId, tally }
+  }
+  return {
+    success: true, runoff: true, frontrunners, tally,
+    message: `${eventName} tied. Starting runoff with ${frontrunners.length} candidates.`,
+  }
+}
+
+/** Get runoff candidates from active event instance, or null */
+function getRunoffTargets(eventId, game) {
+  const instance = game.activeEvents.get(eventId)
+  return instance?.runoffCandidates?.length > 0 ? instance.runoffCandidates : null
+}
 
 /**
  * Event Definition Schema:
@@ -61,10 +100,9 @@ const events = {
     participants: (game) => game.getAlivePlayers(),
 
     validTargets: (actor, game) => {
-      // Check for runoff voting - only show runoff candidates
-      const instance = game.activeEvents.get('vote');
-      if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
-        return instance.runoffCandidates
+      const runoffTargets = getRunoffTargets('vote', game);
+      if (runoffTargets) {
+        return runoffTargets
           .map((id) => game.getPlayer(id))
           .filter((p) => p && p.id !== actor.id);
       }
@@ -79,14 +117,9 @@ const events = {
       const instance = game.activeEvents.get('vote');
       const runoffRound = instance?.runoffRound || 0;
 
-      // Count votes
-      const tally = {};
-      for (const [voterId, targetId] of Object.entries(results)) {
-        if (targetId === null) continue; // Abstained
-        tally[targetId] = (tally[targetId] || 0) + 1;
-      }
+      const { tally, frontrunners, isEmpty } = tallyVotes(results);
 
-      if (Object.keys(tally).length === 0) {
+      if (isEmpty) {
         return {
           success: true,
           outcome: 'no-kill',
@@ -100,27 +133,12 @@ const events = {
         };
       }
 
-      // Find max votes
-      const maxVotes = Math.max(...Object.values(tally));
-      const frontrunners = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes,
-      );
-
-      if (frontrunners.length > 1) {
-        // Tie detected
-        if (runoffRound >= 3) {
-          // After 3 runoffs, pick randomly
-          const winnerId =
-            frontrunners[Math.floor(Math.random() * frontrunners.length)];
-          const victim = game.getPlayer(winnerId);
+      const runoffResult = checkRunoff(frontrunners, tally, runoffRound, 'Vote');
+      if (runoffResult) {
+        if (runoffResult.tieBreaker) {
+          const victim = game.getPlayer(runoffResult.winnerId);
           // Don't kill yet - let Game.js handle it after checking for governor
-
-          const teamDisplayNames = {
-            village: 'VILLAGER',
-            werewolf: 'WEREWOLF',
-            neutral: 'INDEPENDENT',
-          };
-          const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+          const teamName = getTeamDisplayName(victim.role);
           return {
             success: true,
             outcome: 'eliminated',
@@ -137,26 +155,12 @@ const events = {
             },
           };
         }
-
-        // Trigger runoff
-        return {
-          success: true,
-          runoff: true,
-          frontrunners,
-          tally,
-          message: `Vote tied. Starting runoff with ${frontrunners.length} candidates.`,
-        };
+        return runoffResult;
       }
 
       const victim = game.getPlayer(frontrunners[0]);
       // Don't kill yet - let Game.js handle it after checking for governor
-
-      const teamDisplayNames = {
-        village: 'VILLAGER',
-        werewolf: 'WEREWOLF',
-        neutral: 'INDEPENDENT',
-      };
-      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+      const teamName = getTeamDisplayName(victim.role);
       return {
         success: true,
         outcome: 'eliminated',
@@ -229,12 +233,7 @@ const events = {
         // Kill the target
         game.killPlayer(target.id, 'vigilante');
 
-        const teamDisplayNames = {
-          village: 'VILLAGER',
-          werewolf: 'WEREWOLF',
-          neutral: 'INDEPENDENT',
-        };
-        const teamName = teamDisplayNames[target.role?.team] || 'PLAYER';
+        const teamName = getTeamDisplayName(target.role);
         kills.push({
           vigilanteId,
           vigilante,
@@ -368,24 +367,15 @@ const events = {
     allowAbstain: false,
 
     resolve: (results, game) => {
-      // Count werewolf votes
-      const tally = {};
-      for (const [voterId, targetId] of Object.entries(results)) {
-        if (targetId === null) continue;
-        tally[targetId] = (tally[targetId] || 0) + 1;
-      }
+      const { tally, frontrunners, isEmpty } = tallyVotes(results);
 
-      if (Object.keys(tally).length === 0) {
+      if (isEmpty) {
         return { success: true, silent: true };
       }
 
       // Find victim (ties resolved randomly)
-      const maxVotes = Math.max(...Object.values(tally));
-      const candidates = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes,
-      );
       const victimId =
-        candidates[Math.floor(Math.random() * candidates.length)];
+        frontrunners[Math.floor(Math.random() * frontrunners.length)];
       const victim = game.getPlayer(victimId);
 
       // Check protection
@@ -407,12 +397,7 @@ const events = {
 
       game.killPlayer(victim.id, 'werewolf');
 
-      const teamDisplayNames = {
-        village: 'VILLAGER',
-        werewolf: 'WEREWOLF',
-        neutral: 'INDEPENDENT',
-      };
-      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+      const teamName = getTeamDisplayName(victim.role);
       return {
         success: true,
         outcome: 'killed',
@@ -656,12 +641,7 @@ const events = {
       // Consume the pistol use
       game.consumeItem(shooterId, 'pistol');
 
-      const teamDisplayNames = {
-        village: 'VILLAGER',
-        werewolf: 'WEREWOLF',
-        neutral: 'INDEPENDENT',
-      };
-      const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+      const teamName = getTeamDisplayName(victim.role);
       return {
         message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()}`,
         slide: {
@@ -701,8 +681,9 @@ const events = {
       const instance = game.activeEvents.get('customEvent');
 
       // Check for runoff voting - only show runoff candidates
-      if (instance?.runoffCandidates && instance.runoffCandidates.length > 0) {
-        return instance.runoffCandidates
+      const runoffTargets = getRunoffTargets('customEvent', game);
+      if (runoffTargets) {
+        return runoffTargets
           .map((id) => game.getPlayer(id))
           .filter((p) => p);
       }
@@ -732,14 +713,9 @@ const events = {
         };
       }
 
-      // Count votes
-      const tally = {};
-      for (const [voterId, targetId] of Object.entries(results)) {
-        if (targetId === null) continue; // Abstained
-        tally[targetId] = (tally[targetId] || 0) + 1;
-      }
+      const { tally, frontrunners, isEmpty } = tallyVotes(results);
 
-      if (Object.keys(tally).length === 0) {
+      if (isEmpty) {
         return {
           success: true,
           outcome: 'no-winner',
@@ -753,29 +729,12 @@ const events = {
         };
       }
 
-      // Find winner
-      const maxVotes = Math.max(...Object.values(tally));
-      const frontrunners = Object.keys(tally).filter(
-        (id) => tally[id] === maxVotes,
-      );
-
-      if (frontrunners.length > 1) {
-        // Tie detected
-        if (runoffRound >= 3) {
-          // After 3 runoffs, pick randomly
-          const winnerId =
-            frontrunners[Math.floor(Math.random() * frontrunners.length)];
-          return resolveCustomEventReward(winnerId, config, game, tally, true);
+      const runoffResult = checkRunoff(frontrunners, tally, runoffRound, 'Custom event');
+      if (runoffResult) {
+        if (runoffResult.tieBreaker) {
+          return resolveCustomEventReward(runoffResult.winnerId, config, game, tally, true);
         }
-
-        // Trigger runoff
-        return {
-          success: true,
-          runoff: true,
-          frontrunners,
-          tally,
-          message: `Custom event tied. Starting runoff with ${frontrunners.length} candidates.`,
-        };
+        return runoffResult;
       }
 
       return resolveCustomEventReward(
@@ -843,8 +802,8 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
     tally,
     message,
     slide: {
-      type: 'voteTally',
-      tally,
+      type: SlideType.PLAYER_REVEAL,
+      playerId: winnerId,
       title: 'CUSTOM EVENT RESULT',
       subtitle: slideSubtitle,
       style: SlideStyle.NEUTRAL,

@@ -38,6 +38,10 @@ export class Game {
       [GovernorPardonFlow.id, new GovernorPardonFlow(this)],
     ]);
 
+    // Death processing queue (prevents recursive killPlayer cascades)
+    this._deathQueue = [];
+    this._processingDeaths = false;
+
     this.reset();
     this.loadPlayerPresets();
   }
@@ -81,6 +85,10 @@ export class Game {
         flow.cleanup();
       }
     }
+
+    // Death processing queue
+    this._deathQueue = [];
+    this._processingDeaths = false;
 
     // Log
     this.log = [];
@@ -907,9 +915,6 @@ export class Game {
       }
     }
 
-    // Check for linked death (Cupid lovers)
-    this.checkLinkedDeaths();
-
     // Check win condition
     const winner = this.checkWinCondition();
     if (winner) {
@@ -1087,7 +1092,7 @@ export class Game {
     } else if (resolution.tally && resolution.message?.includes('randomly')) {
       outcomeInfo = { type: 'random' };
     } else {
-      outcomeInfo = { type: 'selected', selectedName: resolution.victim?.name || 'Unknown' };
+      outcomeInfo = { type: 'selected', selectedName: resolution.victim?.name || resolution.winner?.name || 'Unknown' };
     }
 
     // Queue slides: tally first, then result
@@ -1109,9 +1114,6 @@ export class Game {
     // Jump to tally (host advances to see result)
     this.currentSlideIndex = this.slideQueue.length - (resolution.slide ? 2 : 1);
     this.broadcastSlides();
-
-    // Check for linked deaths (already handled in killPlayer, but ensure it runs)
-    // Note: killPlayer already calls checkLinkedDeaths()
 
     // Check win condition
     const winner = this.checkWinCondition();
@@ -1237,11 +1239,25 @@ export class Game {
 
   killPlayer(playerId, cause) {
     const player = this.getPlayer(playerId);
-    if (!player) return false;
+    if (!player || !player.isAlive) return false;
 
     player.kill(cause);
+    this._deathQueue.push({ player, cause });
 
-    // Check for onDeath passives
+    // Re-entrant call (from linked death or flow): just queue, don't process
+    if (this._processingDeaths) return true;
+
+    // Top-level call: drain the full queue
+    this._processingDeaths = true;
+    while (this._deathQueue.length > 0) {
+      this._processDeathEffects(this._deathQueue.shift());
+    }
+    this._processingDeaths = false;
+    return true;
+  }
+
+  _processDeathEffects({ player, cause }) {
+    // 1. Fire onDeath passives (hunter revenge, alpha promotion)
     if (player.role.passives?.onDeath) {
       const deathResult = player.role.passives.onDeath(player, cause, this);
 
@@ -1263,10 +1279,15 @@ export class Game {
       }
     }
 
-    // Check linked deaths
-    this.checkLinkedDeaths();
-
-    return true;
+    // 2. Check linked deaths (cupid lovers)
+    //    killPlayer() just enqueues due to re-entrancy guard
+    for (const other of this.players.values()) {
+      if (other.linkedTo === player.id && other.isAlive) {
+        this.killPlayer(other.id, 'heartbreak');
+        this.addLog(`${other.getNameWithEmoji()} died of heartbreak`);
+        this.queueDeathSlide(this.createDeathSlide(other, 'heartbreak'), false);
+      }
+    }
   }
 
   revivePlayer(playerId, cause) {
@@ -1302,20 +1323,6 @@ export class Game {
       player.removeItem(itemId);
     }
     return true;
-  }
-
-  checkLinkedDeaths() {
-    for (const player of this.players.values()) {
-      if (player.linkedTo && player.isAlive) {
-        const linked = this.getPlayer(player.linkedTo);
-        if (linked && !linked.isAlive) {
-          this.killPlayer(player.id, 'heartbreak');
-          this.addLog(`${player.getNameWithEmoji()} died of heartbreak`);
-          // Queue heartbreak death slide (queueDeathSlide handles hunter revenge automatically)
-          this.queueDeathSlide(this.createDeathSlide(player, 'heartbreak'), false);
-        }
-      }
-    }
   }
 
   // === Slide Management ===
