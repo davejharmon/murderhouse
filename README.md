@@ -190,7 +190,7 @@ murderhouse/
 
 2. **State Machine** (`server/Game.js`) — Manages phase transitions (LOBBY → DAY ↔ NIGHT → GAME_OVER), event lifecycle (pending → active → resolved), death propagation with linked death cascades, win condition checks, and the slide queue for the big screen.
 
-3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics that pause normal resolution. Each flow has its own state machine (idle → active → resolving → idle) and creates flow-managed events via `Game._startFlowEvent()`.
+3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics that pause normal resolution. Each flow declares `static get hooks()` (e.g., `['onDeath']`, `['onVoteResolution']`) and `Game._checkFlows(hook, context)` dispatches to the matching flow. Resolution methods return structured result objects (`{ kills, slides, consumeItems, log }`) processed uniformly by `Game._executeFlowResult()` — flows never mutate Game state directly.
 
 ### Event Resolution Pipeline
 
@@ -226,42 +226,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### High Impact
 
-1. **Runoff logic duplicated between vote and customEvent** — Shared helpers extracted (`tallyVotes`, `checkRunoff`, `getRunoffTargets`) at top of `events.js`. Verify no voting regressions then delete this entry.
-
-   **Test cases** (run `npm run dev`, 4+ players, open host + player consoles):
-   - [✔️] **Day vote — clear majority**: All players vote for same target → target eliminated, slide shows result
-   - [✔️] **Day vote — tie → runoff**: Split votes evenly between 2 targets → runoff starts with only those 2 as targets
-   - [✔️] **Day vote — 3+ runoffs → random tiebreak**: Force 3 consecutive ties → game picks randomly, slide says "TIEBREAKER"
-   - [✔️] **Day vote — all abstain**: Every player abstains → no elimination, "No one was eliminated" outcome
-   - [❌] **Custom vote**: Host creates custom vote → same tally/runoff/tiebreak behavior as day vote
-   - [ ] **Custom vote — runoff**: Force tie in custom vote → runoff with correct candidates
-
-2. **Flow-managed events split logic between Game and Flow** — `Game._startFlowEvent()` creates minimal event objects with a `managedByFlow` flag, but resolution logic lives in the flow classes while event lifecycle management lives in Game. This makes interrupt flows hard to trace and debug. Consider having flows return resolution results directly rather than reaching back into Game internals.
-
-3. **Death cascade ordering** — `killPlayer()` now uses a queued death system with a re-entrancy guard. Nested calls (from linked deaths or flow resolutions) enqueue and return; the top-level call drains the queue sequentially via `_processDeathEffects()`. Verify no death-handling regressions then delete this entry.
-
-   **Test cases** (run `npm run dev`, 5+ players, include hunter + cupid + alpha roles):
-   - [ ] **Normal kills**: Vote elimination, werewolf kill, vigilante kill, pistol shot — target dies, slide shown
-   - [ ] **Linked deaths (cupid lovers)**: Link two players via cupid, kill one → partner dies of heartbreak, heartbreak slide queued
-   - [ ] **Hunter revenge**: Kill a hunter → revenge flow triggers, hunter picks target, target dies
-   - [ ] **Alpha promotion**: Kill the alpha werewolf → a regular werewolf gets promoted to alpha, pack state broadcasts
-   - [ ] **Cascade — hunter + cupid link**: Kill a hunter who is cupid-linked → revenge flow fires AND partner dies of heartbreak (both effects resolve)
-   - [ ] **Re-kill guard**: Verify killing an already-dead player is a no-op (no duplicate slides or logs)
-
-4. **Player display state is monolithic** — `_buildDisplay()` decomposed into 11 named methods (`_displayLobby`, `_displayGameOver`, `_displayDead`, etc.) with a ~30-line dispatcher. Verify no visual regressions then delete this entry.
-
-   **Test cases** (run `npm run dev`, open host + `/player/1`):
-   - [ ] **Lobby**: TinyScreen shows "WAITING" / "Game will begin soon", both LEDs off
-   - [ ] **Game start**: Start game → role name shown on line 2, tutorial tip on line 3
-   - [ ] **Idle**: After first event resolves, line 2 blank, tutorial tip on line 3, role glyph on line 1 right
-   - [ ] **Event no selection**: Host starts vote → "VOTE FOR SOMEONE" on line 2 (waiting style), "Use dial" on line 3 left
-   - [ ] **Event with selection**: Scroll to a target → target name on line 2, YES LED bright, confirm/abstain labels on line 3
-   - [ ] **Confirmed**: Press YES → "Selection locked" on line 3, lock glyph on line 1 right
-   - [ ] **Abstained**: Press NO instead → "ABSTAINED" on line 2, X glyph, both LEDs off
-   - [ ] **Event result**: Seer investigates → check glyph, result message on line 2
-   - [ ] **Ability mode**: Give pistol via host → "USE PISTOL?" on line 2, YES LED dim
-   - [ ] **Dead**: Kill a player → skull glyph, "SPECTATOR" on line 2
-   - [ ] **Game over**: End game → "FINISHED" / "Thanks for playing"
+*(none currently)*
 
 ### Medium Impact
 

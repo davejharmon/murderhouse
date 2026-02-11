@@ -46,6 +46,14 @@ export class InterruptFlow {
   }
 
   /**
+   * Game hooks this flow responds to (e.g., 'onDeath', 'onVoteResolution')
+   * @returns {string[]}
+   */
+  static get hooks() {
+    return [];
+  }
+
+  /**
    * Instance accessor for the flow ID
    * @returns {string}
    */
@@ -117,6 +125,15 @@ export class InterruptFlow {
    */
   getValidTargets(playerId) {
     return [];
+  }
+
+  /**
+   * Return (and clear) any pending slide queued by this flow.
+   * Called by Game.queueDeathSlide() after pushing a death slide.
+   * @returns {Object|null} Slide object or null
+   */
+  getPendingSlide() {
+    return null;
   }
 
   /**

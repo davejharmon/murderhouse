@@ -55,7 +55,7 @@ All clients (web + ESP32) connect via WebSocket to the Node.js server on port 80
 
 1. **Declarative Definitions** (`server/definitions/`) — Roles, events, and items are data-driven. Roles declare their team, event participation, passives, and win conditions. Events declare participants, targets, resolution logic, and slides.
 2. **State Machine** (`server/Game.js`) — Manages phase transitions (LOBBY → DAY/NIGHT → GAME_OVER), event resolution by priority, death propagation, win condition checks, and slide queues.
-3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics (hunter revenge, governor pardon) that pause normal resolution with their own internal state machines.
+3. **Interrupt Flows** (`server/flows/`) — Complex multi-step mechanics (hunter revenge, governor pardon) that pause normal resolution. Flows declare `static get hooks()` for trigger dispatch via `Game._checkFlows()`, and return structured results (`{ kills, slides, consumeItems, log }`) processed by `Game._executeFlowResult()`.
 
 ### Display Format
 

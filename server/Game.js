@@ -149,7 +149,10 @@ export class Game {
       const presets = JSON.parse(fs.readFileSync(PRESETS_PATH, 'utf-8'));
       let count = 0;
       for (const [id, data] of Object.entries(presets)) {
-        this.playerCustomizations.set(id, { name: data.name, portrait: data.portrait });
+        this.playerCustomizations.set(id, {
+          name: data.name,
+          portrait: data.portrait,
+        });
         // Update any currently connected player
         const player = this.players.get(id);
         if (player) {
@@ -191,7 +194,7 @@ export class Game {
 
   getPlayersBySeat() {
     return [...this.players.values()].sort(
-      (a, b) => a.seatNumber - b.seatNumber
+      (a, b) => a.seatNumber - b.seatNumber,
     );
   }
 
@@ -246,7 +249,7 @@ export class Game {
       type: 'gallery',
       title: 'DAY 1',
       subtitle: 'The game begins.',
-      playerIds: this.getAlivePlayers().map(p => p.id),
+      playerIds: this.getAlivePlayers().map((p) => p.id),
       style: SlideStyle.NEUTRAL,
     });
 
@@ -280,10 +283,11 @@ export class Game {
       player.showIdleRole = true;
       if (player.role.team === Team.WEREWOLF) {
         // Find packmates
-        const packmates = [...this.players.values()]
-          .filter(p => p.id !== player.id && p.role.team === Team.WEREWOLF);
+        const packmates = [...this.players.values()].filter(
+          (p) => p.id !== player.id && p.role.team === Team.WEREWOLF,
+        );
         if (packmates.length > 0) {
-          const names = packmates.map(p => p.name).join(', ');
+          const names = packmates.map((p) => p.name).join(', ');
           player.tutorialTip = `Packmate: ${names}`;
         } else {
           player.tutorialTip = 'Lone wolf';
@@ -349,7 +353,7 @@ export class Game {
         type: 'gallery',
         title: `NIGHT ${this.dayCount}`,
         subtitle: 'Close your eyes... just kidding.',
-        playerIds: this.getAlivePlayers().map(p => p.id),
+        playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.NIGHT) {
@@ -360,7 +364,7 @@ export class Game {
         type: 'gallery',
         title: `DAY ${this.dayCount}`,
         subtitle: 'The sun rises.',
-        playerIds: this.getAlivePlayers().map(p => p.id),
+        playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     }
@@ -411,7 +415,7 @@ export class Game {
     // Get item-based participants (players with items granting this event)
     const itemParticipants = this.getAlivePlayers().filter((player) => {
       return player.inventory.some(
-        (item) => item.startsEvent === eventId && item.uses > 0
+        (item) => item.startsEvent === eventId && item.uses > 0,
       );
     });
 
@@ -435,6 +439,18 @@ export class Game {
     const event = getEvent(eventId);
     if (!event) {
       return { success: false, error: 'Event not found' };
+    }
+
+    // Check phase restriction for player-initiated events
+    if (
+      event.playerInitiated &&
+      event.phase &&
+      !event.phase.includes(this.phase)
+    ) {
+      return {
+        success: false,
+        error: `Not available during ${this.phase} phase`,
+      };
     }
 
     const participants = this.getEventParticipants(eventId);
@@ -490,7 +506,7 @@ export class Game {
           subtitle: `${shooter.name} is searching for a target...`,
           style: SlideStyle.WARNING,
         },
-        true
+        true,
       ); // Jump to this slide immediately
     }
 
@@ -501,11 +517,11 @@ export class Game {
           type: 'gallery',
           title: 'ELIMINATION VOTE',
           subtitle: 'Choose who to eliminate',
-          playerIds: this.getAlivePlayers().map(p => p.id),
+          playerIds: this.getAlivePlayers().map((p) => p.id),
           targetsOnly: true,
           style: SlideStyle.NEUTRAL,
         },
-        true
+        true,
       );
     }
 
@@ -680,7 +696,9 @@ export class Game {
     };
 
     this.activeEvents.set('customEvent', eventInstance);
-    this.pendingEvents = this.pendingEvents.filter((id) => id !== 'customEvent');
+    this.pendingEvents = this.pendingEvents.filter(
+      (id) => id !== 'customEvent',
+    );
 
     // Notify participants with custom description
     for (const player of participants) {
@@ -705,19 +723,20 @@ export class Game {
     this.addLog(`Custom event started — ${config.description}`);
 
     // Show slide when custom event starts — gallery of eligible targets
-    const customTargets = config.rewardType === 'resurrection'
-      ? [...this.players.values()].filter(p => !p.isAlive)
-      : this.getAlivePlayers();
+    const customTargets =
+      config.rewardType === 'resurrection'
+        ? [...this.players.values()].filter((p) => !p.isAlive)
+        : this.getAlivePlayers();
     this.pushSlide(
       {
         type: 'gallery',
         title: 'CUSTOM VOTE',
         subtitle: config.description,
-        playerIds: customTargets.map(p => p.id),
+        playerIds: customTargets.map((p) => p.id),
         targetsOnly: true,
         style: SlideStyle.NEUTRAL,
       },
-      true
+      true,
     );
 
     // Clear the config now that we've started
@@ -777,6 +796,7 @@ export class Game {
           if (flow) {
             const result = flow.onSelection(playerId, targetId);
             if (result) {
+              this._executeFlowResult(result);
               this.broadcastGameState();
               return { success: true, eventId, flowResult: result };
             }
@@ -869,7 +889,7 @@ export class Game {
         // Only consume if they actually submitted a result (not abstained)
         if (results[pid] !== undefined && results[pid] !== null) {
           const grantingItem = player.inventory.find(
-            (item) => item.startsEvent === eventId && item.uses > 0
+            (item) => item.startsEvent === eventId && item.uses > 0,
           );
           if (grantingItem) {
             this.consumeItem(pid, grantingItem.id);
@@ -929,7 +949,7 @@ export class Game {
   resolveAllEvents() {
     // Sort by priority and resolve
     const sorted = [...this.activeEvents.entries()].sort(
-      (a, b) => a[1].event.priority - b[1].event.priority
+      (a, b) => a[1].event.priority - b[1].event.priority,
     );
 
     const results = [];
@@ -982,7 +1002,9 @@ export class Game {
 
     // Find frontrunners (candidates with max votes)
     const maxVotes = Math.max(...Object.values(tally), 0);
-    const frontrunners = Object.keys(tally).filter(id => tally[id] === maxVotes);
+    const frontrunners = Object.keys(tally).filter(
+      (id) => tally[id] === maxVotes,
+    );
     const isTied = frontrunners.length > 1;
 
     // Determine title and subtitle based on outcome
@@ -1024,23 +1046,30 @@ export class Game {
 
     // If this is a runoff, handle it immediately
     if (resolution.runoff === true) {
-      const tallySlide = this.buildTallySlide(eventId, results, event, { type: 'runoff' });
+      const tallySlide = this.buildTallySlide(eventId, results, event, {
+        type: 'runoff',
+      });
       this.pushSlide(tallySlide, true);
       this.addLog(resolution.message);
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
-    // Check if governor pardon flow should trigger
-    const pardonFlow = this.flows.get('pardon');
-    if (pardonFlow.canTrigger({ voteEventId: eventId, resolution, instance })) {
+    // Check if any flow wants to intercept the vote resolution (e.g., governor pardon)
+    const flowContext = { voteEventId: eventId, resolution, instance };
+    const interceptingFlow = [...this.flows.values()].find(
+      (f) => f.constructor.hooks.includes('onVoteResolution') && f.canTrigger(flowContext),
+    );
+
+    if (interceptingFlow) {
       const selectedName = resolution.victim?.name || 'Unknown';
-      const tallySlide = this.buildTallySlide(eventId, results, event, { type: 'selected', selectedName });
+      const tallySlide = this.buildTallySlide(eventId, results, event, {
+        type: 'selected',
+        selectedName,
+      });
       this.pushSlide(tallySlide, true);
 
-      // Remove vote from active events before starting pardon
+      // Common vote cleanup (applies to any vote-interrupting flow)
       this.activeEvents.delete(eventId);
-
-      // Clean up vote participants (vote is resolved, only the kill consequence is deferred)
       for (const pid of participants) {
         const player = this.getPlayer(pid);
         if (player) {
@@ -1052,8 +1081,8 @@ export class Game {
 
       this.broadcastGameState();
 
-      // Start the pardon flow (handles execution, slides, cleanup)
-      pardonFlow.trigger({ voteEventId: eventId, resolution, instance });
+      // Trigger the intercepting flow
+      interceptingFlow.trigger(flowContext);
       return { success: true, showingTally: true, awaitingPardon: true };
     }
 
@@ -1092,11 +1121,20 @@ export class Game {
     } else if (resolution.tally && resolution.message?.includes('randomly')) {
       outcomeInfo = { type: 'random' };
     } else {
-      outcomeInfo = { type: 'selected', selectedName: resolution.victim?.name || resolution.winner?.name || 'Unknown' };
+      outcomeInfo = {
+        type: 'selected',
+        selectedName:
+          resolution.victim?.name || resolution.winner?.name || 'Unknown',
+      };
     }
 
     // Queue slides: tally first, then result
-    const tallySlide = this.buildTallySlide(eventId, results, event, outcomeInfo);
+    const tallySlide = this.buildTallySlide(
+      eventId,
+      results,
+      event,
+      outcomeInfo,
+    );
     this.pushSlide(tallySlide, false);
 
     if (resolution.slide) {
@@ -1112,7 +1150,8 @@ export class Game {
     }
 
     // Jump to tally (host advances to see result)
-    this.currentSlideIndex = this.slideQueue.length - (resolution.slide ? 2 : 1);
+    this.currentSlideIndex =
+      this.slideQueue.length - (resolution.slide ? 2 : 1);
     this.broadcastSlides();
 
     // Check win condition
@@ -1138,18 +1177,35 @@ export class Game {
     instance.runoffRound = (instance.runoffRound || 0) + 1;
     instance.results = {}; // Clear previous votes
 
-    // Queue runoff slide with eligible candidates (after the tally slide)
-    this.pushSlide({
-      type: 'gallery',
-      title: `RUNOFF VOTE #${instance.runoffRound}`,
-      subtitle: 'Choose who to eliminate',
-      playerIds: frontrunners,
-      targetsOnly: true,
-      style: SlideStyle.NEUTRAL,
-      activateRunoff: eventId,
-    }, false);
+    // Build context-aware subtitle
+    let runoffSubtitle = 'Choose who to eliminate';
+    if (eventId === 'customEvent' && instance.config) {
+      const { rewardType, rewardParam } = instance.config;
+      if (rewardType === 'resurrection')
+        runoffSubtitle = 'Choose who to resurrect';
+      else if (rewardType === 'item')
+        runoffSubtitle = `Choose who to give ${rewardParam}`;
+      else if (rewardType === 'role')
+        runoffSubtitle = `Choose who to elect as ${rewardParam}`;
+    }
 
-    this.addLog(`${instance.event.name} runoff — Round ${instance.runoffRound}`);
+    // Queue runoff slide with eligible candidates (after the tally slide)
+    this.pushSlide(
+      {
+        type: 'gallery',
+        title: `RUNOFF VOTE #${instance.runoffRound}`,
+        subtitle: runoffSubtitle,
+        playerIds: frontrunners,
+        targetsOnly: true,
+        style: SlideStyle.NEUTRAL,
+        activateRunoff: eventId,
+      },
+      false,
+    );
+
+    this.addLog(
+      `${instance.event.name} runoff — Round ${instance.runoffRound}`,
+    );
     this.broadcastGameState();
 
     return { success: true, runoff: true };
@@ -1221,18 +1277,95 @@ export class Game {
 
     this.addLog(`Game over — ${winnerName} win!`);
 
-    this.pushSlide({
-      type: 'victory',
-      winner,
-      title: `${winnerName} WIN`,
-      subtitle:
-        winner === Team.VILLAGE
-          ? 'All werewolves have been eliminated.'
-          : 'The werewolves have taken over.',
-      style: winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
-    }, false); // Queue after death slide, don't jump to it
+    this.pushSlide(
+      {
+        type: 'victory',
+        winner,
+        title: `${winnerName} WIN`,
+        subtitle:
+          winner === Team.VILLAGE
+            ? 'All werewolves have been eliminated.'
+            : 'The werewolves have taken over.',
+        style:
+          winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
+      },
+      false,
+    ); // Queue after death slide, don't jump to it
 
     this.broadcastGameState();
+  }
+
+  // === Flow Dispatch ===
+
+  /**
+   * Check if any registered flow should trigger for the given hook.
+   * Iterates flows, checks hook match + canTrigger(), calls trigger().
+   * @param {string} hook - Hook name (e.g., 'onDeath', 'onVoteResolution')
+   * @param {Object} context - Context passed to canTrigger and trigger
+   * @returns {Object|null} Flow trigger result, or null if no flow triggered
+   */
+  _checkFlows(hook, context) {
+    for (const flow of this.flows.values()) {
+      if (flow.constructor.hooks.includes(hook) && flow.canTrigger(context)) {
+        return flow.trigger(context);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Execute a structured result returned by a flow's resolve/onSelection method.
+   * Processes: consumeItems → kills → slides → jumpToSlide → log
+   * @param {Object} result - Flow result with optional kills, slides, consumeItems, jumpToSlide, log
+   */
+  _executeFlowResult(result) {
+    if (!result || result.error) return;
+
+    // Consume items first (before state changes from kills)
+    if (result.consumeItems) {
+      for (const { playerId, itemId } of result.consumeItems) {
+        this.consumeItem(playerId, itemId);
+      }
+    }
+
+    // Execute kills (may trigger more flows and enqueue slides)
+    if (result.kills) {
+      for (const { playerId, cause } of result.kills) {
+        this.killPlayer(playerId, cause);
+      }
+    }
+
+    // Push slides, tracking positions for jumpToSlide
+    const slidePositions = [];
+    if (result.slides) {
+      for (const { slide, jumpTo, isDeath } of result.slides) {
+        slidePositions.push(this.slideQueue.length);
+        if (isDeath) {
+          this.queueDeathSlide(slide, jumpTo);
+        } else {
+          this.pushSlide(slide, jumpTo);
+        }
+      }
+    }
+
+    // Jump to a specific slide by index into the result's slides array
+    if (result.jumpToSlide !== undefined && slidePositions[result.jumpToSlide] !== undefined) {
+      this.currentSlideIndex = slidePositions[result.jumpToSlide];
+      this.broadcastSlides();
+    }
+
+    // Log message
+    if (result.log) {
+      this.addLog(result.log);
+    }
+
+    // Check win condition after kills
+    if (result.kills?.length > 0) {
+      const winner = this.checkWinCondition();
+      if (winner) {
+        this.endGame(winner);
+      }
+    }
   }
 
   // === Death Handling ===
@@ -1261,13 +1394,8 @@ export class Game {
     if (player.role.passives?.onDeath) {
       const deathResult = player.role.passives.onDeath(player, cause, this);
 
-      // Check if any flow should trigger
-      for (const flow of this.flows.values()) {
-        if (flow.canTrigger({ player, cause, deathResult })) {
-          flow.trigger({ player, cause, deathResult });
-          break; // Only one interrupt flow at a time
-        }
-      }
+      // Check if any flow should trigger for this death
+      this._checkFlows('onDeath', { player, cause, deathResult });
 
       // Handle non-interrupt results (like Alpha promotion message)
       if (deathResult?.message && !deathResult.interrupt) {
@@ -1327,26 +1455,32 @@ export class Game {
 
   // === Slide Management ===
 
-  // Centralized death slide queuing - handles hunter revenge follow-up automatically
+  // Centralized death slide queuing - handles flow follow-up slides automatically
   queueDeathSlide(slide, jumpTo = true) {
     // Push the death slide
     this.pushSlide(slide, jumpTo);
 
-    // Automatically queue hunter revenge announcement if flow is active
-    const hunterFlow = this.flows.get('hunterRevenge');
-    if (hunterFlow?.phase === 'active' && hunterFlow?.state?.pendingSlide) {
-      hunterFlow.pushPendingSlide();
+    // Check all flows for pending slides to queue after the death slide
+    for (const flow of this.flows.values()) {
+      const pendingSlide = flow.getPendingSlide();
+      if (pendingSlide) {
+        this.pushSlide(pendingSlide, false);
+      }
     }
   }
 
   // Create a death slide for a given cause (used when events don't provide custom slides)
   createDeathSlide(player, cause) {
-    const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
+    const teamDisplayNames = {
+      village: 'VILLAGER',
+      werewolf: 'WEREWOLF',
+      neutral: 'INDEPENDENT',
+    };
     const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
 
     const titles = {
       eliminated: `${teamName} ELIMINATED`,
-      werewolf: `${teamName} MURDERED`,
+      werewolf: `${teamName} KILLED`,
       vigilante: `${teamName} KILLED`,
       shot: `${teamName} KILLED`,
       hunter: `${teamName} KILLED`,
@@ -1357,7 +1491,7 @@ export class Game {
     const subtitles = {
       eliminated: player.name,
       werewolf: player.name,
-      vigilante: `${player.name} was killed in the night`,
+      vigilante: player.name,
       shot: `${player.name} was shot`,
       hunter: `${player.name} was killed`,
       heartbreak: `${player.name} died of a broken heart`,
@@ -1420,7 +1554,7 @@ export class Game {
         type: 'gallery',
         title: `DAY ${this.dayCount}`,
         subtitle: 'The sun rises.',
-        playerIds: this.getAlivePlayers().map(p => p.id),
+        playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.NIGHT) {
@@ -1428,7 +1562,7 @@ export class Game {
         type: 'gallery',
         title: `NIGHT ${this.dayCount}`,
         subtitle: 'Close your eyes... just kidding.',
-        playerIds: this.getAlivePlayers().map(p => p.id),
+        playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.LOBBY) {
@@ -1436,7 +1570,7 @@ export class Game {
         type: 'gallery',
         title: 'LOBBY',
         subtitle: 'Waiting for game to start',
-        playerIds: [...this.players.values()].map(p => p.id),
+        playerIds: [...this.players.values()].map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     }
@@ -1469,14 +1603,11 @@ export class Game {
     // Host gets full player info (only state update they receive)
     this.sendToHost(
       ServerMsg.GAME_STATE,
-      this.getGameState({ audience: 'host' })
+      this.getGameState({ audience: 'host' }),
     );
 
     // Screen gets public state
-    this.sendToScreen(
-      ServerMsg.GAME_STATE,
-      publicState
-    );
+    this.sendToScreen(ServerMsg.GAME_STATE, publicState);
   }
 
   broadcastPlayerList() {
@@ -1498,7 +1629,7 @@ export class Game {
   // Broadcast pack state to all werewolves (for real-time hunt updates)
   broadcastPackState() {
     const werewolves = this.getAlivePlayers().filter(
-      (p) => p.role && p.role.team === Team.WEREWOLF
+      (p) => p.role && p.role.team === Team.WEREWOLF,
     );
 
     for (const werewolf of werewolves) {
@@ -1539,7 +1670,7 @@ export class Game {
 
     // Count total werewolves (both alive and dead)
     const totalWerewolves = [...this.players.values()].filter(
-      (p) => p.role && p.role.team === Team.WEREWOLF
+      (p) => p.role && p.role.team === Team.WEREWOLF,
     ).length;
 
     return {

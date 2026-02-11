@@ -1,7 +1,7 @@
 // server/flows/GovernorPardonFlow.js
 // Consolidated Governor pardon logic
 
-import { ServerMsg, SlideStyle } from '../../shared/constants.js';
+import { SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
 
 /**
@@ -40,6 +40,10 @@ import { InterruptFlow } from './InterruptFlow.js';
 export class GovernorPardonFlow extends InterruptFlow {
   static get id() {
     return 'pardon';
+  }
+
+  static get hooks() {
+    return ['onVoteResolution'];
   }
 
   /**
@@ -152,6 +156,7 @@ export class GovernorPardonFlow extends InterruptFlow {
 
   /**
    * Handle governor's selection
+   * Returns a structured result for Game._executeFlowResult() to process.
    * @param {string} governorId
    * @param {string|null} targetId
    * @returns {Object|null}
@@ -168,22 +173,26 @@ export class GovernorPardonFlow extends InterruptFlow {
       return { error: 'Invalid state' };
     }
 
-    // Consume phone if used
-    if (governor.hasItem('phone') && governor.canUseItem('phone')) {
-      this.game.consumeItem(governorId, 'phone');
-    }
+    // Check phone usage before resolve (canUseItem may change after state changes)
+    const usesPhone = governor.hasItem('phone') && governor.canUseItem('phone');
 
     // Pardon = selected the condemned player
-    if (targetId === this.state.condemnedId) {
-      return this.resolvePardon(governor, condemned);
-    } else {
-      // Abstain or skip = execute
-      return this.resolveExecution(governor, condemned);
+    const result = targetId === this.state.condemnedId
+      ? this.resolvePardon(governor, condemned)
+      : this.resolveExecution(governor, condemned);
+
+    // Add phone consumption to the result
+    if (usesPhone) {
+      if (!result.consumeItems) result.consumeItems = [];
+      result.consumeItems.push({ playerId: governorId, itemId: 'phone' });
     }
+
+    return result;
   }
 
   /**
    * Pardon the condemned player
+   * Returns a structured result for Game._executeFlowResult() to process.
    * @param {Player} governor
    * @param {Player} condemned
    * @returns {Object}
@@ -191,33 +200,33 @@ export class GovernorPardonFlow extends InterruptFlow {
   resolvePardon(governor, condemned) {
     this.phase = 'resolving';
 
-    // Push pardon slide
-    this.game.pushSlide(
-      {
-        type: 'death',
-        playerId: condemned.id,
-        title: 'PARDONED',
-        subtitle: `${condemned.name} was not eliminated`,
-        revealRole: false,
-        style: SlideStyle.POSITIVE,
-      },
-      true // Jump to this slide
-    );
-
-    const result = {
-      success: true,
-      pardoned: true,
-      message: `${governor.getNameWithEmoji()} pardoned ${condemned.getNameWithEmoji()}`,
-    };
-
-    this.game.addLog(result.message);
+    const message = `${governor.getNameWithEmoji()} pardoned ${condemned.getNameWithEmoji()}`;
 
     this.cleanup();
-    return result;
+
+    return {
+      success: true,
+      pardoned: true,
+      message,
+      slides: [{
+        slide: {
+          type: 'death',
+          playerId: condemned.id,
+          title: 'PARDONED',
+          subtitle: `${condemned.name} was not eliminated`,
+          revealRole: false,
+          style: SlideStyle.POSITIVE,
+        },
+        jumpTo: true,
+        isDeath: false,
+      }],
+      log: message,
+    };
   }
 
   /**
    * Execute the condemned player
+   * Returns a structured result for Game._executeFlowResult() to process.
    * @param {Player} governor
    * @param {Player} condemned
    * @returns {Object}
@@ -225,49 +234,47 @@ export class GovernorPardonFlow extends InterruptFlow {
   resolveExecution(governor, condemned) {
     this.phase = 'resolving';
 
-    // Remember queue position before adding slides
-    const noPardonSlideIndex = this.game.slideQueue.length;
+    const condemnedId = this.state.condemnedId;
+    const voteResolution = this.state.voteResolution;
+    const voteInstance = this.state.voteInstance;
+    const message = `${governor.getNameWithEmoji()} condemned ${condemned.getNameWithEmoji()}`;
 
-    // Push "no pardon" slide
-    this.game.pushSlide(
+    // Build slides array: "NO PARDON" title, then execution death slide
+    const slides = [
       {
-        type: 'title',
-        title: 'NO PARDON',
-        subtitle: `${condemned.name}'s fate is sealed`,
-        style: SlideStyle.HOSTILE,
+        slide: {
+          type: 'title',
+          title: 'NO PARDON',
+          subtitle: `${condemned.name}'s fate is sealed`,
+          style: SlideStyle.HOSTILE,
+        },
+        jumpTo: false,
+        isDeath: false,
       },
-      false
-    );
+    ];
 
-    // Execute the elimination (this triggers hunter revenge if applicable)
-    this.game.killPlayer(this.state.condemnedId, 'eliminated');
-
-    // Queue execution death slide (queueDeathSlide handles hunter revenge automatically)
-    if (this.state.voteResolution?.slide) {
-      // Get voter IDs from the original vote instance
-      const voterIds = Object.entries(this.state.voteInstance?.results || {})
-        .filter(([, targetId]) => targetId === this.state.condemnedId)
+    if (voteResolution?.slide) {
+      const voterIds = Object.entries(voteInstance?.results || {})
+        .filter(([, targetId]) => targetId === condemnedId)
         .map(([voterId]) => voterId);
-      this.game.queueDeathSlide(
-        { ...this.state.voteResolution.slide, voterIds },
-        false
-      );
+      slides.push({
+        slide: { ...voteResolution.slide, voterIds },
+        jumpTo: false,
+        isDeath: true,
+      });
     }
 
-    // Jump to "NO PARDON" slide
-    this.game.currentSlideIndex = noPardonSlideIndex;
-    this.game.broadcastSlides();
+    this.cleanup();
 
-    const result = {
+    return {
       success: true,
       pardoned: false,
-      message: `${governor.getNameWithEmoji()} condemned ${condemned.getNameWithEmoji()}`,
+      message,
+      kills: [{ playerId: condemnedId, cause: 'eliminated' }],
+      slides,
+      jumpToSlide: 0, // Jump to the "NO PARDON" slide
+      log: message,
     };
-
-    this.game.addLog(result.message);
-
-    this.cleanup();
-    return result;
   }
 
   /**

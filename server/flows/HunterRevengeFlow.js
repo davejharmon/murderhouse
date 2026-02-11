@@ -1,7 +1,7 @@
 // server/flows/HunterRevengeFlow.js
 // Consolidated Hunter revenge logic
 
-import { GamePhase, ServerMsg, SlideStyle } from '../../shared/constants.js';
+import { GamePhase, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
 
 /**
@@ -37,6 +37,10 @@ import { InterruptFlow } from './InterruptFlow.js';
 export class HunterRevengeFlow extends InterruptFlow {
   static get id() {
     return 'hunterRevenge';
+  }
+
+  static get hooks() {
+    return ['onDeath'];
   }
 
   /**
@@ -92,14 +96,17 @@ export class HunterRevengeFlow extends InterruptFlow {
   }
 
   /**
-   * Push the pending announcement slide (called after death slide is pushed)
-   * Uses jumpTo=false so host sees death slide first, then advances to this
+   * Return (and clear) the pending announcement slide.
+   * Called by Game.queueDeathSlide() after pushing a death slide.
+   * @returns {Object|null}
    */
-  pushPendingSlide() {
+  getPendingSlide() {
     if (this.state?.pendingSlide) {
-      this.game.pushSlide(this.state.pendingSlide, false);
+      const slide = this.state.pendingSlide;
       this.state.pendingSlide = null;
+      return slide;
     }
+    return null;
   }
 
   /**
@@ -148,6 +155,7 @@ export class HunterRevengeFlow extends InterruptFlow {
 
   /**
    * Execute the revenge kill
+   * Returns a structured result for Game._executeFlowResult() to process.
    * @param {string} targetId - The victim's ID
    * @returns {Object}
    */
@@ -161,49 +169,46 @@ export class HunterRevengeFlow extends InterruptFlow {
 
     this.phase = 'resolving';
 
-    // Kill the target (this may trigger another hunter revenge if target is also hunter)
-    this.game.killPlayer(victim.id, 'hunter');
-
     const isNight = this.state.triggeredInPhase === GamePhase.NIGHT;
     const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
     const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+    const message = `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them`;
 
-    // Queue the death slide (queueDeathSlide handles nested hunter revenge automatically)
-    this.game.queueDeathSlide(
-      {
-        type: 'death',
-        playerId: victim.id,
-        title: `${teamName} KILLED`,
-        subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
-        revealRole: true,
-        style: SlideStyle.HOSTILE,
-      },
-      true // Jump to this slide
-    );
+    // Cleanup before returning (frees flow for potential nested hunter revenge)
+    this.cleanup();
 
-    const result = {
+    return {
       success: true,
       victim,
-      message: `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them`,
+      message,
+      kills: [{ playerId: victim.id, cause: 'hunter' }],
+      slides: [{
+        slide: {
+          type: 'death',
+          playerId: victim.id,
+          title: `${teamName} KILLED`,
+          subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
+          revealRole: true,
+          style: SlideStyle.HOSTILE,
+        },
+        jumpTo: true,
+        isDeath: true,
+      }],
+      log: message,
     };
-
-    this.game.addLog(result.message);
-
-    this.cleanup();
-    return result;
   }
 
   /**
    * Clean up flow state
    */
   cleanup() {
-    super.cleanup();
-    // Clear any pending events for the hunter (they're dead)
+    // Clear pending events BEFORE super.cleanup() which nulls state
     if (this.state?.hunterId) {
       const hunter = this.game.getPlayer(this.state.hunterId);
       if (hunter) {
         hunter.pendingEvents.delete(this.id);
       }
     }
+    super.cleanup();
   }
 }
