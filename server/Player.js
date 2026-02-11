@@ -12,6 +12,7 @@ import {
   DisplayStyle,
   StatusLed,
 } from '../shared/constants.js';
+import { getEvent } from './definitions/events.js';
 
 // Action labels for each event type (confirm action / abstain action / select prompt)
 const EVENT_ACTIONS = {
@@ -336,7 +337,7 @@ export class Player {
     if (hasActiveEvent)
       return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
 
-    const usableAbilities = this._getUsableAbilities();
+    const usableAbilities = this._getUsableAbilities(phase);
     if (usableAbilities.length > 0 && this.isAlive)
       return this._displayAbilityMode(getLine1, phaseLed, usableAbilities);
 
@@ -622,10 +623,12 @@ export class Player {
   /**
    * Get usable abilities (items with startsEvent)
    */
-  _getUsableAbilities() {
-    return this.inventory.filter(
-      (item) => item.startsEvent && (item.uses > 0 || item.maxUses === -1)
-    );
+  _getUsableAbilities(phase) {
+    return this.inventory.filter((item) => {
+      if (!item.startsEvent || (item.maxUses !== -1 && item.uses <= 0)) return false;
+      const event = getEvent(item.startsEvent);
+      return !event || !event.phase || event.phase.includes(phase);
+    });
   }
 
   // Inventory management

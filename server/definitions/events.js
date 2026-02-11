@@ -217,6 +217,9 @@ const events = {
         // Mark as used
         vigilante.vigilanteUsed = true;
 
+        // Skip if already dead (killed by another event this round)
+        if (!target.isAlive) continue;
+
         // Check protection
         if (target.isProtected) {
           target.isProtected = false;
@@ -245,7 +248,7 @@ const events = {
             type: 'death',
             playerId: target.id,
             title: `${teamName} KILLED`,
-            subtitle: `${target.name} was killed in the night`,
+            subtitle: target.name,
             revealRole: true,
             style: SlideStyle.HOSTILE,
           },
@@ -378,6 +381,11 @@ const events = {
         frontrunners[Math.floor(Math.random() * frontrunners.length)];
       const victim = game.getPlayer(victimId);
 
+      // Skip if already dead (killed by another event this round)
+      if (!victim.isAlive) {
+        return { success: true, silent: true };
+      }
+
       // Check protection
       if (victim.isProtected) {
         victim.isProtected = false;
@@ -406,7 +414,7 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: `${teamName} MURDERED`,
+          title: `${teamName} KILLED`,
           subtitle: victim.name,
           revealRole: true,
           style: SlideStyle.HOSTILE,
