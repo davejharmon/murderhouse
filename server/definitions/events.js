@@ -2,7 +2,7 @@
 // Declarative event definitions
 // Events are actions that players can take during specific phases
 
-import { GamePhase, Team, SlideStyle, SlideType } from '../../shared/constants.js';
+import { GamePhase, Team, RoleId, EventId, ItemId, SlideStyle, SlideType } from '../../shared/constants.js';
 import { getRole } from './roles.js';
 
 /** Map team to display name for slides/messages */
@@ -100,7 +100,7 @@ const events = {
     participants: (game) => game.getAlivePlayers(),
 
     validTargets: (actor, game) => {
-      const runoffTargets = getRunoffTargets('vote', game);
+      const runoffTargets = getRunoffTargets(EventId.VOTE, game);
       if (runoffTargets) {
         return runoffTargets
           .map((id) => game.getPlayer(id))
@@ -114,7 +114,7 @@ const events = {
     allowAbstain: true,
 
     resolve: (results, game) => {
-      const instance = game.activeEvents.get('vote');
+      const instance = game.activeEvents.get(EventId.VOTE);
       const runoffRound = instance?.runoffRound || 0;
 
       const { tally, frontrunners, isEmpty } = tallyVotes(results);
@@ -193,7 +193,7 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.id === 'vigilante' && !p.vigilanteUsed);
+        .filter((p) => p.role.id === RoleId.VIGILANTE && !p.vigilanteUsed);
     },
 
     validTargets: (actor, game) => {
@@ -298,10 +298,10 @@ const events = {
         .getAlivePlayers()
         .filter(
           (p) =>
-            p.role.id === 'villager' ||
-            p.role.id === 'hunter' ||
-            p.role.id === 'vigilante' ||
-            p.role.id === 'governor',
+            p.role.id === RoleId.VILLAGER ||
+            p.role.id === RoleId.HUNTER ||
+            p.role.id === RoleId.VIGILANTE ||
+            p.role.id === RoleId.GOVERNOR,
         );
     },
 
@@ -357,7 +357,7 @@ const events = {
     priority: 60,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === 'alpha'); // Only alphas
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.ALPHA); // Only alphas
     },
 
     validTargets: (actor, game) => {
@@ -433,7 +433,7 @@ const events = {
     priority: 55, // Before kill (60)
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === 'werewolf'); // Only regular werewolves
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.WEREWOLF); // Only regular werewolves
     },
 
     validTargets: (actor, game) => {
@@ -483,7 +483,7 @@ const events = {
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === 'seer');
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.SEER);
     },
 
     validTargets: (actor, game) => {
@@ -550,7 +550,7 @@ const events = {
     priority: 10, // First to resolve
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === 'doctor');
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DOCTOR);
     },
 
     validTargets: (actor, game) => {
@@ -611,7 +611,7 @@ const events = {
       // Players with a pistol that has uses remaining
       return game
         .getAlivePlayers()
-        .filter((p) => p.hasItem('pistol') && p.canUseItem('pistol'));
+        .filter((p) => p.hasItem(ItemId.PISTOL) && p.canUseItem(ItemId.PISTOL));
     },
 
     validTargets: (actor, game) => {
@@ -647,7 +647,7 @@ const events = {
       game.killPlayer(victim.id, 'shot');
 
       // Consume the pistol use
-      game.consumeItem(shooterId, 'pistol');
+      game.consumeItem(shooterId, ItemId.PISTOL);
 
       const teamName = getTeamDisplayName(victim.role);
       return {
@@ -686,10 +686,10 @@ const events = {
     participants: (game) => game.getAlivePlayers(),
 
     validTargets: (actor, game) => {
-      const instance = game.activeEvents.get('customEvent');
+      const instance = game.activeEvents.get(EventId.CUSTOM_EVENT);
 
       // Check for runoff voting - only show runoff candidates
-      const runoffTargets = getRunoffTargets('customEvent', game);
+      const runoffTargets = getRunoffTargets(EventId.CUSTOM_EVENT, game);
       if (runoffTargets) {
         return runoffTargets
           .map((id) => game.getPlayer(id))
@@ -710,7 +710,7 @@ const events = {
     allowAbstain: true,
 
     resolve: (results, game) => {
-      const instance = game.activeEvents.get('customEvent');
+      const instance = game.activeEvents.get(EventId.CUSTOM_EVENT);
       const config = instance?.config;
       const runoffRound = instance?.runoffRound || 0;
 

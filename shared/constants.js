@@ -112,6 +112,37 @@ export const SlideStyleColors = {
   [SlideStyle.WARNING]: '#d4af37',   // Gold/yellow (governor color)
 };
 
+export const RoleId = {
+  VILLAGER: 'villager',
+  ALPHA: 'alpha',
+  WEREWOLF: 'werewolf',
+  SEER: 'seer',
+  DOCTOR: 'doctor',
+  HUNTER: 'hunter',
+  VIGILANTE: 'vigilante',
+  GOVERNOR: 'governor',
+  CUPID: 'cupid',
+};
+
+export const EventId = {
+  VOTE: 'vote',
+  KILL: 'kill',
+  PROTECT: 'protect',
+  INVESTIGATE: 'investigate',
+  SHOOT: 'shoot',
+  HUNT: 'hunt',
+  VIGIL: 'vigil',
+  SUSPECT: 'suspect',
+  CUSTOM_EVENT: 'customEvent',
+  LINK: 'link',
+};
+
+export const ItemId = {
+  PISTOL: 'pistol',
+  PHONE: 'phone',
+  CRYSTAL_BALL: 'crystalBall',
+};
+
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 10;
 
@@ -122,7 +153,7 @@ export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
 export const DEBUG_MODE = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = ['pistol', 'phone', 'crystalBall'];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CRYSTAL_BALL];
 
 // Display glyphs for TinyScreen
 // Format: :glyphId: in strings, rendered differently by React vs ESP
@@ -142,9 +173,9 @@ export const Glyphs = {
 
 // Item ID to glyph mapping
 export const ItemGlyphs = {
-  pistol: Glyphs.PISTOL,
-  phone: Glyphs.PHONE,
-  crystalBall: Glyphs.CRYSTAL,
+  [ItemId.PISTOL]: Glyphs.PISTOL,
+  [ItemId.PHONE]: Glyphs.PHONE,
+  [ItemId.CRYSTAL_BALL]: Glyphs.CRYSTAL,
 };
 
 // LED states for physical buttons

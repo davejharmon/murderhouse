@@ -3,6 +3,8 @@
 // Items are capabilities/modifiers - they declare what they grant,
 // and events/flows query for item holders.
 
+import { EventId } from '../../shared/constants.js';
+
 /**
  * Item Definition Schema:
  * {
@@ -33,7 +35,7 @@ const items = {
     name: 'Pistol',
     description: 'A deadly weapon. One shot. Make it count.',
     maxUses: 1,
-    startsEvent: 'shoot', // Idle-activatable: starts the shoot event
+    startsEvent: EventId.SHOOT, // Idle-activatable: starts the shoot event
   },
 
   phone: {
@@ -49,7 +51,7 @@ const items = {
     name: 'Crystal Ball',
     description: 'Peer into a soul to learn their true nature.',
     maxUses: 1,
-    startsEvent: 'investigate', // Grants seer's investigate ability
+    startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
   },
 };
 

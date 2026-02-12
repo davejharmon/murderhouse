@@ -2,7 +2,7 @@
 // Declarative role definitions
 // Each role specifies its team, abilities, and event participation
 
-import { Team } from '../../shared/constants.js';
+import { Team, RoleId } from '../../shared/constants.js';
 
 /**
  * Role Definition Schema:
@@ -73,14 +73,14 @@ const roles = {
         // Find living werewolves to promote
         const werewolves = game
           .getAlivePlayers()
-          .filter((p) => p.role.id === 'werewolf');
+          .filter((p) => p.role.id === RoleId.WEREWOLF);
 
         if (werewolves.length === 0) return null;
 
         // Promote random werewolf to alpha
         const promoted =
           werewolves[Math.floor(Math.random() * werewolves.length)];
-        const alphaRole = getRole('alpha');
+        const alphaRole = getRole(RoleId.ALPHA);
         promoted.assignRole(alphaRole);
 
         return {
@@ -269,50 +269,50 @@ const roles = {
 
 // Role distribution by player count
 export const roleDistribution = {
-  4: ['alpha', 'seer', 'villager', 'villager'],
-  5: ['alpha', 'seer', 'villager', 'villager', 'villager'],
-  6: ['alpha', 'seer', 'doctor', 'villager', 'villager', 'villager'],
+  4: [RoleId.ALPHA, RoleId.SEER, RoleId.VILLAGER, RoleId.VILLAGER],
+  5: [RoleId.ALPHA, RoleId.SEER, RoleId.VILLAGER, RoleId.VILLAGER, RoleId.VILLAGER],
+  6: [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR, RoleId.VILLAGER, RoleId.VILLAGER, RoleId.VILLAGER],
   7: [
-    'alpha',
-    'werewolf',
-    'seer',
-    'doctor',
-    'villager',
-    'villager',
-    'villager',
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
   ],
   8: [
-    'alpha',
-    'werewolf',
-    'seer',
-    'doctor',
-    'vigilante',
-    'villager',
-    'villager',
-    'villager',
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.VIGILANTE,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
   ],
   9: [
-    'alpha',
-    'werewolf',
-    'seer',
-    'doctor',
-    'hunter',
-    'vigilante',
-    'governor',
-    'villager',
-    'villager',
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.HUNTER,
+    RoleId.VIGILANTE,
+    RoleId.GOVERNOR,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
   ],
   10: [
-    'alpha',
-    'werewolf',
-    'seer',
-    'doctor',
-    'hunter',
-    'vigilante',
-    'governor',
-    'villager',
-    'villager',
-    'villager',
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.HUNTER,
+    RoleId.VIGILANTE,
+    RoleId.GOVERNOR,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
+    RoleId.VILLAGER,
   ],
 };
 
