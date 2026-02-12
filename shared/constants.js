@@ -71,6 +71,7 @@ export const ClientMsg = {
   CLEAR_SLIDES: 'clearSlides',
   
   // Host player management
+  PRE_ASSIGN_ROLE: 'preAssignRole',
   KICK_PLAYER: 'kickPlayer',
   KILL_PLAYER: 'killPlayer',
   REVIVE_PLAYER: 'revivePlayer',
@@ -154,6 +155,19 @@ export const DEBUG_MODE = true;
 
 // Available items (for host UI)
 export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CRYSTAL_BALL];
+
+// Available roles (for host pre-assignment UI)
+export const AVAILABLE_ROLES = [
+  RoleId.VILLAGER,
+  RoleId.ALPHA,
+  RoleId.WEREWOLF,
+  RoleId.SEER,
+  RoleId.DOCTOR,
+  RoleId.HUNTER,
+  RoleId.VIGILANTE,
+  RoleId.GOVERNOR,
+  RoleId.CUPID,
+];
 
 // Display glyphs for TinyScreen
 // Format: :glyphId: in strings, rendered differently by React vs ESP

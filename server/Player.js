@@ -60,6 +60,7 @@ export class Player {
 
     // Game state
     this.role = null;
+    this.preAssignedRole = null; // Host pre-assignment (lobby only)
     this.status = PlayerStatus.ALIVE;
     this.isProtected = false;
     this.linkedTo = null; // For Cupid
@@ -114,6 +115,7 @@ export class Player {
   // Reset for new game
   reset() {
     this.role = null;
+    this.preAssignedRole = null;
     this.status = PlayerStatus.ALIVE;
     this.linkedTo = null;
     this.resetForPhase();
@@ -254,6 +256,7 @@ export class Player {
       roleColor: this.role?.color,
       roleDescription: this.role?.description,
       team: this.role?.team,
+      preAssignedRole: this.preAssignedRole,
       currentSelection: this.currentSelection,
       confirmedSelection: (activeResult && !activeResult.abstained) ? activeResult.targetId : null,
       abstained: activeResult?.abstained ?? false,

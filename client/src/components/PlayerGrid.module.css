@@ -271,6 +271,30 @@
   letter-spacing: 0.2em;
 }
 
+.roleSelect {
+  background: rgba(126, 184, 218, 0.1);
+  border: 1px solid rgba(126, 184, 218, 0.3);
+  color: #7eb8da;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  text-transform: capitalize;
+}
+
+.roleSelect:hover {
+  background: rgba(126, 184, 218, 0.2);
+  border-color: rgba(126, 184, 218, 0.5);
+}
+
+.roleSelect option {
+  background: var(--bg-dark);
+  color: #7eb8da;
+}
+
 .itemSelect {
   background: rgba(255, 193, 7, 0.1);
   border: 1px solid rgba(255, 193, 7, 0.3);

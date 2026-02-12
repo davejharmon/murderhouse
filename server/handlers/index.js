@@ -377,6 +377,13 @@ export function createHandlers(game) {
 
     // === Player Management ===
 
+    [ClientMsg.PRE_ASSIGN_ROLE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.preAssignRole(payload.playerId, payload.roleId);
+    },
+
     [ClientMsg.KICK_PLAYER]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };

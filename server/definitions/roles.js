@@ -235,6 +235,7 @@ const roles = {
     color: '#e991c9',
     emoji: '💘',
     tip: 'Link two lovers',
+    companions: [RoleId.CUPID], // Needs a second cupid for two lover pairs
     events: {
       vote: {},
       link: {
@@ -267,54 +268,26 @@ const roles = {
   },
 };
 
-// Role distribution by player count
-export const roleDistribution = {
-  4: [RoleId.ALPHA, RoleId.SEER, RoleId.VILLAGER, RoleId.VILLAGER],
-  5: [RoleId.ALPHA, RoleId.SEER, RoleId.VILLAGER, RoleId.VILLAGER, RoleId.VILLAGER],
-  6: [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR, RoleId.VILLAGER, RoleId.VILLAGER, RoleId.VILLAGER],
-  7: [
-    RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.SEER,
-    RoleId.DOCTOR,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-  ],
-  8: [
-    RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.SEER,
-    RoleId.DOCTOR,
-    RoleId.VIGILANTE,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-  ],
-  9: [
-    RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.SEER,
-    RoleId.DOCTOR,
-    RoleId.HUNTER,
-    RoleId.VIGILANTE,
-    RoleId.GOVERNOR,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-  ],
-  10: [
-    RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.SEER,
-    RoleId.DOCTOR,
-    RoleId.HUNTER,
-    RoleId.VIGILANTE,
-    RoleId.GOVERNOR,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-    RoleId.VILLAGER,
-  ],
-};
+// Explicit role composition keyed by player count
+// Each value is the list of required special roles; remaining slots become villagers
+export const GAME_COMPOSITION = {
+  4:  [RoleId.ALPHA, RoleId.SEER],
+  5:  [RoleId.ALPHA, RoleId.SEER],
+  6:  [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR],
+  7:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR],
+  8:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE],
+  9:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
+  10: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
+}
+
+// Build a role pool for a given player count from GAME_COMPOSITION, padded with villagers
+export function buildRolePool(playerCount) {
+  const composition = GAME_COMPOSITION[playerCount]
+  if (!composition) throw new Error(`No composition for ${playerCount} players`)
+  const pool = [...composition]
+  while (pool.length < playerCount) pool.push(RoleId.VILLAGER)
+  return pool
+}
 
 export function getRole(roleId) {
   return roles[roleId] || null;

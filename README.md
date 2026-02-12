@@ -71,7 +71,7 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Alpha**     | Werewolf | Kill         | Final kill decision; promotes successor on death      |
 | **Werewolf**  | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
 
-Role distribution scales from 4 players (alpha, seer, 2 villagers) to 10 players (alpha, werewolf, seer, doctor, hunter, vigilante, governor, 3 villagers).
+Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager.
 
 ## Items
 

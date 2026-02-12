@@ -4,6 +4,7 @@ import {
   PlayerStatus,
   DEBUG_MODE,
   AVAILABLE_ITEMS,
+  AVAILABLE_ROLES,
 } from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
 import styles from './PlayerGrid.module.css';
@@ -41,6 +42,7 @@ function getCardStateKey(props) {
     player.role,
     player.roleName,
     player.roleColor,
+    player.preAssignedRole,
     isAlive,
     isActive,
     hasUncommittedSelection,
@@ -80,6 +82,7 @@ const PlayerCard = memo(function PlayerCard({
   onKick,
   onGiveItem,
   onRemoveItem,
+  onPreAssignRole,
   onDebugAutoSelect,
 }) {
   return (
@@ -192,13 +195,31 @@ const PlayerCard = memo(function PlayerCard({
       {/* Actions */}
       <div className={styles.actions}>
         {isLobby ? (
-          <button
-            className={styles.actionBtn}
-            onClick={() => onKick(player.id)}
-            title='Kick player'
-          >
-            ✕
-          </button>
+          <>
+            {/* Role Pre-Assignment Dropdown */}
+            {onPreAssignRole && (
+              <select
+                className={styles.roleSelect}
+                value={player.preAssignedRole || ''}
+                onChange={(e) => onPreAssignRole(player.id, e.target.value)}
+                title='Pre-assign role'
+              >
+                <option value=''>Random</option>
+                {AVAILABLE_ROLES.map((roleId) => (
+                  <option key={roleId} value={roleId}>
+                    {roleId}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              className={styles.actionBtn}
+              onClick={() => onKick(player.id)}
+              title='Kick player'
+            >
+              ✕
+            </button>
+          </>
         ) : (
           <>
             {isAlive ? (
@@ -278,6 +299,7 @@ export default function PlayerGrid({
   onKick,
   onGiveItem,
   onRemoveItem,
+  onPreAssignRole,
   onDebugAutoSelect,
   onSetName,
   onSetPortrait,
@@ -411,6 +433,7 @@ export default function PlayerGrid({
             onKick={onKick}
             onGiveItem={onGiveItem}
             onRemoveItem={onRemoveItem}
+            onPreAssignRole={onPreAssignRole}
             onDebugAutoSelect={onDebugAutoSelect}
           />
         );

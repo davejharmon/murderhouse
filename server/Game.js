@@ -12,7 +12,7 @@ import {
   MAX_PLAYERS,
 } from '../shared/constants.js';
 import { Player, resetSeatCounter } from './Player.js';
-import { getRole, roleDistribution } from './definitions/roles.js';
+import { getRole, buildRolePool, GAME_COMPOSITION } from './definitions/roles.js';
 import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
 import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
@@ -259,23 +259,67 @@ export class Game {
     return { success: true };
   }
 
+  preAssignRole(playerId, roleId) {
+    if (this.phase !== GamePhase.LOBBY) {
+      return { success: false, error: 'Can only pre-assign roles in lobby' };
+    }
+    const player = this.getPlayer(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+    // null/empty means clear pre-assignment
+    player.preAssignedRole = roleId || null;
+    this.broadcastPlayerList();
+    this.broadcastGameState();
+    return { success: true };
+  }
+
   assignRoles() {
     const playerCount = this.players.size;
-    const distribution = roleDistribution[playerCount];
+    const pool = buildRolePool(playerCount);
 
-    if (!distribution) {
-      throw new Error(`No role distribution for ${playerCount} players`);
+    const playerList = this.getPlayersBySeat();
+    const preAssigned = playerList.filter(p => p.preAssignedRole);
+    const unassigned = playerList.filter(p => !p.preAssignedRole);
+
+    // Phase 1: Honor pre-assignments
+    for (const player of preAssigned) {
+      const roleId = player.preAssignedRole;
+      const poolIndex = pool.indexOf(roleId);
+      if (poolIndex !== -1) {
+        pool.splice(poolIndex, 1);
+      } else {
+        const villagerIndex = pool.lastIndexOf('villager');
+        if (villagerIndex !== -1) {
+          pool.splice(villagerIndex, 1);
+        } else {
+          pool.pop();
+        }
+      }
+      player.assignRole(getRole(roleId));
     }
 
-    // Shuffle distribution
-    const shuffled = [...distribution].sort(() => Math.random() - 0.5);
+    // Phase 2: Inject companions for pre-assigned roles
+    const allRoleIds = [
+      ...preAssigned.map(p => p.preAssignedRole),
+      ...pool,
+    ];
+    for (const player of preAssigned) {
+      const roleDef = getRole(player.preAssignedRole);
+      if (!roleDef?.companions) continue;
+      for (const companionId of roleDef.companions) {
+        if (allRoleIds.includes(companionId)) continue;
+        const villagerIndex = pool.lastIndexOf('villager');
+        if (villagerIndex === -1) continue; // No room — skip silently
+        pool.splice(villagerIndex, 1, companionId);
+        allRoleIds.push(companionId);
+      }
+    }
 
-    // Assign to players
-    const playerList = this.getPlayersBySeat();
-    for (let i = 0; i < playerList.length; i++) {
-      const roleId = shuffled[i];
-      const role = getRole(roleId);
-      playerList[i].assignRole(role);
+    // Phase 3: Shuffle remaining pool and assign to unassigned players
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    for (let i = 0; i < unassigned.length; i++) {
+      unassigned[i].assignRole(getRole(shuffled[i]));
     }
   }
 

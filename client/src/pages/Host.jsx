@@ -119,6 +119,9 @@ export default function Host() {
   const handleSavePresets = () => send(ClientMsg.SAVE_PLAYER_PRESETS);
   const handleLoadPresets = () => send(ClientMsg.LOAD_PLAYER_PRESETS);
 
+  const handlePreAssignRole = (playerId, roleId) =>
+    send(ClientMsg.PRE_ASSIGN_ROLE, { playerId, roleId });
+
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
   const handleDebugAutoSelectAll = (eventId) =>
@@ -237,6 +240,7 @@ export default function Host() {
             onSetPortrait={handleSetPortrait}
             onGiveItem={handleGiveItem}
             onRemoveItem={handleRemoveItem}
+            onPreAssignRole={handlePreAssignRole}
             onDebugAutoSelect={handleDebugAutoSelect}
           />
         </main>
