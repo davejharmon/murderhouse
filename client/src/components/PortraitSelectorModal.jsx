@@ -5,17 +5,10 @@ import { useState } from 'react';
 import Modal from './Modal';
 import styles from './PortraitSelectorModal.module.css';
 
-const AVAILABLE_PORTRAITS = [
-  'player1.png',
-  'player2.png',
-  'player3.png',
-  'player4.png',
-  'player5.png',
-  'player6.png',
-  'player7.png',
-  'player8.png',
-  'player9.png',
-];
+// Discover all portrait images at build time via Vite glob (lazy — just extracts filenames)
+const AVAILABLE_PORTRAITS = Object.keys(import.meta.glob('/public/images/players/*.png'))
+  .map(path => path.replace('/public/images/players/', ''))
+  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
 export default function PortraitSelectorModal({
   isOpen,

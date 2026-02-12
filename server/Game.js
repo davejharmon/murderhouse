@@ -7,6 +7,7 @@ import {
   PlayerStatus,
   ServerMsg,
   EventId,
+  RoleId,
   SlideStyle,
   MIN_PLAYERS,
   MAX_PLAYERS,
@@ -227,6 +228,13 @@ export class Game {
       return { success: false, error: `Need at least ${MIN_PLAYERS} players` };
     }
 
+    // Validate pre-assigned composition before assigning
+    const validation = this._validateComposition();
+    if (!validation.valid) {
+      this.addLog(`Cannot start: ${validation.error}`);
+      return { success: false, error: validation.error };
+    }
+
     // Assign roles
     this.assignRoles();
 
@@ -323,20 +331,59 @@ export class Game {
     }
   }
 
+  _validateComposition() {
+    const playerCount = this.players.size;
+    const pool = buildRolePool(playerCount);
+    const preAssigned = [...this.players.values()]
+      .filter(p => p.preAssignedRole)
+      .map(p => p.preAssignedRole);
+
+    // Check duplicate unique roles (alpha can only appear once)
+    const uniqueRoles = [RoleId.ALPHA];
+    for (const roleId of uniqueRoles) {
+      const count = preAssigned.filter(r => r === roleId).length;
+      if (count > 1) {
+        const roleDef = getRole(roleId);
+        return { valid: false, error: `${count} players pre-assigned as ${roleDef.name} (max 1)` };
+      }
+    }
+
+    // Simulate final composition: consume pre-assigned from pool, then fill remainder
+    const remaining = [...pool];
+    for (const roleId of preAssigned) {
+      const idx = remaining.indexOf(roleId);
+      if (idx !== -1) {
+        remaining.splice(idx, 1);
+      } else {
+        const vi = remaining.lastIndexOf(RoleId.VILLAGER);
+        if (vi !== -1) remaining.splice(vi, 1);
+        else remaining.pop();
+      }
+    }
+    const finalRoles = [...preAssigned, ...remaining];
+
+    // Count teams
+    const wolves = finalRoles.filter(r => getRole(r)?.team === Team.WEREWOLF).length;
+    const villagers = finalRoles.filter(r => getRole(r)?.team === Team.VILLAGE).length;
+
+    if (villagers === 0) {
+      return { valid: false, error: 'No village team members — werewolves win instantly' };
+    }
+    if (wolves === 0) {
+      return { valid: false, error: 'No werewolf team members — village wins instantly' };
+    }
+    if (wolves >= villagers) {
+      return { valid: false, error: `${wolves} werewolves vs ${villagers} villagers — werewolves win instantly` };
+    }
+
+    return { valid: true };
+  }
+
   _setTutorialTips() {
     for (const player of this.players.values()) {
       player.showIdleRole = true;
       if (player.role.team === Team.WEREWOLF) {
-        // Find packmates
-        const packmates = [...this.players.values()].filter(
-          (p) => p.id !== player.id && p.role.team === Team.WEREWOLF,
-        );
-        if (packmates.length > 0) {
-          const names = packmates.map((p) => p.name).join(', ');
-          player.tutorialTip = `Packmate: ${names}`;
-        } else {
-          player.tutorialTip = 'Lone wolf';
-        }
+        player.tutorialTip = null; // Computed dynamically in _buildDisplay
       } else {
         player.tutorialTip = player.role.tip || 'Good luck!';
       }

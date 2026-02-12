@@ -425,21 +425,8 @@ export function createHandlers(game) {
         return { success: false, error: 'Not host' };
       }
 
-      // Validate portrait filename
-      const validPortraits = [
-        'player1.png',
-        'player2.png',
-        'player3.png',
-        'player4.png',
-        'player5.png',
-        'player6.png',
-        'player7.png',
-        'player8.png',
-        'player9.png',
-        'playerA.png',
-        'anon.png',
-      ];
-      if (!validPortraits.includes(payload.portrait)) {
+      // Validate portrait filename (alphanumeric + .png, no path traversal)
+      if (!/^[a-zA-Z0-9_-]+\.png$/.test(payload.portrait)) {
         return { success: false, error: 'Invalid portrait' };
       }
 

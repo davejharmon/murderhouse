@@ -366,6 +366,20 @@ export class Player {
       return this._displayAbilityMode(getLine1, phaseLed, usableAbilities);
 
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
+
+    // Dynamically compute packmate tip for werewolves (reflects living members)
+    if (this.role?.team === Team.WEREWOLF) {
+      const packmates = game.getAlivePlayers().filter(
+        (p) => p.id !== this.id && p.role.team === Team.WEREWOLF,
+      );
+      if (packmates.length === 0) {
+        this.tutorialTip = 'Lone wolf';
+      } else {
+        const label = packmates.length === 1 ? 'Packmate' : 'Packmates';
+        this.tutorialTip = `${label}: ${packmates.map((p) => p.name).join(', ')}`;
+      }
+    }
+
     if (this.showIdleRole)    return this._displayGameStart(getLine1, phaseLed);
     return this._displayIdle(getLine1, phaseLed);
   }
