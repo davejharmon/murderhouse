@@ -787,7 +787,6 @@ export class Game {
     for (const [eventId, instance] of this.activeEvents) {
       if (instance.participants.includes(playerId)) {
         instance.results[playerId] = targetId;
-        player.confirmedSelection = targetId;
 
         // Check if this event is managed by a flow
         if (instance.managedByFlow) {
@@ -1609,7 +1608,7 @@ export class Game {
     const players = this.getPlayersBySeat().map((p) => p.getPublicState());
     this.broadcast(ServerMsg.PLAYER_LIST, players);
     // Host needs full player info (broadcast only sends public state which hides roles)
-    const hostPlayers = this.getPlayersBySeat().map((p) => p.getPrivateState());
+    const hostPlayers = this.getPlayersBySeat().map((p) => p.getPrivateState(this));
     this.sendToHost(ServerMsg.PLAYER_LIST, hostPlayers);
   }
 
@@ -1657,7 +1656,7 @@ export class Game {
   getGameState({ audience = 'public' } = {}) {
     const players = this.getPlayersBySeat().map((p) => {
       if (audience === 'host') {
-        return p.getPrivateState();
+        return p.getPrivateState(this);
       }
 
       return p.getPublicState();

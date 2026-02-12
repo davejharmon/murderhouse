@@ -87,7 +87,7 @@ export function createHandlers(game) {
       ws.clientType = 'host';
       send(ws, ServerMsg.WELCOME, { role: 'host' });
       send(ws, ServerMsg.GAME_STATE, game.getGameState({ audience: 'host' }));
-      send(ws, ServerMsg.PLAYER_LIST, game.getPlayersBySeat().map(p => p.getPrivateState()));
+      send(ws, ServerMsg.PLAYER_LIST, game.getPlayersBySeat().map(p => p.getPrivateState(game)));
       send(ws, ServerMsg.SLIDE_QUEUE, {
         queue: game.slideQueue,
         currentIndex: game.currentSlideIndex,
@@ -563,8 +563,8 @@ export function createHandlers(game) {
         const player = game.getPlayer(playerId);
         if (!player) continue;
 
-        // Skip if player already has confirmed selection or abstained
-        if (player.confirmedSelection || player.abstained) continue;
+        // Skip if player already has a result recorded
+        if (playerId in results) continue;
 
         const targets = event.validTargets(player, game);
 

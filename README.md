@@ -226,30 +226,23 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### High Impact
 
-*(none currently)*
+_(none currently)_
 
 ### Medium Impact
 
-5. **Event result dual-tracking** — Player selections exist in both `event.instance.results` (for aggregation) and `player.confirmedSelection` (for display). These are synchronized manually at multiple points. A single source of truth with derived queries would reduce bugs.
-
-6. **No event definition validation** — `resolveEvent()` doesn't validate that all required participants have responded before resolving. Missing a required response silently produces unexpected results. Runtime schema validation on event definitions would catch misconfigurations early.
+5. **No event definition validation** — `resolveEvent()` doesn't validate that all required participants have responded before resolving. Missing a required response silently produces unexpected results. Runtime schema validation on event definitions would catch misconfigurations early.
 
 ### Low Impact
 
-7. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
+6. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
 
-8. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
+7. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
 
-9. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
+8. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
 
 ## Improvements
 
-- Add a line 3 statement to team werewolf on day 1 game start identifying partner
 - Add glyphs for inventory
 - Improve spacing on terminal screen to allow bigger glyphs
-- Governor should get a pardoned/denied resolution message on their TinyScreen
-- Add seer investigation result statements on event resolve
-- Make sure when event ends all TinyScreens get a relevant message
-- Clean up display for werewolf packsense
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking

@@ -66,8 +66,6 @@ export class Player {
 
     // Event state
     this.currentSelection = null; // Currently highlighted target
-    this.confirmedSelection = null; // Locked in choice
-    this.abstained = false; // Whether player has abstained from current event
     this.pendingEvents = new Set(); // Events waiting for this player
     this.lastEventResult = null; // { message } shown on TinyScreen after event resolves
 
@@ -184,33 +182,38 @@ export class Player {
   }
 
   confirmSelection() {
-    if (this.currentSelection !== null) {
-      this.confirmedSelection = this.currentSelection;
-    }
-    return this.confirmedSelection;
+    return this.currentSelection;
   }
 
   abstain() {
     this.currentSelection = null;
-    this.confirmedSelection = null; // Explicitly set to null
-    this.abstained = true; // Mark as abstained
     return this;
   }
 
   cancelSelection() {
-    this.confirmedSelection = null;
     return null;
   }
 
   clearSelection() {
     this.currentSelection = null;
-    this.confirmedSelection = null;
-    this.abstained = false;
   }
 
   clearFromEvent(eventId) {
     this.pendingEvents.delete(eventId);
     this.clearSelection();
+  }
+
+  // Derive confirmed selection / abstained state from instance.results + pendingEvents.
+  // Single source of truth: no stored confirmedSelection or abstained fields needed.
+  getActiveResult(game) {
+    if (!game) return null;
+    for (const [eventId, instance] of game.activeEvents) {
+      if (this.pendingEvents.has(eventId) && this.id in instance.results) {
+        const targetId = instance.results[this.id];
+        return { eventId, targetId, abstained: targetId === null };
+      }
+    }
+    return null;
   }
 
   resetForPhase() {
@@ -243,6 +246,7 @@ export class Player {
 
   // Get private state (only for this player)
   getPrivateState(game) {
+    const activeResult = this.getActiveResult(game);
     return {
       ...this.getPublicState(),
       role: this.role?.id,
@@ -251,8 +255,8 @@ export class Player {
       roleDescription: this.role?.description,
       team: this.role?.team,
       currentSelection: this.currentSelection,
-      confirmedSelection: this.confirmedSelection,
-      abstained: this.abstained,
+      confirmedSelection: (activeResult && !activeResult.abstained) ? activeResult.targetId : null,
+      abstained: activeResult?.abstained ?? false,
       pendingEvents: [...this.pendingEvents],
       investigations: this.investigations,
       linkedTo: this.linkedTo,
@@ -272,16 +276,19 @@ export class Player {
     const packMembers = game
       .getAlivePlayers()
       .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        portrait: p.portrait,
-        role: p.role.id,
-        roleName: p.role.name,
-        isAlpha: p.role.id === RoleId.ALPHA,
-        currentSelection: p.currentSelection,
-        confirmedSelection: p.confirmedSelection,
-      }));
+      .map((p) => {
+        const result = p.getActiveResult(game);
+        return {
+          id: p.id,
+          name: p.name,
+          portrait: p.portrait,
+          role: p.role.id,
+          roleName: p.role.name,
+          isAlpha: p.role.id === RoleId.ALPHA,
+          currentSelection: p.currentSelection,
+          confirmedSelection: (result && !result.abstained) ? result.targetId : null,
+        };
+      });
 
     return {
       packMembers,
@@ -335,12 +342,17 @@ export class Player {
       this.showIdleRole = false;
     }
 
+    // Derive confirmed/abstained from single source of truth
+    const activeResult = this.getActiveResult(game);
+    const isAbstained = activeResult?.abstained ?? false;
+    const confirmedTargetId = (activeResult && !activeResult.abstained) ? activeResult.targetId : null;
+
     // Priority-ordered state dispatch
     if (phase === GamePhase.LOBBY)          return this._displayLobby(getLine1);
     if (phase === GamePhase.GAME_OVER)      return this._displayGameOver(getLine1);
     if (!this.isAlive && !hasActiveEvent)    return this._displayDead(getLine1);
-    if (this.abstained)                      return this._displayAbstained(getLine1, eventName, activeEventId);
-    if (this.confirmedSelection)             return this._displayConfirmed(game, getLine1, eventName, activeEventId);
+    if (isAbstained)                         return this._displayAbstained(getLine1, eventName, activeEventId);
+    if (confirmedTargetId)                   return this._displayConfirmed(game, getLine1, eventName, activeEventId, confirmedTargetId);
     if (hasActiveEvent && this.currentSelection)
       return this._displayEventWithSelection(game, ctx, getLine1, activeEventId, eventName);
     if (hasActiveEvent)
@@ -397,8 +409,8 @@ export class Player {
     );
   }
 
-  _displayConfirmed(game, getLine1, eventName, activeEventId) {
-    const targetName = game?.getPlayer(this.confirmedSelection)?.name || 'Unknown';
+  _displayConfirmed(game, getLine1, eventName, activeEventId, targetId) {
+    const targetName = game?.getPlayer(targetId)?.name || 'Unknown';
     // Special display for pardon event - show "PARDONING {NAME}"
     const line2Text = activeEventId === 'pardon'
       ? `PARDONING ${targetName.toUpperCase()}`
