@@ -6,6 +6,7 @@ import {
   Team,
   PlayerStatus,
   ServerMsg,
+  EventId,
   SlideStyle,
   MIN_PLAYERS,
   MAX_PLAYERS,
@@ -321,7 +322,7 @@ export class Game {
             if (player?.isAlive) {
               player.lastEventResult = { message: inv.privateMessage };
               player.send(ServerMsg.EVENT_RESULT, {
-                eventId: 'investigate',
+                eventId: EventId.INVESTIGATE,
                 message: inv.privateMessage,
                 data: inv,
               });
@@ -333,9 +334,7 @@ export class Game {
 
     // Clear protection and player event state
     for (const player of this.players.values()) {
-      player.isProtected = false;
-      player.clearSelection();
-      player.pendingEvents.clear();
+      player.resetForPhase();
     }
 
     // Check win condition
@@ -389,7 +388,7 @@ export class Game {
       if (event.playerInitiated) continue;
 
       // Skip customEvent - it's only added via createCustomEvent()
-      if (event.id === 'customEvent') continue;
+      if (event.id === EventId.CUSTOM_EVENT) continue;
 
       const participants = this.getEventParticipants(event.id);
       if (participants.length > 0) {
@@ -432,7 +431,7 @@ export class Game {
 
   startEvent(eventId) {
     // Special handling for customEvent - requires stored config
-    if (eventId === 'customEvent') {
+    if (eventId === EventId.CUSTOM_EVENT) {
       return this._startCustomEvent();
     }
 
@@ -497,7 +496,7 @@ export class Game {
     this.addLog(`${event.name} started`);
 
     // Special handling for shoot event - show immediate slide
-    if (eventId === 'shoot' && participants.length > 0) {
+    if (eventId === EventId.SHOOT && participants.length > 0) {
       const shooter = participants[0];
       this.pushSlide(
         {
@@ -511,7 +510,7 @@ export class Game {
     }
 
     // Show slide when vote events start
-    if (eventId === 'vote') {
+    if (eventId === EventId.VOTE) {
       this.pushSlide(
         {
           type: 'gallery',
@@ -642,7 +641,7 @@ export class Game {
     }
 
     // Check if customEvent already active
-    if (this.activeEvents.has('customEvent')) {
+    if (this.activeEvents.has(EventId.CUSTOM_EVENT)) {
       return { success: false, error: 'Custom event already in progress' };
     }
 
@@ -650,8 +649,8 @@ export class Game {
     this.customEventConfig = config;
 
     // Add to pending if not already there
-    if (!this.pendingEvents.includes('customEvent')) {
-      this.pendingEvents.push('customEvent');
+    if (!this.pendingEvents.includes(EventId.CUSTOM_EVENT)) {
+      this.pendingEvents.push(EventId.CUSTOM_EVENT);
     }
 
     this.broadcastGameState();
@@ -670,16 +669,16 @@ export class Game {
     }
 
     // Check if customEvent already active
-    if (this.activeEvents.has('customEvent')) {
+    if (this.activeEvents.has(EventId.CUSTOM_EVENT)) {
       return { success: false, error: 'Custom event already in progress' };
     }
 
-    const event = getEvent('customEvent');
+    const event = getEvent(EventId.CUSTOM_EVENT);
     if (!event) {
       return { success: false, error: 'Custom event not found' };
     }
 
-    const participants = this.getEventParticipants('customEvent');
+    const participants = this.getEventParticipants(EventId.CUSTOM_EVENT);
     if (participants.length === 0) {
       return { success: false, error: 'No eligible participants' };
     }
@@ -695,14 +694,14 @@ export class Game {
       runoffRound: 0,
     };
 
-    this.activeEvents.set('customEvent', eventInstance);
+    this.activeEvents.set(EventId.CUSTOM_EVENT, eventInstance);
     this.pendingEvents = this.pendingEvents.filter(
-      (id) => id !== 'customEvent',
+      (id) => id !== EventId.CUSTOM_EVENT,
     );
 
     // Notify participants with custom description
     for (const player of participants) {
-      player.pendingEvents.add('customEvent');
+      player.pendingEvents.add(EventId.CUSTOM_EVENT);
       player.clearSelection();
       player.lastEventResult = null;
 
@@ -712,7 +711,7 @@ export class Game {
       player.syncState(this);
 
       player.send(ServerMsg.EVENT_PROMPT, {
-        eventId: 'customEvent',
+        eventId: EventId.CUSTOM_EVENT,
         eventName: event.name,
         description: config.description,
         targets: targets.map((t) => t.getPublicState()),
@@ -862,7 +861,7 @@ export class Game {
     }
 
     // For vote/customEvent events, show tally slide first and defer resolution
-    if (eventId === 'vote' || eventId === 'customEvent') {
+    if (eventId === EventId.VOTE || eventId === EventId.CUSTOM_EVENT) {
       return this.showTallyAndDeferResolution(eventId, instance);
     }
 
@@ -882,8 +881,7 @@ export class Game {
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
-        player.pendingEvents.delete(eventId);
-        player.clearSelection();
+        player.clearFromEvent(eventId);
 
         // Check if player participated via an item (not just their role)
         // Only consume if they actually submitted a result (not abstained)
@@ -927,7 +925,7 @@ export class Game {
         if (seer) {
           seer.lastEventResult = { message: inv.privateMessage };
           seer.send(ServerMsg.EVENT_RESULT, {
-            eventId: 'investigate',
+            eventId: EventId.INVESTIGATE,
             message: inv.privateMessage,
             data: inv,
           });
@@ -974,8 +972,7 @@ export class Game {
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
-        player.pendingEvents.delete(eventId);
-        player.clearSelection();
+        player.clearFromEvent(eventId);
       }
     }
 
@@ -1073,8 +1070,7 @@ export class Game {
       for (const pid of participants) {
         const player = this.getPlayer(pid);
         if (player) {
-          player.pendingEvents.delete(eventId);
-          player.clearSelection();
+          player.clearFromEvent(eventId);
           player.syncState(this);
         }
       }
@@ -1092,8 +1088,7 @@ export class Game {
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
-        player.pendingEvents.delete(eventId);
-        player.clearSelection();
+        player.clearFromEvent(eventId);
         player.syncState(this);
       }
     }
@@ -1179,7 +1174,7 @@ export class Game {
 
     // Build context-aware subtitle
     let runoffSubtitle = 'Choose who to eliminate';
-    if (eventId === 'customEvent' && instance.config) {
+    if (eventId === EventId.CUSTOM_EVENT && instance.config) {
       const { rewardType, rewardParam } = instance.config;
       if (rewardType === 'resurrection')
         runoffSubtitle = 'Choose who to resurrect';
@@ -1621,7 +1616,7 @@ export class Game {
   // Check if pack state should be broadcast for this event/player combination
   shouldBroadcastPackState(eventId, player) {
     return (
-      (eventId === 'hunt' || eventId === 'kill') &&
+      (eventId === EventId.HUNT || eventId === EventId.KILL) &&
       player?.role?.team === Team.WEREWOLF
     );
   }

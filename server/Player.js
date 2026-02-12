@@ -6,6 +6,8 @@ import {
   ServerMsg,
   Team,
   GamePhase,
+  RoleId,
+  EventId,
   ItemGlyphs,
   Glyphs,
   LedState,
@@ -16,17 +18,17 @@ import { getEvent } from './definitions/events.js';
 
 // Action labels for each event type (confirm action / abstain action / select prompt)
 const EVENT_ACTIONS = {
-  vote:          { confirm: 'VOTE',    abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
-  pardon:        { confirm: 'PARDON',  abstain: 'CONDEMN', prompt: 'PARDON' },
-  hunt:          { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
-  kill:          { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'TARGET SOMEONE' },
-  investigate:   { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
-  protect:       { confirm: 'PROTECT', abstain: 'ABSTAIN', prompt: 'PROTECT SOMEONE' },
-  shoot:         { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
-  suspect:       { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
-  vigil:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
-  customEvent:   { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
-  hunterRevenge: { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
+  [EventId.VOTE]:         { confirm: 'VOTE',    abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
+  pardon:                 { confirm: 'PARDON',  abstain: 'CONDEMN', prompt: 'PARDON' },
+  [EventId.HUNT]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
+  [EventId.KILL]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'TARGET SOMEONE' },
+  [EventId.INVESTIGATE]:  { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
+  [EventId.PROTECT]:      { confirm: 'PROTECT', abstain: 'ABSTAIN', prompt: 'PROTECT SOMEONE' },
+  [EventId.SHOOT]:        { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
+  [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
+  [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
+  [EventId.CUSTOM_EVENT]: { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
+  hunterRevenge:          { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
 };
 
 // Get action labels for an event (with fallback)
@@ -115,15 +117,9 @@ export class Player {
   reset() {
     this.role = null;
     this.status = PlayerStatus.ALIVE;
-    this.isProtected = false;
     this.linkedTo = null;
-    this.currentSelection = null;
-    this.confirmedSelection = null;
-    this.abstained = false;
-    this.pendingEvents.clear();
-    this.lastEventResult = null;
+    this.resetForPhase();
     this.tutorialTip = null;
-    this.showIdleRole = false;
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
@@ -212,6 +208,19 @@ export class Player {
     this.abstained = false;
   }
 
+  clearFromEvent(eventId) {
+    this.pendingEvents.delete(eventId);
+    this.clearSelection();
+  }
+
+  resetForPhase() {
+    this.isProtected = false;
+    this.clearSelection();
+    this.pendingEvents.clear();
+    this.lastEventResult = null;
+    this.showIdleRole = false;
+  }
+
   // Get public state (safe to send to other players)
   getPublicState() {
     return {
@@ -269,7 +278,7 @@ export class Player {
         portrait: p.portrait,
         role: p.role.id,
         roleName: p.role.name,
-        isAlpha: p.role.id === 'alpha',
+        isAlpha: p.role.id === RoleId.ALPHA,
         currentSelection: p.currentSelection,
         confirmedSelection: p.confirmedSelection,
       }));
@@ -277,7 +286,7 @@ export class Player {
     return {
       packMembers,
       playerRole: this.role.id,
-      isAlpha: this.role.id === 'alpha',
+      isAlpha: this.role.id === RoleId.ALPHA,
     };
   }
 
@@ -548,9 +557,9 @@ export class Player {
     } else if (eventName) {
       actionPart = ` > ${eventName.toUpperCase()}`;
       // Add item name for item-triggered events
-      if (eventId === 'shoot') {
+      if (eventId === EventId.SHOOT) {
         actionPart += ' (PISTOL)';
-      } else if (eventId === 'investigate' && !this.role?.events?.investigate) {
+      } else if (eventId === EventId.INVESTIGATE && !this.role?.events?.investigate) {
         // Crystal ball investigate (player doesn't have investigate from role)
         actionPart += ' (CRYSTAL)';
       }
@@ -584,7 +593,7 @@ export class Player {
    */
   _getRoleGlyph() {
     if (!this.role) return '';
-    if (this.role.id === 'alpha') return Glyphs.ALPHA;
+    if (this.role.id === RoleId.ALPHA) return Glyphs.ALPHA;
     if (this.role.team === Team.WEREWOLF) return Glyphs.WOLF;
     return '';
   }
@@ -594,7 +603,7 @@ export class Player {
    */
   _getPackHint(game, eventId) {
     if (!this.role || this.role.team !== Team.WEREWOLF) return '';
-    if (!['kill', 'hunt'].includes(eventId)) return '';
+    if (![EventId.KILL, EventId.HUNT].includes(eventId)) return '';
 
     // Count pack selections
     const tally = {};

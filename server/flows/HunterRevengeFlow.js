@@ -1,7 +1,7 @@
 // server/flows/HunterRevengeFlow.js
 // Consolidated Hunter revenge logic
 
-import { GamePhase, SlideStyle } from '../../shared/constants.js';
+import { GamePhase, RoleId, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
 
 /**
@@ -51,7 +51,7 @@ export class HunterRevengeFlow extends InterruptFlow {
   canTrigger(context) {
     const { player, deathResult } = context;
     return (
-      deathResult?.interrupt === true && player.role?.id === 'hunter'
+      deathResult?.interrupt === true && player.role?.id === RoleId.HUNTER
     );
   }
 
@@ -206,7 +206,7 @@ export class HunterRevengeFlow extends InterruptFlow {
     if (this.state?.hunterId) {
       const hunter = this.game.getPlayer(this.state.hunterId);
       if (hunter) {
-        hunter.pendingEvents.delete(this.id);
+        hunter.clearFromEvent(this.id);
       }
     }
     super.cleanup();

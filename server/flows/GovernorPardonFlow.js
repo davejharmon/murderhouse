@@ -1,7 +1,7 @@
 // server/flows/GovernorPardonFlow.js
 // Consolidated Governor pardon logic
 
-import { SlideStyle } from '../../shared/constants.js';
+import { RoleId, ItemId, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
 
 /**
@@ -62,8 +62,8 @@ export class GovernorPardonFlow extends InterruptFlow {
     // Check for governors or phone holders
     const governors = this.game.getAlivePlayers().filter((p) => {
       return (
-        p.role.id === 'governor' ||
-        (p.hasItem('phone') && p.canUseItem('phone'))
+        p.role.id === RoleId.GOVERNOR ||
+        (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))
       );
     });
 
@@ -81,8 +81,8 @@ export class GovernorPardonFlow extends InterruptFlow {
 
     const governors = this.game.getAlivePlayers().filter((p) => {
       return (
-        p.role.id === 'governor' ||
-        (p.hasItem('phone') && p.canUseItem('phone'))
+        p.role.id === RoleId.GOVERNOR ||
+        (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))
       );
     });
 
@@ -174,7 +174,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     }
 
     // Check phone usage before resolve (canUseItem may change after state changes)
-    const usesPhone = governor.hasItem('phone') && governor.canUseItem('phone');
+    const usesPhone = governor.hasItem(ItemId.PHONE) && governor.canUseItem(ItemId.PHONE);
 
     // Pardon = selected the condemned player
     const result = targetId === this.state.condemnedId
@@ -184,7 +184,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     // Add phone consumption to the result
     if (usesPhone) {
       if (!result.consumeItems) result.consumeItems = [];
-      result.consumeItems.push({ playerId: governorId, itemId: 'phone' });
+      result.consumeItems.push({ playerId: governorId, itemId: ItemId.PHONE });
     }
 
     return result;
@@ -286,8 +286,7 @@ export class GovernorPardonFlow extends InterruptFlow {
       for (const gid of this.state.governorIds) {
         const governor = this.game.getPlayer(gid);
         if (governor) {
-          governor.pendingEvents.delete(this.id);
-          governor.clearSelection();
+          governor.clearFromEvent(this.id);
         }
       }
     }
