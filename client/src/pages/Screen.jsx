@@ -262,13 +262,16 @@ export default function Screen() {
 
     // targetsOnly mode: just title, subtitle, then gallery — no werewolf tracker
     if (slide.targetsOnly) {
+      const respondentIds = gameState?.eventRespondents?.[slide.activeEventId];
+      const confirmedSet = respondentIds ? new Set(respondentIds) : null;
+
       return (
         <div key={slide.id} className={styles.slide}>
           {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
           {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
           <div className={styles.gallery}>
             {players.map((p) => (
-              <div key={p.id} className={styles.playerThumb}>
+              <div key={p.id} className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}>
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
@@ -394,6 +397,19 @@ export default function Screen() {
           {slide.title}
         </h1>
         {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+        {slide.winners && slide.winners.length > 0 && (
+          <div className={styles.victoryGallery}>
+            {slide.winners.map(w => (
+              <div key={w.id} className={`${styles.playerThumb} ${!w.isAlive ? styles.dead : ''}`}>
+                <img src={`/images/players/${w.portrait}`} alt={w.name} />
+                <span className={styles.thumbName}>{w.name}</span>
+                <span className={styles.victoryRole} style={{ color: w.roleColor }}>
+                  {w.roleName}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -454,6 +470,8 @@ export default function Screen() {
     const dashOffset = timerDisplay
       ? TIMER_CIRCUMFERENCE * (1 - timerDisplay.fraction)
       : TIMER_CIRCUMFERENCE;
+    const respondentIds = gameState?.eventRespondents?.[slide.timerEventId];
+    const confirmedSet = respondentIds ? new Set(respondentIds) : null;
 
     return (
       <div key={slide.id} className={styles.slide}>
@@ -482,7 +500,7 @@ export default function Screen() {
 
         <div className={styles.gallery}>
           {players.map((p) => (
-            <div key={p.id} className={styles.playerThumb}>
+            <div key={p.id} className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}>
               <img src={`/images/players/${p.portrait}`} alt={p.name} />
               <span className={styles.thumbName}>{p.name}</span>
             </div>

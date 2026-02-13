@@ -114,6 +114,11 @@
   transition: all 0.3s ease;
 }
 
+.playerThumb.confirmed img {
+  filter: sepia(0.7) saturate(5) hue-rotate(-50deg);
+  border-color: #c94c4c;
+}
+
 .playerThumb.dead {
   opacity: 0.3;
 }
@@ -341,6 +346,24 @@
   50% {
     text-shadow: 0 0 60px currentColor, 0 0 90px currentColor;
   }
+}
+
+/* Victory Gallery */
+.victoryGallery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2vw;
+  margin: 3vh 0 0;
+  max-width: 90vw;
+}
+
+.victoryRole {
+  font-family: var(--font-mono);
+  font-size: 0.9vw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.3vh;
 }
 
 /* Event Timer Radial Widget */
