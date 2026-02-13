@@ -14,7 +14,11 @@ import {
   EVENT_TIMER_DURATION,
 } from '../shared/constants.js';
 import { Player, resetSeatCounter } from './Player.js';
-import { getRole, buildRolePool, GAME_COMPOSITION } from './definitions/roles.js';
+import {
+  getRole,
+  buildRolePool,
+  GAME_COMPOSITION,
+} from './definitions/roles.js';
 import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
 import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
@@ -296,8 +300,8 @@ export class Game {
     const pool = buildRolePool(playerCount);
 
     const playerList = this.getPlayersBySeat();
-    const preAssigned = playerList.filter(p => p.preAssignedRole);
-    const unassigned = playerList.filter(p => !p.preAssignedRole);
+    const preAssigned = playerList.filter((p) => p.preAssignedRole);
+    const unassigned = playerList.filter((p) => !p.preAssignedRole);
 
     // Phase 1: Honor pre-assignments
     for (const player of preAssigned) {
@@ -317,10 +321,7 @@ export class Game {
     }
 
     // Phase 2: Inject companions for pre-assigned roles
-    const allRoleIds = [
-      ...preAssigned.map(p => p.preAssignedRole),
-      ...pool,
-    ];
+    const allRoleIds = [...preAssigned.map((p) => p.preAssignedRole), ...pool];
     for (const player of preAssigned) {
       const roleDef = getRole(player.preAssignedRole);
       if (!roleDef?.companions) continue;
@@ -344,16 +345,19 @@ export class Game {
     const playerCount = this.players.size;
     const pool = buildRolePool(playerCount);
     const preAssigned = [...this.players.values()]
-      .filter(p => p.preAssignedRole)
-      .map(p => p.preAssignedRole);
+      .filter((p) => p.preAssignedRole)
+      .map((p) => p.preAssignedRole);
 
     // Check duplicate unique roles (alpha can only appear once)
     const uniqueRoles = [RoleId.ALPHA];
     for (const roleId of uniqueRoles) {
-      const count = preAssigned.filter(r => r === roleId).length;
+      const count = preAssigned.filter((r) => r === roleId).length;
       if (count > 1) {
         const roleDef = getRole(roleId);
-        return { valid: false, error: `${count} players pre-assigned as ${roleDef.name} (max 1)` };
+        return {
+          valid: false,
+          error: `${count} players pre-assigned as ${roleDef.name} (max 1)`,
+        };
       }
     }
 
@@ -372,17 +376,30 @@ export class Game {
     const finalRoles = [...preAssigned, ...remaining];
 
     // Count teams
-    const wolves = finalRoles.filter(r => getRole(r)?.team === Team.WEREWOLF).length;
-    const villagers = finalRoles.filter(r => getRole(r)?.team === Team.VILLAGE).length;
+    const wolves = finalRoles.filter(
+      (r) => getRole(r)?.team === Team.WEREWOLF,
+    ).length;
+    const villagers = finalRoles.filter(
+      (r) => getRole(r)?.team === Team.VILLAGE,
+    ).length;
 
     if (villagers === 0) {
-      return { valid: false, error: 'No village team members — werewolves win instantly' };
+      return {
+        valid: false,
+        error: 'No village team members — werewolves win instantly',
+      };
     }
     if (wolves === 0) {
-      return { valid: false, error: 'No werewolf team members — village wins instantly' };
+      return {
+        valid: false,
+        error: 'No werewolf team members — village wins instantly',
+      };
     }
     if (wolves >= villagers) {
-      return { valid: false, error: `${wolves} werewolves vs ${villagers} villagers — werewolves win instantly` };
+      return {
+        valid: false,
+        error: `${wolves} werewolves vs ${villagers} villagers — werewolves win instantly`,
+      };
     }
 
     return { valid: true };
@@ -618,6 +635,7 @@ export class Game {
           subtitle: 'Choose who to eliminate',
           playerIds: this.getAlivePlayers().map((p) => p.id),
           targetsOnly: true,
+          activeEventId: eventId,
           style: SlideStyle.NEUTRAL,
         },
         true,
@@ -833,6 +851,7 @@ export class Game {
         subtitle: config.description,
         playerIds: customTargets.map((p) => p.id),
         targetsOnly: true,
+        activeEventId: EventId.CUSTOM_EVENT,
         style: SlideStyle.NEUTRAL,
       },
       true,
@@ -957,18 +976,24 @@ export class Game {
       endsAt: Date.now() + EVENT_TIMER_DURATION,
     });
 
-    this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: EVENT_TIMER_DURATION });
+    this.broadcast(ServerMsg.EVENT_TIMER, {
+      eventId,
+      duration: EVENT_TIMER_DURATION,
+    });
 
     // Push a timer slide with participant gallery
-    this.pushSlide({
-      type: 'gallery',
-      title: "TIME'S RUNNING OUT",
-      subtitle: "Confirm your selection before it's too late.",
-      playerIds: instance.participants,
-      targetsOnly: true,
-      timerEventId: eventId,
-      style: SlideStyle.WARNING,
-    }, true);
+    this.pushSlide(
+      {
+        type: 'gallery',
+        title: "TIME'S UP",
+        subtitle: "Confirm your selection before it's too late.",
+        playerIds: instance.participants,
+        targetsOnly: true,
+        timerEventId: eventId,
+        style: SlideStyle.WARNING,
+      },
+      true,
+    );
 
     this.addLog(`Timer started for ${instance.event.name}`);
 
@@ -1132,6 +1157,33 @@ export class Game {
     return { success: true };
   }
 
+  resetEvent(eventId) {
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) {
+      return { success: false, error: 'Event not active' };
+    }
+
+    const { event, participants } = instance;
+
+    for (const pid of participants) {
+      const player = this.getPlayer(pid);
+      if (player) {
+        player.clearFromEvent(eventId);
+      }
+    }
+
+    this.activeEvents.delete(eventId);
+    this.clearEventTimer(eventId);
+
+    // Return to pending so host can re-start it
+    this.pendingEvents.push(eventId);
+
+    this.addLog(`${event.name} reset`);
+    this.broadcastGameState();
+
+    return { success: true };
+  }
+
   // Build vote tally slide data with all necessary info for rendering
   buildTallySlide(eventId, results, event, outcome) {
     // Compute tally counts and voter lists
@@ -1201,7 +1253,9 @@ export class Game {
     // Check if any flow wants to intercept the vote resolution (e.g., governor pardon)
     const flowContext = { voteEventId: eventId, resolution, instance };
     const interceptingFlow = [...this.flows.values()].find(
-      (f) => f.constructor.hooks.includes('onVoteResolution') && f.canTrigger(flowContext),
+      (f) =>
+        f.constructor.hooks.includes('onVoteResolution') &&
+        f.canTrigger(flowContext),
     );
 
     if (interceptingFlow) {
@@ -1339,6 +1393,7 @@ export class Game {
         subtitle: runoffSubtitle,
         playerIds: frontrunners,
         targetsOnly: true,
+        activeEventId: eventId,
         style: SlideStyle.NEUTRAL,
         activateRunoff: eventId,
       },
@@ -1419,10 +1474,15 @@ export class Game {
 
     this.addLog(`Game over — ${winnerName} win!`);
 
+    const winners = [...this.players.values()]
+      .filter(p => p.role.team === winner)
+      .map(p => ({ id: p.id, name: p.name, portrait: p.portrait, roleName: p.role.name, roleColor: p.role.color, isAlive: p.isAlive }))
+
     this.pushSlide(
       {
         type: 'victory',
         winner,
+        winners,
         title: `${winnerName} WIN`,
         subtitle:
           winner === Team.VILLAGE
@@ -1491,7 +1551,10 @@ export class Game {
     }
 
     // Jump to a specific slide by index into the result's slides array
-    if (result.jumpToSlide !== undefined && slidePositions[result.jumpToSlide] !== undefined) {
+    if (
+      result.jumpToSlide !== undefined &&
+      slidePositions[result.jumpToSlide] !== undefined
+    ) {
       this.currentSlideIndex = slidePositions[result.jumpToSlide];
       this.broadcastSlides();
     }
@@ -1756,7 +1819,9 @@ export class Game {
     const players = this.getPlayersBySeat().map((p) => p.getPublicState());
     this.broadcast(ServerMsg.PLAYER_LIST, players);
     // Host needs full player info (broadcast only sends public state which hides roles)
-    const hostPlayers = this.getPlayersBySeat().map((p) => p.getPrivateState(this));
+    const hostPlayers = this.getPlayersBySeat().map((p) =>
+      p.getPrivateState(this),
+    );
     this.sendToHost(ServerMsg.PLAYER_LIST, hostPlayers);
   }
 
@@ -1825,6 +1890,7 @@ export class Game {
       eventParticipants: this.getEventParticipantMap(),
       eventProgress: this.getEventProgressMap(),
       eventMetadata: this.getEventMetadataMap(),
+      eventRespondents: this.getEventRespondentsMap(),
     };
   }
 
@@ -1856,6 +1922,14 @@ export class Game {
         playerResolved: instance.event.playerResolved || false,
         playerInitiated: instance.event.playerInitiated || false,
       };
+    }
+    return map;
+  }
+
+  getEventRespondentsMap() {
+    const map = {};
+    for (const [eventId, instance] of this.activeEvents) {
+      map[eventId] = Object.keys(instance.results);
     }
     return map;
   }

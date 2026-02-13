@@ -94,6 +94,8 @@ export default function Host() {
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
   const handleSkipEvent = (eventId) =>
     send(ClientMsg.SKIP_EVENT, { eventId });
+  const handleResetEvent = (eventId) =>
+    send(ClientMsg.RESET_EVENT, { eventId });
   const handleStartEventTimer = (eventId) =>
     send(ClientMsg.START_EVENT_TIMER, { eventId });
 
@@ -213,6 +215,7 @@ export default function Host() {
               onResolveEvent={handleResolveEvent}
               onResolveAllEvents={handleResolveAllEvents}
               onSkipEvent={handleSkipEvent}
+              onResetEvent={handleResetEvent}
               onDebugAutoSelectAll={handleDebugAutoSelectAll}
               onStartEventTimer={handleStartEventTimer}
             />

@@ -61,6 +61,7 @@ export const ClientMsg = {
   RESOLVE_EVENT: 'resolveEvent',
   RESOLVE_ALL_EVENTS: 'resolveAllEvents',
   SKIP_EVENT: 'skipEvent',
+  RESET_EVENT: 'resetEvent',
   START_EVENT_TIMER: 'startEventTimer',
   NEXT_PHASE: 'nextPhase',
   END_GAME: 'endGame',

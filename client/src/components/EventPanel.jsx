@@ -18,6 +18,7 @@ export default function EventPanel({
   onDebugAutoSelectAll,
   onCreateCustomEvent,
   onStartEventTimer,
+  onResetEvent,
 }) {
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
@@ -126,6 +127,13 @@ export default function EventPanel({
                         </button>
                       ) : (
                         <>
+                          <button
+                            className={`${styles.debugBtn} ${styles.skipBtn}`}
+                            onClick={() => onResetEvent(eventId)}
+                            title='Reset event to pending'
+                          >
+                            ❌
+                          </button>
                           <button
                             className={styles.debugBtn}
                             onClick={() => onStartEventTimer(eventId)}

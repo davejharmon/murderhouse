@@ -310,6 +310,13 @@ export function createHandlers(game) {
       return game.skipEvent(payload.eventId);
     },
 
+    [ClientMsg.RESET_EVENT]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.resetEvent(payload.eventId);
+    },
+
     [ClientMsg.START_EVENT_TIMER]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
