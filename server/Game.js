@@ -11,6 +11,7 @@ import {
   SlideStyle,
   MIN_PLAYERS,
   MAX_PLAYERS,
+  EVENT_TIMER_DURATION,
 } from '../shared/constants.js';
 import { Player, resetSeatCounter } from './Player.js';
 import { getRole, buildRolePool, GAME_COMPOSITION } from './definitions/roles.js';
@@ -58,6 +59,14 @@ export class Game {
         });
       }
     }
+
+    // Clear any running event timers
+    if (this.eventTimers) {
+      for (const { timeout } of this.eventTimers.values()) {
+        clearTimeout(timeout);
+      }
+    }
+    this.eventTimers = new Map();
 
     resetSeatCounter();
     this.players = new Map(); // id -> Player
@@ -929,7 +938,53 @@ export class Game {
     return { success: false, error: 'No active event for player' };
   }
 
-  resolveEvent(eventId) {
+  startEventTimer(eventId) {
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) {
+      return { success: false, error: 'Event not active' };
+    }
+
+    // Clear existing timer for this event if one is running
+    this.clearEventTimer(eventId);
+
+    const timeout = setTimeout(() => {
+      this.eventTimers.delete(eventId);
+      this.resolveEvent(eventId, { force: true });
+    }, EVENT_TIMER_DURATION);
+
+    this.eventTimers.set(eventId, {
+      timeout,
+      endsAt: Date.now() + EVENT_TIMER_DURATION,
+    });
+
+    this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: EVENT_TIMER_DURATION });
+
+    // Push a timer slide with participant gallery
+    this.pushSlide({
+      type: 'gallery',
+      title: "TIME'S RUNNING OUT",
+      subtitle: "Confirm your selection before it's too late.",
+      playerIds: instance.participants,
+      targetsOnly: true,
+      timerEventId: eventId,
+      style: SlideStyle.WARNING,
+    }, true);
+
+    this.addLog(`Timer started for ${instance.event.name}`);
+
+    return { success: true };
+  }
+
+  clearEventTimer(eventId) {
+    const timer = this.eventTimers.get(eventId);
+    if (timer) {
+      clearTimeout(timer.timeout);
+      this.eventTimers.delete(eventId);
+      this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: null });
+    }
+  }
+
+  resolveEvent(eventId, { force = false } = {}) {
     const instance = this.activeEvents.get(eventId);
     if (!instance) {
       return { success: false, error: 'Event not active' };
@@ -937,8 +992,8 @@ export class Game {
 
     const { event, results, participants } = instance;
 
-    // Check if all required responses are in
-    if (!event.allowAbstain) {
+    // Check if all required responses are in (skip when force-resolving via timer)
+    if (!force && !event.allowAbstain) {
       const responded = Object.keys(results).length;
       if (responded < participants.length) {
         return {
@@ -991,6 +1046,7 @@ export class Game {
 
     // Handle resolution
     this.activeEvents.delete(eventId);
+    this.clearEventTimer(eventId);
 
     if (!resolution.silent) {
       this.eventResults.push(resolution);
@@ -1068,6 +1124,7 @@ export class Game {
 
     // Remove from active events
     this.activeEvents.delete(eventId);
+    this.clearEventTimer(eventId);
 
     this.addLog(`${event.name} skipped`);
     this.broadcastGameState();

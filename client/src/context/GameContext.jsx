@@ -20,6 +20,7 @@ export function GameProvider({ children }) {
   const [eventPrompt, setEventPrompt] = useState(null);
   const [eventResult, setEventResult] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [eventTimers, setEventTimers] = useState({});
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -101,6 +102,18 @@ export function GameProvider({ children }) {
         setLog(payload);
         break;
 
+      case ServerMsg.EVENT_TIMER:
+        if (payload.duration != null) {
+          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration } }));
+        } else {
+          setEventTimers(prev => {
+            const next = { ...prev };
+            delete next[payload.eventId];
+            return next;
+          });
+        }
+        break;
+
       case ServerMsg.EVENT_PROMPT:
         setEventPrompt(payload);
         setEventResult(null); // Clear previous event results when new event starts
@@ -179,6 +192,7 @@ export function GameProvider({ children }) {
     log,
     eventPrompt,
     eventResult,
+    eventTimers,
     notifications,
 
     // Actions

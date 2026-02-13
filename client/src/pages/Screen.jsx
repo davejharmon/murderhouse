@@ -1,12 +1,12 @@
 // client/src/pages/Screen.jsx
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus } from '@shared/constants.js';
+import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus, EVENT_TIMER_DURATION } from '@shared/constants.js';
 import styles from './Screen.module.css';
 
 export default function Screen() {
-  const { connected, gameState, currentSlide, slideQueue, connectAsScreen } = useGame();
+  const { connected, gameState, currentSlide, slideQueue, eventTimers, connectAsScreen } = useGame();
 
   // Use currentSlide if available, otherwise fall back to slideQueue.current
   // This handles timing gaps where SLIDE_QUEUE arrives but SLIDE hasn't yet
@@ -67,6 +67,7 @@ export default function Screen() {
         return renderVoteTally(effectiveSlide);
 
       case SlideType.GALLERY:
+        if (effectiveSlide.timerEventId) return renderTimerGallery(effectiveSlide);
         return renderGallery(effectiveSlide);
 
       case SlideType.COUNTDOWN:
@@ -415,6 +416,81 @@ export default function Screen() {
       slide.style.transform = `scale(${scale})`;
     }
   }, [effectiveSlide, gameState]);
+
+  // Event timer countdown (drives radial widget on timer slides)
+  const [timerDisplay, setTimerDisplay] = useState(null); // { seconds, fraction }
+
+  useEffect(() => {
+    const entries = Object.entries(eventTimers);
+    if (entries.length === 0) {
+      setTimerDisplay(null);
+      return;
+    }
+
+    const earliest = entries.reduce((min, [, t]) => t.endsAt < min.endsAt ? t : min, entries[0][1]);
+
+    const tick = () => {
+      const remaining = Math.max(0, earliest.endsAt - Date.now());
+      if (remaining <= 0) {
+        setTimerDisplay(null);
+      } else {
+        setTimerDisplay({
+          seconds: Math.ceil(remaining / 1000),
+          fraction: remaining / EVENT_TIMER_DURATION,
+        });
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 50);
+    return () => clearInterval(interval);
+  }, [eventTimers]);
+
+  const TIMER_RADIUS = 50;
+  const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
+
+  const renderTimerGallery = (slide) => {
+    const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
+    const dashOffset = timerDisplay
+      ? TIMER_CIRCUMFERENCE * (1 - timerDisplay.fraction)
+      : TIMER_CIRCUMFERENCE;
+
+    return (
+      <div key={slide.id} className={styles.slide}>
+        {slide.title && (
+          <h1 className={styles.title} style={{ color: getSlideColor(slide) }}>
+            {slide.title}
+          </h1>
+        )}
+
+        {timerDisplay && (
+          <div className={styles.timerWidget}>
+            <svg viewBox="0 0 120 120" className={styles.timerSvg}>
+              <circle cx="60" cy="60" r={TIMER_RADIUS} className={styles.timerTrack} />
+              <circle
+                cx="60" cy="60" r={TIMER_RADIUS}
+                className={styles.timerFill}
+                strokeDasharray={TIMER_CIRCUMFERENCE}
+                strokeDashoffset={dashOffset}
+              />
+            </svg>
+            <span className={styles.timerSeconds}>{timerDisplay.seconds}</span>
+          </div>
+        )}
+
+        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+
+        <div className={styles.gallery}>
+          {players.map((p) => (
+            <div key={p.id} className={styles.playerThumb}>
+              <img src={`/images/players/${p.portrait}`} alt={p.name} />
+              <span className={styles.thumbName}>{p.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.container}>

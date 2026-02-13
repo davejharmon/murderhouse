@@ -17,6 +17,7 @@ export default function EventPanel({
   onSkipEvent,
   onDebugAutoSelectAll,
   onCreateCustomEvent,
+  onStartEventTimer,
 }) {
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
@@ -124,12 +125,21 @@ export default function EventPanel({
                           ❌
                         </button>
                       ) : (
-                        <button
-                          className={styles.debugBtn}
-                          onClick={() => onResolveEvent(eventId)}
-                        >
-                          ✔️
-                        </button>
+                        <>
+                          <button
+                            className={styles.debugBtn}
+                            onClick={() => onStartEventTimer(eventId)}
+                            title='Start countdown timer'
+                          >
+                            ⏱️
+                          </button>
+                          <button
+                            className={styles.debugBtn}
+                            onClick={() => onResolveEvent(eventId)}
+                          >
+                            ✔️
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

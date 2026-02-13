@@ -28,6 +28,7 @@ export const ServerMsg = {
   PLAYER_STATE: 'playerState',
   SLIDE: 'slide',
   SLIDE_QUEUE: 'slideQueue',
+  EVENT_TIMER: 'eventTimer',
   PLAYER_LIST: 'playerList',
   EVENT_PROMPT: 'eventPrompt',
   EVENT_RESULT: 'eventResult',
@@ -60,6 +61,7 @@ export const ClientMsg = {
   RESOLVE_EVENT: 'resolveEvent',
   RESOLVE_ALL_EVENTS: 'resolveAllEvents',
   SKIP_EVENT: 'skipEvent',
+  START_EVENT_TIMER: 'startEventTimer',
   NEXT_PHASE: 'nextPhase',
   END_GAME: 'endGame',
   RESET_GAME: 'resetGame',
@@ -149,6 +151,9 @@ export const MAX_PLAYERS = 10;
 
 // Auto-advance delay for slides (in milliseconds)
 export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
+
+// Event timer duration (in milliseconds)
+export const EVENT_TIMER_DURATION = 3000;
 
 // Debug mode - enables testing tools
 export const DEBUG_MODE = true;
