@@ -1,6 +1,7 @@
 // Display Driver Implementation for SSD1322 256x64 OLED
 #include "display.h"
 #include "config.h"
+#include "icons.h"
 #include <U8g2lib.h>
 #include <SPI.h>
 
@@ -26,6 +27,16 @@ U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
 #define LINE3_Y       60    // Bottom of display (line 3)
 
 #define MARGIN_X      4     // Left/right margin
+
+// Icon column layout (2px whitespace gap between text area and icons)
+#define TEXT_AREA_W   234   // Width of text area
+#define ICON_COL_X    236   // Start of icon column
+#define ICON_SLOT_SIZE 18   // 18x18 icons
+#define ICON_SLOT_H   20   // 20px per slot (icon + centering)
+#define BAR_X         254  // X position of selection bar
+#define BAR_W         2    // Width of selection bar
+static const int ICON_Y[] = {1, 23, 45};    // Y positions for 3 icons (centered in slots)
+static const int SLOT_Y[] = {0, 22, 44};    // Y positions for 3 slots (for bar)
 
 // Process text to extract bitmap glyphs and their positions
 // Returns the text with bitmap glyphs replaced by spaces
@@ -108,8 +119,30 @@ uint8_t getStyleColor(DisplayStyle style) {
     }
 }
 
+// Draw an 18x18 XBM icon from PROGMEM at (x, y)
+static void drawIconXBM(const uint8_t* icon, int x, int y) {
+    if (icon == nullptr) return;
+    u8g2.setDrawColor(1);
+    u8g2.drawXBMP(x, y, ICON_SIZE, ICON_SIZE, icon);
+}
+
+// Draw the selection bar indicator at the active icon slot
+static void drawSelectionBar(int activeIndex) {
+    if (activeIndex < 0 || activeIndex > 2) return;
+    u8g2.setDrawColor(1);
+    u8g2.drawBox(BAR_X, SLOT_Y[activeIndex], BAR_W, ICON_SLOT_H);
+}
+
 void displayRender(const DisplayState& state) {
     u8g2.clearBuffer();
+
+    // === ICON COLUMN ===
+    for (int i = 0; i < 3; i++) {
+        const uint8_t* bitmap = getIconBitmap(state.icons[i].id);
+        drawIconXBM(bitmap, ICON_COL_X, ICON_Y[i]);
+    }
+    // Draw selection bar next to the active icon slot
+    drawSelectionBar(state.idleScrollIndex);
 
     // === LINE 1: Context (small, left and right aligned) ===
     u8g2.setFont(FONT_SMALL);
@@ -124,71 +157,59 @@ void displayRender(const DisplayState& state) {
     u8g2.drawStr(MARGIN_X, LINE1_Y, leftGlyphs.text.c_str());
     drawBitmapGlyphs(leftGlyphs, LINE1_Y, fontHeight);
 
-    // Right side (right-aligned) - process for bitmap glyphs
-    // First do simple glyph replacement to calculate width
-    String rightText = renderGlyphs(state.line1.right);
-    int rightWidth = u8g2.getStrWidth(rightText.c_str());
-    int rightStartX = DISPLAY_WIDTH - rightWidth - MARGIN_X;
+    // Right side (right-aligned within text area)
+    if (state.line1.right.length() > 0) {
+        String rightText = renderGlyphs(state.line1.right);
+        int rightWidth = u8g2.getStrWidth(rightText.c_str());
+        int rightStartX = TEXT_AREA_W - rightWidth - MARGIN_X;
 
-    // Now process with position tracking
-    GlyphRenderResult rightGlyphs = processGlyphsForRender(state.line1.right, rightStartX, charWidth);
-    u8g2.drawStr(rightStartX, LINE1_Y, rightGlyphs.text.c_str());
-    drawBitmapGlyphs(rightGlyphs, LINE1_Y, fontHeight);
+        GlyphRenderResult rightGlyphs = processGlyphsForRender(state.line1.right, rightStartX, charWidth);
+        u8g2.drawStr(rightStartX, LINE1_Y, rightGlyphs.text.c_str());
+        drawBitmapGlyphs(rightGlyphs, LINE1_Y, fontHeight);
+    }
 
-    // === LINE 2: Main content (large, centered) ===
+    // === LINE 2: Main content (large, centered within text area) ===
     u8g2.setFont(FONT_LARGE);
-
-    // Apply style (grayscale variation)
-    // Note: SSD1322 supports grayscale, but U8g2 may need specific mode
-    // For now, we'll use a simple approach
 
     String line2Text = renderGlyphs(state.line2.text);
     int line2Width = u8g2.getStrWidth(line2Text.c_str());
-    int line2X = (DISPLAY_WIDTH - line2Width) / 2;
+    int line2X = (TEXT_AREA_W - line2Width) / 2;
 
     // Draw based on style
     if (state.line2.style == DisplayStyle::ABSTAINED) {
-        // Draw dimmer (we can't easily do this with U8g2, so just draw normal)
         u8g2.setDrawColor(1);
     } else if (state.line2.style == DisplayStyle::LOCKED) {
-        // Draw with a box around it for emphasis
         u8g2.setDrawColor(1);
         u8g2.drawFrame(line2X - 4, LINE2_Y - 18, line2Width + 8, 22);
     } else if (state.line2.style == DisplayStyle::WAITING) {
-        // Could add animation here (handled in main loop)
         u8g2.setDrawColor(1);
     }
 
     u8g2.drawStr(line2X, LINE2_Y, line2Text.c_str());
 
-    // === LINE 3: Tutorial/tip (small, centered or left/right aligned) ===
+    // === LINE 3: Tutorial/tip (small, centered or left/right within text area) ===
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
 
-    // Check if we have left/right alignment (for button labels)
     if (state.line3.left.length() > 0 || state.line3.right.length() > 0) {
-        // Left-aligned text (above YES button)
         if (state.line3.left.length() > 0) {
             String leftText = renderGlyphs(state.line3.left);
             u8g2.drawStr(MARGIN_X, LINE3_Y, leftText.c_str());
         }
-        // Center-aligned text (e.g., pack hint)
         if (state.line3.center.length() > 0) {
             String centerText = renderGlyphs(state.line3.center);
             int centerWidth = u8g2.getStrWidth(centerText.c_str());
-            u8g2.drawStr((DISPLAY_WIDTH - centerWidth) / 2, LINE3_Y, centerText.c_str());
+            u8g2.drawStr((TEXT_AREA_W - centerWidth) / 2, LINE3_Y, centerText.c_str());
         }
-        // Right-aligned text (above NO button)
         if (state.line3.right.length() > 0) {
             String rightText = renderGlyphs(state.line3.right);
             int rightWidth = u8g2.getStrWidth(rightText.c_str());
-            u8g2.drawStr(DISPLAY_WIDTH - rightWidth - MARGIN_X, LINE3_Y, rightText.c_str());
+            u8g2.drawStr(TEXT_AREA_W - rightWidth - MARGIN_X, LINE3_Y, rightText.c_str());
         }
     } else {
-        // Centered text (default)
         String line3Text = renderGlyphs(state.line3.text);
         int line3Width = u8g2.getStrWidth(line3Text.c_str());
-        int line3X = (DISPLAY_WIDTH - line3Width) / 2;
+        int line3X = (TEXT_AREA_W - line3Width) / 2;
         u8g2.drawStr(line3X, LINE3_Y, line3Text.c_str());
     }
 

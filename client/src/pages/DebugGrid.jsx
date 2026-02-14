@@ -128,6 +128,8 @@ export default function DebugGrid() {
     onConfirm: () => send(playerId, ClientMsg.CONFIRM),
     onAbstain: () => send(playerId, ClientMsg.ABSTAIN),
     onUseItem: (itemId) => send(playerId, ClientMsg.USE_ITEM, { itemId }),
+    onIdleScrollUp: () => send(playerId, ClientMsg.IDLE_SCROLL_UP),
+    onIdleScrollDown: () => send(playerId, ClientMsg.IDLE_SCROLL_DOWN),
   });
 
   return (

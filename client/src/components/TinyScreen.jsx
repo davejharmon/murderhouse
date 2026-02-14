@@ -4,6 +4,7 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 import { FONT_6x10, FONT_10x20 } from './oledFonts.js'
+import { Icons } from '@shared/icons.js'
 import styles from './TinyScreen.module.css'
 
 // Display dimensions (matching SSD1322 OLED)
@@ -16,11 +17,25 @@ const LINE2_Y = 42   // Baseline for line 2
 const LINE3_Y = 60   // Baseline for line 3
 const MARGIN_X = 4
 
+// Icon column layout (2px whitespace gap between text area and icons)
+const TEXT_AREA_W = 234   // Width of text area
+const ICON_COL_X = 236    // Start of icon column
+const ICON_SIZE = 18      // 18x18 icons
+const ICON_SLOT_H = 20    // 20px per slot (18px icon + centering)
+const ICON_Y = [1, 23, 45] // Y positions for 3 icons (centered in 20px slots)
+const SLOT_Y = [0, 22, 44] // Y positions for 3 slots (for bar indicator)
+const BAR_X = 254          // X position of selection bar (2px wide, 254..255)
+const BAR_W = 2            // Width of selection bar
+
 // Amber palette
 const COLOR_NORMAL = '#ffb000'
 const COLOR_BRIGHT = '#ffc840'
 const COLOR_DIM = '#805800'
+const COLOR_VDIM = '#2a1800'
 const COLOR_BG = '#0a0800'
+
+// Icon color (all icons drawn at same brightness; selection shown via bar)
+const ICON_COLOR = COLOR_NORMAL
 
 // Character glyph substitutions (ASCII, matching ESP32 terminal rendering)
 const CHAR_GLYPHS = {
@@ -169,13 +184,69 @@ function drawSegments(ctx, segments, x, baselineY, font) {
 }
 
 /**
- * Render the full 3-line display onto a canvas context
+ * Draw an 18x18 XBM icon at (x, y)
+ * XBM format: 3 bytes per row, LSB = leftmost pixel, only 18 bits used
+ */
+function drawIcon(ctx, iconId, x, y) {
+  const bytes = Icons[iconId]
+  if (!bytes) return
+
+  ctx.fillStyle = ICON_COLOR
+  for (let row = 0; row < ICON_SIZE; row++) {
+    const b0 = bytes[row * 3]
+    const b1 = bytes[row * 3 + 1]
+    const b2 = bytes[row * 3 + 2]
+    for (let bit = 0; bit < ICON_SIZE; bit++) {
+      let byteIdx, bitIdx
+      if (bit < 8) {
+        byteIdx = b0
+        bitIdx = bit
+      } else if (bit < 16) {
+        byteIdx = b1
+        bitIdx = bit - 8
+      } else {
+        byteIdx = b2
+        bitIdx = bit - 16
+      }
+      if (byteIdx & (1 << bitIdx)) {
+        ctx.fillRect(x + bit, y + row, 1, 1)
+      }
+    }
+  }
+}
+
+/**
+ * Draw the selection bar indicator at the active icon slot
+ */
+function drawSelectionBar(ctx, activeIndex, color) {
+  if (activeIndex < 0 || activeIndex > 2) return
+  ctx.fillStyle = color
+  ctx.fillRect(BAR_X, SLOT_Y[activeIndex], BAR_W, ICON_SLOT_H)
+}
+
+/**
+ * Render the full 3-line display with icon column onto a canvas context
  */
 function renderDisplay(ctx, display, color) {
-  const { line1, line2, line3 } = display
+  const { line1, line2, line3, icons } = display
   const isLocked = line2.style === 'locked'
 
-  // Set draw color
+  // === ICON COLUMN ===
+  if (icons && icons.length === 3) {
+    for (let i = 0; i < 3; i++) {
+      const icon = icons[i]
+      if (icon && icon.id) {
+        drawIcon(ctx, icon.id, ICON_COL_X, ICON_Y[i])
+      }
+    }
+    // Draw selection bar next to the active icon slot
+    const idleIdx = display.idleScrollIndex
+    if (idleIdx !== undefined && idleIdx >= 0 && idleIdx <= 2) {
+      drawSelectionBar(ctx, idleIdx, color)
+    }
+  }
+
+  // Set draw color for text
   ctx.fillStyle = color
 
   // === LINE 1: small font, left + right ===
@@ -186,13 +257,13 @@ function renderDisplay(ctx, display, color) {
 
   if (l1Right.length > 0) {
     const rightW = measureSegments(l1Right, FONT_6x10)
-    drawSegments(ctx, l1Right, W - MARGIN_X - rightW, LINE1_Y, FONT_6x10)
+    drawSegments(ctx, l1Right, TEXT_AREA_W - MARGIN_X - rightW, LINE1_Y, FONT_6x10)
   }
 
-  // === LINE 2: large font, centered ===
+  // === LINE 2: large font, centered within text area ===
   const l2Segs = parseGlyphs(line2.text)
   const l2W = measureSegments(l2Segs, FONT_10x20)
-  const l2X = Math.floor((W - l2W) / 2)
+  const l2X = Math.floor((TEXT_AREA_W - l2W) / 2)
 
   if (isLocked) {
     // Brighter color for locked
@@ -219,7 +290,7 @@ function renderDisplay(ctx, display, color) {
     ctx.fillStyle = color
   }
 
-  // === LINE 3: small font, centered or left/right ===
+  // === LINE 3: small font, centered or left/right within text area ===
   const hasLine3Split = line3.left || line3.right
 
   if (hasLine3Split) {
@@ -231,17 +302,17 @@ function renderDisplay(ctx, display, color) {
     if (line3.center) {
       const l3Center = parseGlyphs(line3.center)
       const centerW = measureSegments(l3Center, FONT_6x10)
-      drawSegments(ctx, l3Center, Math.floor((W - centerW) / 2), LINE3_Y, FONT_6x10)
+      drawSegments(ctx, l3Center, Math.floor((TEXT_AREA_W - centerW) / 2), LINE3_Y, FONT_6x10)
     }
 
     if (l3Right.length > 0) {
       const rightW = measureSegments(l3Right, FONT_6x10)
-      drawSegments(ctx, l3Right, W - MARGIN_X - rightW, LINE3_Y, FONT_6x10)
+      drawSegments(ctx, l3Right, TEXT_AREA_W - MARGIN_X - rightW, LINE3_Y, FONT_6x10)
     }
   } else {
     const l3Segs = parseGlyphs(line3.text)
     const l3W = measureSegments(l3Segs, FONT_6x10)
-    const l3X = Math.floor((W - l3W) / 2)
+    const l3X = Math.floor((TEXT_AREA_W - l3W) / 2)
     drawSegments(ctx, l3Segs, l3X, LINE3_Y, FONT_6x10)
   }
 }
@@ -249,15 +320,6 @@ function renderDisplay(ctx, display, color) {
 /**
  * TinyScreen - Canvas-based three-line display component
  * Renders at native 256x64, scaled up with pixelated rendering for visible pixel grid
- *
- * Props:
- *   display: {
- *     line1: { left: string, right: string },
- *     line2: { text: string, style: 'normal'|'locked'|'abstained'|'waiting' },
- *     line3: { text: string } OR { left: string, right: string },
- *     leds: { yes: string, no: string }
- *   }
- *   compact: boolean (for debug grid)
  */
 export default function TinyScreen({ display, compact = false }) {
   const canvasRef = useRef(null)
@@ -277,7 +339,7 @@ export default function TinyScreen({ display, compact = false }) {
       color = COLOR_DIM
     } else if (style === 'waiting' && time !== undefined) {
       // Pulse between dim and normal over 2s
-      const t = (Math.sin(time / 1000 * Math.PI) + 1) / 2 // 0→1→0 over 2s
+      const t = (Math.sin(time / 1000 * Math.PI) + 1) / 2 // 0->1->0 over 2s
       const r = Math.round(0x80 + (0xff - 0x80) * t)
       const g = Math.round(0x58 + (0xb0 - 0x58) * t)
       const b = Math.round(0x00)

@@ -34,6 +34,8 @@ void networkSendSelectDown();
 void networkSendConfirm();
 void networkSendAbstain();
 void networkSendUseItem(const char* itemId);
+void networkSendIdleScrollUp();
+void networkSendIdleScrollDown();
 
 // Get last error message (if any)
 const char* networkGetLastError();

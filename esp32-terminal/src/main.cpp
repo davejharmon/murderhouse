@@ -258,22 +258,50 @@ void loop() {
         // Poll for input events
         InputEvent event = inputPoll();
 
+        // Determine if player is idle (no pending events shown - inferred from display state)
+        // When idle, server sends leds.yes as OFF or DIM (for items), and display has no event info
+        // We use the idleScrollIndex and icon data to decide routing
+        bool hasActiveEvent = currentDisplay.leds.yes == LedState::BRIGHT ||
+                              currentDisplay.statusLed == GameLedState::VOTING ||
+                              currentDisplay.statusLed == GameLedState::LOCKED ||
+                              currentDisplay.statusLed == GameLedState::ABSTAINED;
+        bool isIdle = !hasActiveEvent &&
+                      currentDisplay.statusLed != GameLedState::LOBBY &&
+                      currentDisplay.statusLed != GameLedState::GAME_OVER &&
+                      currentDisplay.statusLed != GameLedState::DEAD;
+
         switch (event) {
             case InputEvent::UP:
                 Serial.println("Input: UP");
-                networkSendSelectUp();
+                if (isIdle) {
+                    networkSendIdleScrollUp();
+                } else {
+                    networkSendSelectUp();
+                }
                 break;
 
             case InputEvent::DOWN:
                 Serial.println("Input: DOWN");
-                networkSendSelectDown();
+                if (isIdle) {
+                    networkSendIdleScrollDown();
+                } else {
+                    networkSendSelectDown();
+                }
                 break;
 
             case InputEvent::YES:
                 Serial.println("Input: YES");
-                // YES can be confirm or useItem depending on state
-                // For now, just send confirm - server will handle appropriately
-                networkSendConfirm();
+                if (isIdle && currentDisplay.leds.yes == LedState::DIM) {
+                    // On a usable item slot - send useItem
+                    // The item ID comes from the icon at the current scroll index
+                    uint8_t idx = currentDisplay.idleScrollIndex;
+                    if (idx > 0 && idx <= 2) {
+                        const char* itemId = currentDisplay.icons[idx].id.c_str();
+                        networkSendUseItem(itemId);
+                    }
+                } else {
+                    networkSendConfirm();
+                }
                 break;
 
             case InputEvent::NO:

@@ -32,6 +32,8 @@ namespace ClientMsg {
     const char* const CONFIRM = "confirm";
     const char* const ABSTAIN = "abstain";
     const char* const USE_ITEM = "useItem";
+    const char* const IDLE_SCROLL_UP = "idleScrollUp";
+    const char* const IDLE_SCROLL_DOWN = "idleScrollDown";
 }
 
 // ============================================================================
@@ -130,6 +132,28 @@ enum class InputEvent {
 };
 
 // ============================================================================
+// ICON COLUMN
+// ============================================================================
+
+enum class IconState {
+    ACTIVE,
+    INACTIVE,
+    EMPTY
+};
+
+inline IconState parseIconState(const String& state) {
+    if (state == "active") return IconState::ACTIVE;
+    if (state == "inactive") return IconState::INACTIVE;
+    return IconState::EMPTY;
+}
+
+struct IconSlot {
+    String id;
+    IconState state;
+    IconSlot() : id("empty"), state(IconState::EMPTY) {}
+};
+
+// ============================================================================
 // DISPLAY STATE STRUCTURE
 // ============================================================================
 
@@ -163,6 +187,10 @@ struct DisplayState {
     // Status LED (neopixel game state)
     GameLedState statusLed;
 
+    // Icon column (3 slots)
+    IconSlot icons[3];
+    uint8_t idleScrollIndex;
+
     // Default constructor
     DisplayState() {
         line1.left = "CONNECTING";
@@ -173,6 +201,7 @@ struct DisplayState {
         leds.yes = LedState::OFF;
         leds.no = LedState::OFF;
         statusLed = GameLedState::NONE;
+        idleScrollIndex = 0;
     }
 };
 

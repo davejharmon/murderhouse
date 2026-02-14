@@ -224,6 +224,30 @@ export function createHandlers(game) {
       return result;
     },
 
+    [ClientMsg.IDLE_SCROLL_UP]: (ws) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+      if (!player.isAlive || player.pendingEvents.size > 0) {
+        return { success: false, error: 'Cannot scroll now' };
+      }
+
+      player.idleScrollUp();
+      player.syncState(game);
+      return { success: true };
+    },
+
+    [ClientMsg.IDLE_SCROLL_DOWN]: (ws) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+      if (!player.isAlive || player.pendingEvents.size > 0) {
+        return { success: false, error: 'Cannot scroll now' };
+      }
+
+      player.idleScrollDown();
+      player.syncState(game);
+      return { success: true };
+    },
+
     [ClientMsg.USE_ITEM]: (ws, payload) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };

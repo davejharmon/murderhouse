@@ -1,6 +1,5 @@
 // client/src/components/PlayerConsole.jsx
 // Simplified console mimicking physical ESP32 terminal experience
-import { useMemo, useState, useEffect } from 'react';
 import { GamePhase, PlayerStatus } from '@shared/constants.js';
 import TinyScreen from './TinyScreen';
 import StatusLed from './StatusLed';
@@ -19,50 +18,35 @@ export default function PlayerConsole({
   onConfirm,
   onAbstain,
   onUseItem,
+  onIdleScrollUp,
+  onIdleScrollDown,
   compact = false,
 }) {
   const isAlive = player?.status === PlayerStatus.ALIVE;
   const isDead = player?.status === PlayerStatus.DEAD;
   const phase = gameState?.phase;
 
-  // Build list of usable abilities from inventory (only items with startsEvent)
-  const abilities = useMemo(() => {
-    if (!player?.inventory) return [];
+  // Derive idle state from server data (no active event, alive, in-game)
+  const isIdle = !hasActiveEvent && isAlive && phase !== GamePhase.LOBBY && phase !== GamePhase.GAME_OVER;
 
-    return player.inventory
-      .filter(item =>
-        item.uses !== 0 &&
-        item.uses !== undefined &&
-        item.startsEvent // Only items that start an event when activated
-      )
-      .map(item => ({
-        id: item.id,
-        name: item.id.toUpperCase(),
-        uses: item.uses,
-        maxUses: item.maxUses,
-      }));
-  }, [player?.inventory]);
+  // Get current icon data from display state
+  const icons = player?.display?.icons;
+  const idleScrollIndex = player?.display?.idleScrollIndex ?? 0;
 
-  // Track ability selection when not in event
-  const [currentAbilityIndex, setCurrentAbilityIndex] = useState(0);
+  // Check if current scroll position is on a usable item
+  const currentIconSlot = icons?.[idleScrollIndex];
+  const isOnUsableItem = isIdle && idleScrollIndex > 0 && currentIconSlot?.state === 'active' && currentIconSlot?.id !== 'empty';
 
-  // Reset ability index when abilities change
-  useEffect(() => {
-    if (currentAbilityIndex >= abilities.length) {
-      setCurrentAbilityIndex(0);
-    }
-  }, [abilities.length, currentAbilityIndex]);
-
-  // Determine if we're in ability mode (idle with abilities available)
-  const inAbilityMode = !hasActiveEvent && isAlive && abilities.length > 0 && phase !== GamePhase.LOBBY;
-  const currentAbility = inAbilityMode ? abilities[currentAbilityIndex] : null;
+  // Check if scrolled item has startsEvent (only those are YES-activatable)
+  const scrolledItem = isOnUsableItem
+    ? player?.inventory?.[idleScrollIndex - 1]
+    : null;
+  const canActivateItem = scrolledItem?.startsEvent && (scrolledItem.maxUses === -1 || scrolledItem.uses > 0);
 
   // Handle UP button (rotary switch increment)
   const handleUp = () => {
-    if (inAbilityMode) {
-      setCurrentAbilityIndex((prev) =>
-        prev <= 0 ? abilities.length - 1 : prev - 1
-      );
+    if (isIdle) {
+      onIdleScrollUp?.();
     } else if (hasActiveEvent) {
       onSwipeUp();
     }
@@ -70,10 +54,8 @@ export default function PlayerConsole({
 
   // Handle DOWN button (rotary switch decrement)
   const handleDown = () => {
-    if (inAbilityMode) {
-      setCurrentAbilityIndex((prev) =>
-        prev >= abilities.length - 1 ? 0 : prev + 1
-      );
+    if (isIdle) {
+      onIdleScrollDown?.();
     } else if (hasActiveEvent) {
       onSwipeDown();
     }
@@ -81,8 +63,8 @@ export default function PlayerConsole({
 
   // Handle YES button
   const handleYes = () => {
-    if (inAbilityMode && currentAbility) {
-      onUseItem(currentAbility.id);
+    if (isIdle && canActivateItem) {
+      onUseItem(scrolledItem.id);
     } else if (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) {
       onConfirm();
     }
@@ -100,10 +82,10 @@ export default function PlayerConsole({
   const noLed = player?.display?.leds?.no || 'off';
 
   // Client-side interactivity (keep disabled logic for touch)
-  const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || inAbilityMode;
+  const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || (isIdle && canActivateItem);
   const canAbstain = eventPrompt?.allowAbstain !== false;
   const noEnabled = hasActiveEvent && !confirmedTarget && !abstained && canAbstain;
-  const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || inAbilityMode;
+  const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || isIdle;
 
   return (
     <div className={`${styles.console} ${isDead ? styles.dead : ''} ${compact ? styles.compact : ''}`}>
@@ -126,7 +108,7 @@ export default function PlayerConsole({
             onClick={handleUp}
             disabled={!navEnabled}
           >
-            <span className={styles.arrow}>▲</span>
+            <span className={styles.arrow}>&#9650;</span>
           </button>
 
           {/* DOWN - Rotary decrement */}
@@ -135,7 +117,7 @@ export default function PlayerConsole({
             onClick={handleDown}
             disabled={!navEnabled}
           >
-            <span className={styles.arrow}>▼</span>
+            <span className={styles.arrow}>&#9660;</span>
           </button>
 
           {/* YES - Yellow LED button */}

@@ -50,6 +50,8 @@ export const ClientMsg = {
   CANCEL: 'cancel',
   ABSTAIN: 'abstain',
   USE_ITEM: 'useItem',
+  IDLE_SCROLL_UP: 'idleScrollUp',
+  IDLE_SCROLL_DOWN: 'idleScrollDown',
   
   // Host actions
   HOST_CONNECT: 'hostConnect',
@@ -216,6 +218,13 @@ export const StatusLed = {
   ABSTAINED: 'abstained',
   DEAD: 'dead',
   GAME_OVER: 'gameOver',
+};
+
+// Icon column states
+export const IconState = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  EMPTY: 'empty',
 };
 
 // Display line styles

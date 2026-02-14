@@ -8,13 +8,12 @@ import {
   GamePhase,
   RoleId,
   EventId,
-  ItemGlyphs,
   Glyphs,
   LedState,
   DisplayStyle,
   StatusLed,
+  IconState,
 } from '../shared/constants.js';
-import { getEvent } from './definitions/events.js';
 
 // Action labels for each event type (confirm action / abstain action / select prompt)
 const EVENT_ACTIONS = {
@@ -72,7 +71,9 @@ export class Player {
 
     // Tutorial
     this.tutorialTip = null; // Role tip shown on TinyScreen line 3 during idle
-    this.showIdleRole = false; // Show role name on line 2 during idle (game start only)
+
+    // Icon column idle scroll
+    this.idleScrollIndex = 0; // 0=role, 1=item1, 2=item2
 
     // History
     this.investigations = [];
@@ -120,6 +121,7 @@ export class Player {
     this.linkedTo = null;
     this.resetForPhase();
     this.tutorialTip = null;
+    this.idleScrollIndex = 0;
     this.investigations = [];
     this.suspicions = [];
     this.lastProtected = null;
@@ -205,6 +207,29 @@ export class Player {
     this.clearSelection();
   }
 
+  // Get list of non-empty icon slot indices
+  _getActiveSlots() {
+    const slots = [0]; // Slot 0 (role) is always populated when alive
+    if (this.inventory && this.inventory.length > 0) slots.push(1);
+    if (this.inventory && this.inventory.length > 1) slots.push(2);
+    return slots;
+  }
+
+  // Idle scroll controls (cycle through non-empty icon slots only)
+  idleScrollUp() {
+    const slots = this._getActiveSlots();
+    const cur = slots.indexOf(this.idleScrollIndex);
+    this.idleScrollIndex = slots[cur <= 0 ? slots.length - 1 : cur - 1];
+    return this.idleScrollIndex;
+  }
+
+  idleScrollDown() {
+    const slots = this._getActiveSlots();
+    const cur = slots.indexOf(this.idleScrollIndex);
+    this.idleScrollIndex = slots[cur >= slots.length - 1 ? 0 : cur + 1];
+    return this.idleScrollIndex;
+  }
+
   // Derive confirmed selection / abstained state from instance.results + pendingEvents.
   // Single source of truth: no stored confirmedSelection or abstained fields needed.
   getActiveResult(game) {
@@ -223,7 +248,7 @@ export class Player {
     this.clearSelection();
     this.pendingEvents.clear();
     this.lastEventResult = null;
-    this.showIdleRole = false;
+    this.idleScrollIndex = 0;
   }
 
   // Get public state (safe to send to other players)
@@ -340,11 +365,6 @@ export class Player {
       this._getLine1(phase, ctx.dayCount, evtName, evtId);
     const phaseLed = phase === GamePhase.DAY ? StatusLed.DAY : StatusLed.NIGHT;
 
-    // Clear role reveal once player enters any event
-    if (this.showIdleRole && hasActiveEvent) {
-      this.showIdleRole = false;
-    }
-
     // Derive confirmed/abstained from single source of truth
     const activeResult = this.getActiveResult(game);
     const isAbstained = activeResult?.abstained ?? false;
@@ -361,10 +381,6 @@ export class Player {
     if (hasActiveEvent)
       return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
 
-    const usableAbilities = this._getUsableAbilities(phase);
-    if (usableAbilities.length > 0 && this.isAlive)
-      return this._displayAbilityMode(getLine1, phaseLed, usableAbilities);
-
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
 
     // Dynamically compute packmate tip for werewolves (reflects living members)
@@ -380,8 +396,7 @@ export class Player {
       }
     }
 
-    if (this.showIdleRole)    return this._displayGameStart(getLine1, phaseLed);
-    return this._displayIdle(getLine1, phaseLed);
+    return this._displayIdleScroll(getLine1, phaseLed);
   }
 
   // --- Display state methods (called by _buildDisplay) ---
@@ -408,7 +423,7 @@ export class Player {
 
   _displayDead(getLine1) {
     return this._display(
-      { left: getLine1(), right: Glyphs.SKULL },
+      { left: getLine1(), right: '' },
       { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
       { text: 'Watch the game unfold' },
       { yes: LedState.OFF, no: LedState.OFF },
@@ -418,7 +433,7 @@ export class Player {
 
   _displayAbstained(getLine1, eventName, activeEventId) {
     return this._display(
-      { left: getLine1(eventName, activeEventId), right: Glyphs.X },
+      { left: getLine1(eventName, activeEventId), right: '' },
       { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
       { text: 'Waiting for others' },
       { yes: LedState.OFF, no: LedState.OFF },
@@ -433,7 +448,7 @@ export class Player {
       ? `PARDONING ${targetName.toUpperCase()}`
       : targetName.toUpperCase();
     return this._display(
-      { left: getLine1(eventName, activeEventId), right: Glyphs.LOCK },
+      { left: getLine1(eventName, activeEventId), right: '' },
       { text: line2Text, style: DisplayStyle.LOCKED },
       { text: 'Selection locked' },
       { yes: LedState.OFF, no: LedState.OFF },
@@ -491,20 +506,9 @@ export class Player {
     );
   }
 
-  _displayAbilityMode(getLine1, phaseLed, usableAbilities) {
-    const ability = usableAbilities[0]; // Show first ability
-    return this._display(
-      { left: getLine1(), right: this._getInventoryGlyphs() },
-      { text: `USE ${ability.id.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-      { left: `USE (${ability.uses}/${ability.maxUses})`, right: '' },
-      { yes: LedState.DIM, no: LedState.OFF },
-      phaseLed
-    );
-  }
-
   _displayEventResult(getLine1, phaseLed) {
     return this._display(
-      { left: getLine1(), right: Glyphs.CHECK },
+      { left: getLine1(), right: '' },
       { text: this.lastEventResult.message, style: DisplayStyle.NORMAL },
       { text: '' },
       { yes: LedState.OFF, no: LedState.OFF },
@@ -512,22 +516,50 @@ export class Player {
     );
   }
 
-  _displayGameStart(getLine1, phaseLed) {
-    return this._display(
-      { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
-      { text: this.role?.name?.toUpperCase() || 'READY', style: DisplayStyle.NORMAL },
-      { text: this.tutorialTip || '[tip missing]' },
-      { yes: LedState.OFF, no: LedState.OFF },
-      phaseLed
-    );
-  }
+  _displayIdleScroll(getLine1, phaseLed) {
+    const icons = this._buildIcons();
+    const idx = this.idleScrollIndex;
+    const slot = icons[idx];
 
-  _displayIdle(getLine1, phaseLed) {
+    // Determine line2/line3 content based on which slot is highlighted
+    let line2Text = '';
+    let line3 = { text: '' };
+    let leds = { yes: LedState.OFF, no: LedState.OFF };
+
+    if (idx === 0) {
+      // Role slot - show role name and tip
+      line2Text = this.role?.name?.toUpperCase() || 'READY';
+      line3 = { text: this.tutorialTip || '' };
+    } else {
+      // Item slots (1 or 2)
+      const itemIndex = idx - 1;
+      const inventoryItem = this._getIconSlotItem(itemIndex);
+      if (inventoryItem) {
+        if (inventoryItem.startsEvent) {
+          // Usable item
+          const usesLabel = inventoryItem.maxUses === -1
+            ? 'UNLIMITED'
+            : `(${inventoryItem.uses}/${inventoryItem.maxUses})`;
+          line2Text = `USE ${inventoryItem.id.toUpperCase()}?`;
+          line3 = { left: usesLabel, right: '' };
+          leds = { yes: LedState.DIM, no: LedState.OFF };
+        } else {
+          // Non-activatable item (phone, etc.)
+          line2Text = inventoryItem.id.toUpperCase();
+          line3 = { text: 'Passive item' };
+        }
+      } else {
+        // Empty slot
+        line2Text = '';
+        line3 = { text: 'Empty slot' };
+      }
+    }
+
     return this._display(
-      { left: getLine1(), right: this._getInventoryGlyphs() + this._getRoleGlyph() },
-      { text: '', style: DisplayStyle.NORMAL },
-      { text: this.tutorialTip || '[tip missing]' },
-      { yes: LedState.OFF, no: LedState.OFF },
+      { left: getLine1(), right: '' },
+      { text: line2Text, style: DisplayStyle.NORMAL },
+      line3,
+      leds,
       phaseLed
     );
   }
@@ -536,7 +568,11 @@ export class Player {
    * Create a display state object
    */
   _display(line1, line2, line3, leds, statusLed) {
-    return { line1, line2, line3, leds, statusLed };
+    return {
+      line1, line2, line3, leds, statusLed,
+      icons: this._buildIcons(),
+      idleScrollIndex: this.idleScrollIndex,
+    };
   }
 
   /**
@@ -607,24 +643,51 @@ export class Player {
   }
 
   /**
-   * Get inventory glyphs string
+   * Build the 3-slot icon array for the icon column.
+   * Slot 0: role (or skull if dead)
+   * Slots 1-2: first two inventory items (or empty)
    */
-  _getInventoryGlyphs() {
-    return this.inventory
-      .filter((item) => item.uses > 0 || item.maxUses === -1)
-      .map((item) => ItemGlyphs[item.id] || '')
-      .filter(Boolean)
-      .join('');
+  _buildIcons() {
+    const idx = this.idleScrollIndex;
+
+    // Slot 0: role icon
+    let slot0;
+    if (!this.isAlive) {
+      slot0 = { id: 'skull', state: IconState.INACTIVE };
+    } else if (this.role) {
+      slot0 = { id: this.role.id, state: idx === 0 ? IconState.ACTIVE : IconState.INACTIVE };
+    } else {
+      slot0 = { id: 'empty', state: IconState.EMPTY };
+    }
+
+    // Slots 1-2: inventory items
+    const slot1 = this._buildItemIcon(0, idx === 1);
+    const slot2 = this._buildItemIcon(1, idx === 2);
+
+    return [slot0, slot1, slot2];
   }
 
   /**
-   * Get role glyph (for werewolves)
+   * Build icon for an inventory slot
    */
-  _getRoleGlyph() {
-    if (!this.role) return '';
-    if (this.role.id === RoleId.ALPHA) return Glyphs.ALPHA;
-    if (this.role.team === Team.WEREWOLF) return Glyphs.WOLF;
-    return '';
+  _buildItemIcon(itemIndex, isActive) {
+    const item = this._getIconSlotItem(itemIndex);
+    if (!item) {
+      return { id: 'empty', state: IconState.EMPTY };
+    }
+    const hasUses = item.maxUses === -1 || item.uses > 0;
+    return {
+      id: item.id,
+      state: isActive ? IconState.ACTIVE : (hasUses ? IconState.INACTIVE : IconState.EMPTY),
+    };
+  }
+
+  /**
+   * Get the inventory item for a given icon slot index (0 or 1)
+   */
+  _getIconSlotItem(slotIndex) {
+    if (!this.inventory || slotIndex >= this.inventory.length) return null;
+    return this.inventory[slotIndex];
   }
 
   /**
@@ -656,17 +719,6 @@ export class Player {
       return `${Glyphs.WOLF} ${topTarget.name.toUpperCase()}`;
     }
     return '';
-  }
-
-  /**
-   * Get usable abilities (items with startsEvent)
-   */
-  _getUsableAbilities(phase) {
-    return this.inventory.filter((item) => {
-      if (!item.startsEvent || (item.maxUses !== -1 && item.uses <= 0)) return false;
-      const event = getEvent(item.startsEvent);
-      return !event || !event.phase || event.phase.includes(phase);
-    });
   }
 
   // Inventory management
@@ -702,6 +754,11 @@ export class Player {
     const index = this.inventory.findIndex((item) => item.id === itemId);
     if (index !== -1) {
       this.inventory.splice(index, 1);
+      // Clamp idle scroll index if it now points past available slots
+      const maxSlot = this.inventory.length; // slots 1..N map to inventory 0..N-1
+      if (this.idleScrollIndex > maxSlot) {
+        this.idleScrollIndex = 0;
+      }
       return true;
     }
     return false;

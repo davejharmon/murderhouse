@@ -257,6 +257,18 @@ void networkSendAbstain() {
     }
 }
 
+void networkSendIdleScrollUp() {
+    if (networkIsConnected()) {
+        sendMessage(ClientMsg::IDLE_SCROLL_UP);
+    }
+}
+
+void networkSendIdleScrollDown() {
+    if (networkIsConnected()) {
+        sendMessage(ClientMsg::IDLE_SCROLL_DOWN);
+    }
+}
+
 void networkSendUseItem(const char* itemId) {
     if (networkIsConnected()) {
         StaticJsonDocument<128> doc;
@@ -387,6 +399,17 @@ static void parsePlayerState(JsonObject& payload) {
 
     // Parse status LED (neopixel game state)
     currentDisplayState.statusLed = parseGameLedState(display["statusLed"] | "");
+
+    // Parse icon column
+    if (display.containsKey("icons")) {
+        JsonArray iconsArr = display["icons"];
+        for (int i = 0; i < 3 && i < (int)iconsArr.size(); i++) {
+            JsonObject icon = iconsArr[i];
+            currentDisplayState.icons[i].id = icon["id"] | "empty";
+            currentDisplayState.icons[i].state = parseIconState(icon["state"] | "empty");
+        }
+    }
+    currentDisplayState.idleScrollIndex = display["idleScrollIndex"] | 0;
 
     // Notify callback
     if (displayCallback != nullptr) {

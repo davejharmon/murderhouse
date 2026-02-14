@@ -2,14 +2,14 @@
 import { useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase, PlayerStatus } from '@shared/constants.js';
+import { ClientMsg, GamePhase } from '@shared/constants.js';
 import PlayerConsole from '../components/PlayerConsole';
 import styles from './Player.module.css';
 
 export default function Player() {
   const { id } = useParams();
   const playerId = id;
-  
+
   const {
     connected,
     gameState,
@@ -30,7 +30,7 @@ export default function Player() {
   // Join game on mount
   useEffect(() => {
     if (connected && playerId) {
-      // JOIN handles both new players and reconnections
+      // JOIN handles both new players and reconnection
       joinAsPlayer(playerId);
     }
   }, [connected, playerId, joinAsPlayer]);
@@ -65,6 +65,17 @@ export default function Player() {
     send(ClientMsg.USE_ITEM, { itemId });
   }, [send]);
 
+  const handleIdleScrollUp = useCallback(() => {
+    send(ClientMsg.IDLE_SCROLL_UP);
+  }, [send]);
+
+  const handleIdleScrollDown = useCallback(() => {
+    send(ClientMsg.IDLE_SCROLL_DOWN);
+  }, [send]);
+
+  // Derive whether player has an active event
+  const hasActiveEvent = eventPrompt || playerState?.pendingEvents?.length > 0;
+
   // Touch handling for swipe
   useEffect(() => {
     let touchStartY = 0;
@@ -79,10 +90,20 @@ export default function Player() {
       const diff = touchStartY - touchEndY;
 
       if (Math.abs(diff) > minSwipeDistance) {
-        if (diff > 0) {
-          handleSwipeUp();
+        if (hasActiveEvent) {
+          // During events, swipe selects targets
+          if (diff > 0) {
+            handleSwipeUp();
+          } else {
+            handleSwipeDown();
+          }
         } else {
-          handleSwipeDown();
+          // When idle, swipe scrolls icons
+          if (diff > 0) {
+            handleIdleScrollUp();
+          } else {
+            handleIdleScrollDown();
+          }
         }
       }
     };
@@ -94,7 +115,7 @@ export default function Player() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [handleSwipeUp, handleSwipeDown]);
+  }, [hasActiveEvent, handleSwipeUp, handleSwipeDown, handleIdleScrollUp, handleIdleScrollDown]);
 
   // Loading state
   if (!playerState) {
@@ -116,8 +137,6 @@ export default function Player() {
   const confirmedTarget = playerState.confirmedSelection
     ? gameState?.players?.find(p => p.id === playerState.confirmedSelection)
     : null;
-
-  const hasActiveEvent = eventPrompt || playerState.pendingEvents?.length > 0;
 
   return (
     <div className={styles.container}>
@@ -149,6 +168,8 @@ export default function Player() {
         onConfirm={handleConfirm}
         onAbstain={handleAbstain}
         onUseItem={handleUseItem}
+        onIdleScrollUp={handleIdleScrollUp}
+        onIdleScrollDown={handleIdleScrollDown}
       />
     </div>
   );

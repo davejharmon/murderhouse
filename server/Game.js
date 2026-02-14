@@ -407,7 +407,6 @@ export class Game {
 
   _setTutorialTips() {
     for (const player of this.players.values()) {
-      player.showIdleRole = true;
       if (player.role.team === Team.WEREWOLF) {
         player.tutorialTip = null; // Computed dynamically in _buildDisplay
       } else {
