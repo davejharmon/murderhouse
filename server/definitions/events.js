@@ -540,6 +540,54 @@ const events = {
     },
   },
 
+  block: {
+    id: 'block',
+    name: 'Block',
+    description: 'Choose a player to block tonight.',
+    verb: 'block',
+    verbPastTense: 'blocked',
+    phase: [GamePhase.NIGHT],
+    priority: 5, // Resolves before all other night events
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.ROLEBLOCKER);
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const blocks = [];
+
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+        const target = game.getPlayer(targetId);
+        const blocker = game.getPlayer(actorId);
+        target.isRoleblocked = true;
+        blocks.push({ blocker, target });
+      }
+
+      if (blocks.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const messages = blocks.map(
+        (b) =>
+          `${b.blocker.getNameWithEmoji()} blocked ${b.target.getNameWithEmoji()}`,
+      );
+
+      return {
+        success: true,
+        message: messages.join(', '),
+        silent: false,
+      };
+    },
+  },
+
   protect: {
     id: 'protect',
     name: 'Protect',

@@ -1034,6 +1034,16 @@ export class Game {
       return this.showTallyAndDeferResolution(eventId, instance);
     }
 
+    // Nullify roleblocked players' selections (treat as abstain)
+    if (eventId !== EventId.BLOCK) {
+      for (const actorId of Object.keys(results)) {
+        const actor = this.getPlayer(actorId);
+        if (actor && actor.isRoleblocked) {
+          results[actorId] = null;
+        }
+      }
+    }
+
     // Resolve the event
     const resolution = event.resolve(results, this);
 

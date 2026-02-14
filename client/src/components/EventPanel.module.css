@@ -38,8 +38,9 @@
 
 .activeEvent {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs) var(--space-sm);
   padding: var(--space-sm);
   background: var(--color-bg-elevated);
   border-radius: var(--border-radius);
@@ -62,6 +63,7 @@
   display: flex;
   gap: var(--space-xs);
   align-items: center;
+  flex-basis: 100%;
 }
 
 .debugBtn {

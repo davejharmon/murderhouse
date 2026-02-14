@@ -35,6 +35,7 @@ export default function EventPanel({
   const availableRoles = [
     { id: 'villager', name: 'Villager' },
     { id: 'werewolf', name: 'Werewolf' },
+    { id: 'roleblocker', name: 'Roleblocker' },
     { id: 'seer', name: 'Seer' },
     { id: 'doctor', name: 'Doctor' },
     { id: 'hunter', name: 'Hunter' },

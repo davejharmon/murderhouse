@@ -21,7 +21,7 @@ Server runs on ws://localhost:8080, client on http://localhost:5173.
 shared/constants.js          # Enums, message types, config (GamePhase, Team, ServerMsg, ClientMsg)
 server/
   index.js                   # WebSocket server entry point (port 8080 + UDP 8089)
-  Game.js                    # Core game state machine (~1400 lines)
+  Game.js                    # Core game state machine (~1950 lines)
   Player.js                  # Player model (role, status, inventory, connections)
   definitions/
     roles.js                 # Declarative role definitions (villager, werewolf, seer, etc.)

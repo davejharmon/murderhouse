@@ -128,10 +128,12 @@ export const RoleId = {
   VIGILANTE: 'vigilante',
   GOVERNOR: 'governor',
   CUPID: 'cupid',
+  ROLEBLOCKER: 'roleblocker',
 };
 
 export const EventId = {
   VOTE: 'vote',
+  BLOCK: 'block',
   KILL: 'kill',
   PROTECT: 'protect',
   INVESTIGATE: 'investigate',
@@ -175,6 +177,7 @@ export const AVAILABLE_ROLES = [
   RoleId.VIGILANTE,
   RoleId.GOVERNOR,
   RoleId.CUPID,
+  RoleId.ROLEBLOCKER,
 ];
 
 // Display glyphs for TinyScreen

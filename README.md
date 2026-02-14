@@ -68,10 +68,11 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Vigilante** | Village  | Kill (once)  | One-shot night kill, then becomes villager            |
 | **Governor**  | Village  | —            | Can pardon a condemned player once per game           |
 | **Cupid**     | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both |
-| **Alpha**     | Werewolf | Kill         | Final kill decision; promotes successor on death      |
-| **Werewolf**  | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
+| **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death      |
+| **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
+| **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                     |
 
-Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager.
+Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
 ## Items
 
@@ -90,6 +91,7 @@ Items are given by the host. Items with `startsEvent` (pistol, crystal ball) app
 - **UP/DOWN buttons**: Navigate targets/abilities
 - **YES button**: Confirm selection (immutable once locked)
 - **NO button**: Abstain from action (immutable once locked)
+- **Icon column**: Right-edge display showing 18×18 abstract glyphs for role and inventory; scroll with dial/buttons when idle
 
 ### Physical Terminals
 
@@ -118,25 +120,43 @@ See `esp32-terminal/README.md` for hardware setup.
 ### Werewolf Pack
 
 - Werewolves see each other's selections in real-time during hunt/kill events
-- Pack hint shows the most popular target among packmates
+- Pack hint shows the most popular target among living packmates (pluralizes dynamically)
 - Alpha makes the final kill decision; non-alpha wolves suggest via the hunt event
+
+### Event Timers
+
+- Host can start a countdown timer on any active event
+- Pushes a radial countdown slide to the big screen (depleting ring with participant gallery)
+- When time expires the event force-resolves regardless of missing responses
+
+### Big Screen
+
+- Confirmed-player highlighting during active events
+- Victory screen shows winner gallery with portraits
+- Event timer slides with radial countdown animation
+
+### Composition Validation
+
+- Pre-assigned role compositions are validated on game start
+- Blocks instant-win setups (e.g. all werewolves), duplicate alphas, and missing teams
 
 ## Architecture
 
 ```
 murderhouse/
 ├── shared/
-│   └── constants.js              # Enums, message types, glyphs, config
+│   ├── constants.js              # Enums, message types, glyphs, config
+│   └── icons.js                  # 18×18 abstract icon bitmaps (role/item glyphs)
 ├── server/
 │   ├── index.js                  # WebSocket server (port 8080) + UDP discovery (8089)
 │   ├── web.js                    # Production mode: Express serves client + WebSocket
-│   ├── Game.js                   # Core state machine (~1600 lines)
-│   ├── Player.js                 # Player model + display state (~740 lines)
+│   ├── Game.js                   # Core state machine (~1950 lines)
+│   ├── Player.js                 # Player model + display state (~850 lines)
 │   ├── handlers/
-│   │   └── index.js              # WebSocket message routing (~630 lines)
+│   │   └── index.js              # WebSocket message routing (~660 lines)
 │   ├── definitions/              # Declarative game rules
-│   │   ├── roles.js              # 9 roles with events, passives, win conditions
-│   │   ├── events.js             # 10 events with resolution logic
+│   │   ├── roles.js              # 10 roles with events, passives, win conditions
+│   │   ├── events.js             # 11 events with resolution logic
 │   │   └── items.js              # 3 items (pistol, phone, crystalBall)
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
@@ -180,6 +200,7 @@ murderhouse/
     │   ├── leds.cpp/.h           # WS2811 neopixel button LEDs
     │   ├── network.cpp/.h        # WiFi + WebSocket + UDP discovery
     │   ├── protocol.h            # Message parsing
+    │   ├── icons.h               # 18×18 icon bitmaps (ESP32 counterpart of shared/icons.js)
     │   └── config.h              # WiFi credentials, pin assignments
     └── pcb/                      # EasyEDA PCB design files
 ```
@@ -204,7 +225,20 @@ murderhouse/
 
 ### Event Priority Order
 
-Events resolve by priority (lower = earlier): protect (10) → investigate (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → kill (60) → suspect (80).
+Events resolve by priority (lower = earlier): block (5) → protect (10) → investigate (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → kill (60) → suspect (80).
+
+## Adding a Role
+
+Checklist for adding a new role to the game:
+
+1. **Constants** (`shared/constants.js`) — Add to `RoleId` enum, add to `AVAILABLE_ROLES`. If the role has a unique event, add to `EventId` too.
+2. **Role definition** (`server/definitions/roles.js`) — Add role object with `id`, `name`, `team`, `description`, `color`, `emoji`, `tip`, `events`, and `passives`. Add to `GAME_COMPOSITION` for relevant player counts.
+3. **Event definition** (`server/definitions/events.js`) — If the role has a unique event, add event with `id`, `phase`, `priority`, `participants`, `validTargets`, `aggregation`, `allowAbstain`, and `resolve`.
+4. **Player model** (`server/Player.js`) — Add `EVENT_ACTIONS` entry for the new event (confirm/abstain/prompt labels). Add any new state flags (e.g. `isRoleblocked`) and reset them in `resetForPhase()` and `kill()`.
+5. **Game engine** (`server/Game.js`) — Only needed if the role requires special resolution logic beyond what the event `resolve()` function handles.
+6. **Icons** (`shared/icons.js` + `esp32-terminal/src/icons.h`) — Add 18x18 XBM bitmap, add to `Icons` map (JS) and `getIconBitmap()` (C++). Use identical byte data in both files.
+7. **Client UI** (`client/src/components/EventPanel.jsx`) — Add to `availableRoles` array for the custom event modal.
+8. **Docs** (`README.md`) — Update roles table, composition notes, and event priority order.
 
 ## Debug Mode
 
@@ -242,7 +276,5 @@ _(none currently)_
 
 ## Improvements
 
-- Add glyphs for inventory
-- Improve spacing on terminal screen to allow bigger glyphs
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking

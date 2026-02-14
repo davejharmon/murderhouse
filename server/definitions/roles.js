@@ -266,6 +266,26 @@ const roles = {
     },
     passives: {},
   },
+
+  roleblocker: {
+    id: 'roleblocker',
+    name: 'Roleblocker',
+    team: Team.WEREWOLF,
+    description: 'You silence the night. Block one player\'s ability.',
+    color: '#8b0000',
+    emoji: '🚫',
+    tip: null, // Dynamic: shows packmate names
+    events: {
+      vote: {},
+      block: {
+        priority: 5, // Resolves before all other night events
+        canTarget: (player, target, game) => {
+          return target.id !== player.id;
+        },
+      },
+    },
+    passives: {},
+  },
 };
 
 // Explicit role composition keyed by player count
@@ -276,8 +296,8 @@ export const GAME_COMPOSITION = {
   6:  [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR],
   7:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR],
   8:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE],
-  9:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
-  10: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
+  9:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.ROLEBLOCKER, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER],
+  10: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.ROLEBLOCKER, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
 }
 
 // Build a role pool for a given player count from GAME_COMPOSITION, padded with villagers

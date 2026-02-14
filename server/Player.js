@@ -25,6 +25,7 @@ const EVENT_ACTIONS = {
   [EventId.PROTECT]:      { confirm: 'PROTECT', abstain: 'ABSTAIN', prompt: 'PROTECT SOMEONE' },
   [EventId.SHOOT]:        { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
+  [EventId.BLOCK]:        { confirm: 'BLOCK',   abstain: 'ABSTAIN', prompt: 'BLOCK SOMEONE' },
   [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.CUSTOM_EVENT]: { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
   hunterRevenge:          { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
@@ -62,6 +63,7 @@ export class Player {
     this.preAssignedRole = null; // Host pre-assignment (lobby only)
     this.status = PlayerStatus.ALIVE;
     this.isProtected = false;
+    this.isRoleblocked = false;
     this.linkedTo = null; // For Cupid
 
     // Event state
@@ -140,6 +142,7 @@ export class Player {
     this.deathCause = cause;
     this.deathTimestamp = Date.now(); // Track when they died for ordering
     this.isProtected = false;
+    this.isRoleblocked = false;
     return this;
   }
 
@@ -245,6 +248,7 @@ export class Player {
 
   resetForPhase() {
     this.isProtected = false;
+    this.isRoleblocked = false;
     this.clearSelection();
     this.pendingEvents.clear();
     this.lastEventResult = null;
