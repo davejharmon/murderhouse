@@ -295,6 +295,48 @@ export class Game {
     return { success: true };
   }
 
+  randomizeRoles() {
+    if (this.phase !== GamePhase.LOBBY) {
+      return { success: false, error: 'Can only randomize roles in lobby' }
+    }
+
+    // Collect all pre-assigned roles
+    const roles = []
+    for (const player of this.players.values()) {
+      if (player.preAssignedRole) {
+        roles.push(player.preAssignedRole)
+      }
+      player.preAssignedRole = null
+    }
+
+    if (roles.length === 0) {
+      return { success: false, error: 'No roles to randomize' }
+    }
+
+    // Fisher-Yates shuffle roles
+    for (let i = roles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [roles[i], roles[j]] = [roles[j], roles[i]]
+    }
+
+    // Shuffle players
+    const playerList = [...this.players.values()]
+    for (let i = playerList.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playerList[i], playerList[j]] = [playerList[j], playerList[i]]
+    }
+
+    // Assign shuffled roles to first N players
+    for (let i = 0; i < roles.length; i++) {
+      playerList[i].preAssignedRole = roles[i]
+    }
+
+    this.addLog(`Roles randomized`)
+    this.broadcastPlayerList()
+    this.broadcastGameState()
+    return { success: true }
+  }
+
   assignRoles() {
     const playerCount = this.players.size;
     const pool = buildRolePool(playerCount);

@@ -125,6 +125,7 @@ export default function Host() {
 
   const handlePreAssignRole = (playerId, roleId) =>
     send(ClientMsg.PRE_ASSIGN_ROLE, { playerId, roleId });
+  const handleRandomizeRoles = () => send(ClientMsg.RANDOMIZE_ROLES);
 
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
@@ -179,6 +180,12 @@ export default function Host() {
                   disabled={!gameState?.players || gameState.players.length < 4}
                 >
                   Start Game
+                </button>
+              )}
+
+              {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (
+                <button onClick={handleRandomizeRoles}>
+                  Shuffle Roles
                 </button>
               )}
 

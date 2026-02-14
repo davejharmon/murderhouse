@@ -422,6 +422,13 @@ export function createHandlers(game) {
       return game.preAssignRole(payload.playerId, payload.roleId);
     },
 
+    [ClientMsg.RANDOMIZE_ROLES]: (ws) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.randomizeRoles();
+    },
+
     [ClientMsg.KICK_PLAYER]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };

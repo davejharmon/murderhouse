@@ -77,6 +77,7 @@ export const ClientMsg = {
   
   // Host player management
   PRE_ASSIGN_ROLE: 'preAssignRole',
+  RANDOMIZE_ROLES: 'randomizeRoles',
   KICK_PLAYER: 'kickPlayer',
   KILL_PLAYER: 'killPlayer',
   REVIVE_PLAYER: 'revivePlayer',
