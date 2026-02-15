@@ -59,15 +59,15 @@ For production/remote deployment, `server/web.js` serves the built client over H
 
 ## Roles
 
-| Role          | Team     | Night Action | Special                                               |
-| ------------- | -------- | ------------ | ----------------------------------------------------- |
-| **Villager**  | Village  | Suspect      | —                                                     |
-| **Seer**      | Village  | Investigate  | Learns if target is werewolf                          |
-| **Doctor**    | Village  | Protect      | Prevents one kill per night                           |
-| **Hunter**    | Village  | —            | Revenge kill on death (interrupt flow)                |
-| **Vigilante** | Village  | Kill (once)  | One-shot night kill, then becomes villager            |
-| **Governor**  | Village  | —            | Can pardon a condemned player once per game           |
-| **Cupid**     | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both |
+| Role            | Team     | Night Action | Special                                               |
+| --------------- | -------- | ------------ | ----------------------------------------------------- |
+| **Villager**    | Village  | Suspect      | —                                                     |
+| **Seer**        | Village  | Investigate  | Learns if target is werewolf                          |
+| **Doctor**      | Village  | Protect      | Prevents one kill per night                           |
+| **Hunter**      | Village  | —            | Revenge kill on death (interrupt flow)                |
+| **Vigilante**   | Village  | Kill (once)  | One-shot night kill, then becomes villager            |
+| **Governor**    | Village  | —            | Can pardon a condemned player once per game           |
+| **Cupid**       | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both |
 | **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death      |
 | **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
 | **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                     |
@@ -278,3 +278,7 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
+
+## Bugs
+
+- Roleblocker doesn't have packsense during a kill, only at game start. All players with packsense should have it for both.
