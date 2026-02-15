@@ -26,6 +26,7 @@ const EVENT_ACTIONS = {
   [EventId.SHOOT]:        { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
   [EventId.BLOCK]:        { confirm: 'BLOCK',   abstain: 'ABSTAIN', prompt: 'BLOCK SOMEONE' },
+  [EventId.CLEAN]:        { confirm: 'YES',     abstain: 'NO',      prompt: 'CLEAN UP?' },
   [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.CUSTOM_EVENT]: { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
   hunterRevenge:          { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
@@ -64,6 +65,7 @@ export class Player {
     this.status = PlayerStatus.ALIVE;
     this.isProtected = false;
     this.isRoleblocked = false;
+    this.isRoleCleaned = false;
     this.linkedTo = null; // For Cupid
 
     // Event state
@@ -120,6 +122,7 @@ export class Player {
     this.role = null;
     this.preAssignedRole = null;
     this.status = PlayerStatus.ALIVE;
+    this.isRoleCleaned = false;
     this.linkedTo = null;
     this.resetForPhase();
     this.tutorialTip = null;
@@ -257,6 +260,8 @@ export class Player {
 
   // Get public state (safe to send to other players)
   getPublicState() {
+    const isDead = this.status === PlayerStatus.DEAD;
+    const showRole = isDead && !this.isRoleCleaned;
     return {
       id: this.id,
       seatNumber: this.seatNumber,
@@ -266,12 +271,12 @@ export class Player {
       isAlive: this.isAlive,
       connected: this.connected,
       terminalConnected: this.terminalConnected,
-      // Role only shown if dead
-      role: this.status === PlayerStatus.DEAD ? this.role?.id : null,
-      roleName: this.status === PlayerStatus.DEAD ? this.role?.name : null,
-      roleColor: this.status === PlayerStatus.DEAD ? this.role?.color : null,
-      roleTeam: this.status === PlayerStatus.DEAD ? this.role?.team : null,
-      deathTimestamp: this.status === PlayerStatus.DEAD ? this.deathTimestamp : null,
+      // Role only shown if dead and not cleaned by janitor
+      role: showRole ? this.role?.id : null,
+      roleName: showRole ? this.role?.name : null,
+      roleColor: showRole ? this.role?.color : null,
+      roleTeam: showRole ? this.role?.team : null,
+      deathTimestamp: isDead ? this.deathTimestamp : null,
     };
   }
 
@@ -447,10 +452,15 @@ export class Player {
 
   _displayConfirmed(game, getLine1, eventName, activeEventId, targetId) {
     const targetName = game?.getPlayer(targetId)?.name || 'Unknown';
-    // Special display for pardon event - show "PARDONING {NAME}"
-    const line2Text = activeEventId === 'pardon'
-      ? `PARDONING ${targetName.toUpperCase()}`
-      : targetName.toUpperCase();
+    // Special display for specific events
+    let line2Text;
+    if (activeEventId === 'pardon') {
+      line2Text = `PARDONING ${targetName.toUpperCase()}`;
+    } else if (activeEventId === EventId.CLEAN) {
+      line2Text = 'CLEANING UP';
+    } else {
+      line2Text = targetName.toUpperCase();
+    }
     return this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: line2Text, style: DisplayStyle.LOCKED },
@@ -466,10 +476,15 @@ export class Player {
     const canAbstain = ctx.eventContext?.allowAbstain !== false;
     const actions = getEventActions(activeEventId);
 
-    // Special display for pardon event - show "PARDON {NAME}?"
-    const line2Text = activeEventId === 'pardon'
-      ? `PARDON ${targetName.toUpperCase()}?`
-      : targetName.toUpperCase();
+    // Special display for specific events
+    let line2Text;
+    if (activeEventId === 'pardon') {
+      line2Text = `PARDON ${targetName.toUpperCase()}?`;
+    } else if (activeEventId === EventId.CLEAN) {
+      line2Text = 'CLEAN UP?';
+    } else {
+      line2Text = targetName.toUpperCase();
+    }
 
     return this._display(
       { left: getLine1(eventName, activeEventId), right: '' },

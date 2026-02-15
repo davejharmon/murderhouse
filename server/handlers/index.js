@@ -9,6 +9,7 @@ import {
 } from '../../shared/constants.js';
 import { getEvent } from '../definitions/events.js';
 import { getItem } from '../definitions/items.js';
+import { getRole } from '../definitions/roles.js';
 
 export function createHandlers(game) {
   const handlers = {
@@ -414,6 +415,25 @@ export function createHandlers(game) {
     },
 
     // === Player Management ===
+
+    [ClientMsg.CHANGE_ROLE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
+      }
+      const role = getRole(payload.roleId);
+      if (!role) {
+        return { success: false, error: 'Role not found' };
+      }
+      const oldRoleName = player.role?.name || 'None';
+      player.assignRole(role);
+      game.addLog(`${player.getNameWithEmoji()} role changed: ${oldRoleName} → ${role.name}`);
+      game.broadcastGameState();
+      return { success: true };
+    },
 
     [ClientMsg.PRE_ASSIGN_ROLE]: (ws, payload) => {
       if (ws.clientType !== 'host') {

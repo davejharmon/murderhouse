@@ -300,7 +300,6 @@ const events = {
           (p) =>
             p.role.id === RoleId.VILLAGER ||
             p.role.id === RoleId.HUNTER ||
-            p.role.id === RoleId.VIGILANTE ||
             p.role.id === RoleId.GOVERNOR,
         );
     },
@@ -344,6 +343,36 @@ const events = {
         success: true,
         message: messages.join(' '),
       };
+    },
+  },
+
+  clean: {
+    id: 'clean',
+    name: 'Clean',
+    description: 'Clean up after the kill?',
+    verb: 'clean',
+    verbPastTense: 'cleaned',
+    phase: [GamePhase.NIGHT],
+    priority: 58,
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.JANITOR);
+    },
+
+    validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue; // Abstain = NO
+        game.janitorCleaning = true;
+      }
+      if (game.janitorCleaning) {
+        return { success: true, message: 'Janitor is cleaning up tonight', silent: false };
+      }
+      return { success: true, silent: true };
     },
   },
 
@@ -405,7 +434,14 @@ const events = {
 
       game.killPlayer(victim.id, 'werewolf');
 
-      const teamName = getTeamDisplayName(victim.role);
+      // Check if janitor is cleaning
+      const cleaned = game.janitorCleaning;
+      if (cleaned) {
+        victim.isRoleCleaned = true;
+        game.janitorCleaning = false;
+      }
+
+      const teamName = cleaned ? 'PLAYER' : getTeamDisplayName(victim.role);
       return {
         success: true,
         outcome: 'killed',
@@ -416,7 +452,7 @@ const events = {
           playerId: victim.id,
           title: `${teamName} KILLED`,
           subtitle: victim.name,
-          revealRole: true,
+          revealRole: !cleaned,
           style: SlideStyle.HOSTILE,
         },
       };

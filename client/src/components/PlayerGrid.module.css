@@ -2,8 +2,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: 40px auto auto 1fr auto;
+  column-gap: 8px;
+  row-gap: 4px;
 }
 
 .empty {
@@ -28,15 +29,19 @@
   margin-top: var(--space-sm);
 }
 
+/* --- Card: grid row with aligned columns --- */
+
 .card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-md);
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 6px 10px;
   background: var(--color-bg-medium);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   transition: all var(--transition-fast);
+  min-height: 40px;
 }
 
 .card:hover {
@@ -52,11 +57,13 @@
   opacity: 0.5;
 }
 
+/* --- Portrait (small circle) --- */
+
 .portrait {
   position: relative;
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--space-md);
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   transition: transform 0.2s ease;
 }
 
@@ -65,7 +72,7 @@
 }
 
 .portrait.clickable:hover {
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .portrait.clickable:hover .portraitImage {
@@ -81,63 +88,62 @@
   transition: border-color 0.2s ease;
 }
 
-.editIcon {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--color-accent-blue);
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  border: 2px solid var(--color-bg-medium);
-}
-
 .disconnected {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -2px;
+  right: -2px;
   color: var(--color-accent-red);
-  font-size: 0.75rem;
+  font-size: 0.5rem;
+  line-height: 1;
 }
 
 .terminal {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -2px;
+  left: -2px;
   color: var(--color-accent-green);
-  font-size: 0.75rem;
+  font-size: 0.5rem;
+  line-height: 1;
 }
 
-.info {
-  text-align: center;
-  margin-bottom: var(--space-md);
+/* --- Name cell (seat + name + dead badge) --- */
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* --- Role cell --- */
+
+.roleCell {
+  min-width: 0;
 }
 
 .seat {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   color: var(--color-text-muted);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
 }
 
 .name {
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-transform: uppercase;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
 .name.editable {
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin: -4px -8px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin: -2px -4px;
 }
 
 .name.editable:hover {
@@ -147,102 +153,129 @@
 
 .nameInput {
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-transform: uppercase;
   background: var(--color-bg-dark);
-  border: 2px solid var(--color-accent-blue);
+  border: 1px solid var(--color-accent-blue);
   color: var(--color-text-primary);
-  padding: 4px 8px;
-  border-radius: 4px;
-  text-align: center;
-  width: 100%;
-  max-width: 180px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  width: 100px;
 }
 
 .role {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: var(--space-xs);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
-.events {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  justify-content: center;
-  margin-bottom: var(--space-sm);
+.roleChangeSelect {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 1px 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
 }
+
+.roleChangeSelect:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.roleChangeSelect option {
+  background: var(--bg-dark);
+  color: var(--color-text-primary);
+  text-transform: capitalize;
+}
+
+.deadBadge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--color-accent-red);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+/* --- Indicators (inline in actions) --- */
 
 .eventBadge {
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  padding: 2px 6px;
+  font-size: 0.55rem;
+  padding: 1px 5px;
   background: var(--color-accent-blue);
   color: var(--color-bg-dark);
   border-radius: 2px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.inventory {
-  margin-top: var(--space-xs);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.75rem;
-}
-
-.inventoryItem {
+.targetPip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 8px;
-  border-radius: 4px;
-  gap: 8px;
-}
-
-.itemName {
-  color: #ffc107;
+  justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-
-.removeItemBtn {
-  background: rgba(255, 0, 0, 0.2);
-  border: 1px solid rgba(255, 0, 0, 0.3);
-  color: #ff6b6b;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #000;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
-.removeItemBtn:hover {
-  background: rgba(255, 0, 0, 0.4);
-  border-color: rgba(255, 0, 0, 0.5);
+.targetPip.hovering {
+  opacity: 0.5;
 }
+
+.targetPip.confirmed {
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+/* --- Inventory (emoji badges) --- */
+
+.inventory {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.itemBadge {
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: default;
+}
+
+/* --- Actions (right-aligned) --- */
 
 .actions {
   display: flex;
-  justify-content: center;
-  z-index: 2;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
 }
 
 .actionBtn {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.85rem;
   border-radius: 50%;
 }
 
@@ -256,33 +289,18 @@
   border-color: var(--color-accent-green);
 }
 
-.deadOverlay {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: var(--border-radius-lg);
-  font-family: var(--font-mono);
-  font-size: 1.5rem;
-  color: var(--color-accent-red);
-  letter-spacing: 0.2em;
-}
-
 .roleSelect {
   background: rgba(126, 184, 218, 0.1);
   border: 1px solid rgba(126, 184, 218, 0.3);
   color: #7eb8da;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: 3px;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 80px;
   text-transform: capitalize;
+  width: 100%;
 }
 
 .roleSelect:hover {
@@ -295,59 +313,20 @@
   color: #7eb8da;
 }
 
-.itemSelect {
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  color: #ffc107;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 80px;
+/* --- Mobile: compact grid --- */
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 40px auto auto 1fr auto;
+    column-gap: 4px;
+  }
+
+  .grid.inGame {
+    grid-template-columns: 40px auto 1fr auto;
+  }
+
+  .card.inGame .nameCell {
+    display: none;
+  }
 }
 
-.itemSelect:hover {
-  background: rgba(255, 193, 7, 0.2);
-  border-color: rgba(255, 193, 7, 0.5);
-}
-
-.itemSelect option {
-  background: var(--bg-dark);
-  color: #ffc107;
-}
-
-/* Targeting pips - shows who is selecting this player */
-.targetingPips {
-  position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 3;
-}
-
-.targetPip {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #000;
-  transition: all 0.2s ease;
-}
-
-.targetPip.hovering {
-  opacity: 0.5;
-}
-
-.targetPip.confirmed {
-  opacity: 1;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
-}

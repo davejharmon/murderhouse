@@ -102,6 +102,9 @@ export class Game {
       }
     }
 
+    // Janitor cleaning flag (set by clean event, read by kill event)
+    this.janitorCleaning = false;
+
     // Death processing queue
     this._deathQueue = [];
     this._processingDeaths = false;
@@ -491,7 +494,8 @@ export class Game {
       }
     }
 
-    // Clear protection and player event state
+    // Clear protection, player event state, and janitor flag
+    this.janitorCleaning = false;
     for (const player of this.players.values()) {
       player.resetForPhase();
     }
@@ -1522,6 +1526,11 @@ export class Game {
   endGame(winner) {
     this.phase = GamePhase.GAME_OVER;
 
+    // Reveal all cleaned roles at game over
+    for (const player of this.players.values()) {
+      player.isRoleCleaned = false;
+    }
+
     const winnerName = winner === Team.VILLAGE ? 'VILLAGERS' : 'WEREWOLVES';
 
     this.addLog(`Game over — ${winnerName} win!`);
@@ -2080,6 +2089,7 @@ export class Game {
       hunt: '#c94c4c',
       vigil: '#c94c4c',
       block: '#c94c4c',
+      clean: '#c94c4c',
       revenge: '#c94c4c',
       protect: '#7eb8da',
       investigate: '#7eb8da',

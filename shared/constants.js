@@ -76,6 +76,7 @@ export const ClientMsg = {
   CLEAR_SLIDES: 'clearSlides',
   
   // Host player management
+  CHANGE_ROLE: 'changeRole',
   PRE_ASSIGN_ROLE: 'preAssignRole',
   RANDOMIZE_ROLES: 'randomizeRoles',
   KICK_PLAYER: 'kickPlayer',
@@ -136,6 +137,7 @@ export const RoleId = {
   GOVERNOR: 'governor',
   CUPID: 'cupid',
   ROLEBLOCKER: 'roleblocker',
+  JANITOR: 'janitor',
 };
 
 export const EventId = {
@@ -150,6 +152,7 @@ export const EventId = {
   SUSPECT: 'suspect',
   CUSTOM_EVENT: 'customEvent',
   LINK: 'link',
+  CLEAN: 'clean',
 };
 
 export const ItemId = {
@@ -170,6 +173,7 @@ export const ROLE_DISPLAY = {
   [RoleId.GOVERNOR]:    { name: 'Governor',     emoji: '🎩' },
   [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
   [RoleId.ROLEBLOCKER]: { name: 'Roleblocker',  emoji: '🚫' },
+  [RoleId.JANITOR]:     { name: 'Janitor',      emoji: '🧹' },
 };
 
 export const MIN_PLAYERS = 4;
@@ -187,6 +191,13 @@ export const DEBUG_MODE = true;
 // Available items (for host UI)
 export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CRYSTAL_BALL];
 
+// Display info for items (used by host dashboard)
+export const ITEM_DISPLAY = {
+  [ItemId.PISTOL]:       { name: 'Pistol',       emoji: '🔫' },
+  [ItemId.PHONE]:        { name: 'Phone',        emoji: '📱' },
+  [ItemId.CRYSTAL_BALL]: { name: 'Crystal Ball',  emoji: '🔮' },
+};
+
 // Available roles (for host pre-assignment UI)
 export const AVAILABLE_ROLES = [
   RoleId.VILLAGER,
@@ -199,6 +210,7 @@ export const AVAILABLE_ROLES = [
   RoleId.GOVERNOR,
   RoleId.CUPID,
   RoleId.ROLEBLOCKER,
+  RoleId.JANITOR,
 ];
 
 // Display glyphs for TinyScreen

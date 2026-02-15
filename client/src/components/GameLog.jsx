@@ -2,13 +2,15 @@
 import { useRef, useEffect } from 'react';
 import styles from './GameLog.module.css';
 
-export default function GameLog({ entries = [] }) {
+export default function GameLog({ entries = [], autoScroll = true }) {
   const bottomRef = useRef(null);
 
-  // Auto-scroll to bottom on new entries
+  // Auto-scroll to bottom on new entries (skip when panel is off-screen)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [entries.length]);
+    if (autoScroll) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [entries.length, autoScroll]);
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);

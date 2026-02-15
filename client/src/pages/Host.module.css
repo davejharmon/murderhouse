@@ -7,6 +7,8 @@
   background: var(--color-bg-dark);
 }
 
+/* === Desktop layout (3-column grid) === */
+
 .layout {
   display: grid;
   grid-template-columns: 20% 55% 25%;
@@ -87,7 +89,18 @@
   overflow-y: auto;
 }
 
-/* Responsive */
+/* === Mobile layout (hidden on desktop) === */
+
+.mobileLayout {
+  display: none;
+}
+
+.mobileNav {
+  display: none;
+}
+
+/* === Responsive breakpoints === */
+
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: 250px 1fr;
@@ -99,21 +112,81 @@
 }
 
 @media (max-width: 768px) {
+  /* Hide desktop grid */
   .layout {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 100;
-    transform: translateX(-100%);
+  /* Show mobile swipe layout */
+  .mobileLayout {
+    display: block;
+    width: 100vw;
+    height: calc(100vh - 48px); /* subtract nav height */
+    overflow: hidden;
+  }
+
+  .mobileTrack {
+    display: flex;
+    width: 300vw;
+    height: 100%;
     transition: transform 0.3s ease;
   }
 
-  .sidebar.open {
-    transform: translateX(0);
+  .mobilePanel {
+    width: 100vw;
+    height: 100%;
+    overflow-y: auto;
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  /* Show mobile bottom nav */
+  .mobileNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: var(--color-bg-medium);
+    border-top: 1px solid var(--border-color);
+    z-index: 100;
+  }
+
+  .mobileNavBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+    border-top: 2px solid transparent;
+  }
+
+  .mobileNavBtn:hover:not(:disabled) {
+    background: none;
+    color: var(--color-text-secondary);
+  }
+
+  .mobileNavActive {
+    color: var(--color-accent-blue);
+    border-top-color: var(--color-accent-blue);
+    background: rgba(74, 158, 255, 0.05);
+  }
+
+  .mobileNavActive:hover:not(:disabled) {
+    color: var(--color-accent-blue);
   }
 }

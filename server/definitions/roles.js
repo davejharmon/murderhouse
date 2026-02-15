@@ -72,16 +72,16 @@ const roles = {
     },
     passives: {
       onDeath: (player, killer, game) => {
-        // Find living werewolves to promote
-        const werewolves = game
-          .getAlivePlayers()
-          .filter((p) => p.role.id === RoleId.WEREWOLF);
+        // Promote a living pack member to alpha: prefer werewolves, then any team member
+        const alive = game.getAlivePlayers();
+        const werewolves = alive.filter((p) => p.role.id === RoleId.WEREWOLF);
+        const candidates = werewolves.length > 0
+          ? werewolves
+          : alive.filter((p) => p.role.team === Team.WEREWOLF);
 
-        if (werewolves.length === 0) return null;
+        if (candidates.length === 0) return null;
 
-        // Promote random werewolf to alpha
-        const promoted =
-          werewolves[Math.floor(Math.random() * werewolves.length)];
+        const promoted = candidates[Math.floor(Math.random() * candidates.length)];
         const alphaRole = getRole(RoleId.ALPHA);
         promoted.assignRole(alphaRole);
 
@@ -293,6 +293,22 @@ const roles = {
           return target.id !== player.id;
         },
       },
+    },
+    passives: {},
+  },
+
+  janitor: {
+    id: 'janitor',
+    name: 'Janitor',
+    team: Team.WEREWOLF,
+    description: 'You clean up after the kill. The victim\'s role stays hidden.',
+    color: '#8b0000',
+    emoji: '🧹',
+    tip: null, // Dynamic: shows packmate names
+    detailedTip: 'Each night, choose whether to clean up. If you say YES and the Alpha kills, the victim\'s role stays hidden from everyone until the game ends. Use this to protect your pack from the Seer\'s deductions.',
+    events: {
+      vote: {},
+      clean: { priority: 58 },
     },
     passives: {},
   },

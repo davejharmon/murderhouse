@@ -3,10 +3,12 @@ import { useState, memo, useMemo, useCallback } from 'react';
 import {
   PlayerStatus,
   DEBUG_MODE,
-  AVAILABLE_ITEMS,
   AVAILABLE_ROLES,
+  ROLE_DISPLAY,
+  ITEM_DISPLAY,
 } from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
+import ItemManagerModal from './ItemManagerModal';
 import styles from './PlayerGrid.module.css';
 
 // Generate a stable key representing card state for comparison
@@ -59,7 +61,7 @@ function playerCardPropsAreEqual(prevProps, nextProps) {
   return getCardStateKey(prevProps) === getCardStateKey(nextProps);
 }
 
-// Memoized player card to prevent re-renders when other players change
+// Memoized player card — compact single-line row
 const PlayerCard = memo(function PlayerCard({
   player,
   isAlive,
@@ -80,8 +82,8 @@ const PlayerCard = memo(function PlayerCard({
   onKill,
   onRevive,
   onKick,
-  onGiveItem,
-  onRemoveItem,
+  onItemManage,
+  onChangeRole,
   onPreAssignRole,
   onDebugAutoSelect,
 }) {
@@ -89,9 +91,9 @@ const PlayerCard = memo(function PlayerCard({
     <div
       className={`${styles.card} ${!isAlive ? styles.dead : ''} ${
         isActive ? styles.active : ''
-      }`}
+      } ${!isLobby ? styles.inGame : ''}`}
     >
-      {/* Portrait */}
+      {/* Col 1: Portrait */}
       <div
         className={`${styles.portrait} ${
           canEditPortrait ? styles.clickable : ''
@@ -108,9 +110,9 @@ const PlayerCard = memo(function PlayerCard({
         {player.terminalConnected && <div className={styles.terminal}>▣</div>}
       </div>
 
-      {/* Info */}
-      <div className={styles.info}>
-        <div className={styles.seat}>#{player.seatNumber}</div>
+      {/* Col 2: Name */}
+      <div className={styles.nameCell}>
+        <span className={styles.seat}>#{player.seatNumber}</span>
         {isEditing ? (
           <input
             type='text'
@@ -126,56 +128,73 @@ const PlayerCard = memo(function PlayerCard({
             maxLength={20}
           />
         ) : (
-          <div
+          <span
             className={`${styles.name} ${canEditName ? styles.editable : ''}`}
             onClick={() => canEditName && onEditStart(player)}
             title={canEditName ? 'Click to edit name' : undefined}
           >
             {player.name}
-          </div>
+          </span>
         )}
-        {player.role && (
-          <div className={styles.role} style={{ color: player.roleColor }}>
-            {player.roleName}
-          </div>
-        )}
-
-        {/* Inventory */}
-        {player.inventory && player.inventory.length > 0 && (
-          <div className={styles.inventory}>
-            {player.inventory.map((item, idx) => (
-              <div key={idx} className={styles.inventoryItem}>
-                <span className={styles.itemName}>
-                  {item.id} ({item.uses}/{item.maxUses})
-                </span>
-                {onRemoveItem && (
-                  <button
-                    className={styles.removeItemBtn}
-                    onClick={() => onRemoveItem(player.id, item.id)}
-                    title='Remove item'
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        {!isAlive && <span className={styles.deadBadge}>DEAD</span>}
       </div>
 
-      {/* Event indicators */}
-      {events.length > 0 && (
-        <div className={styles.events}>
-          {events.map((eventId) => (
-            <span key={eventId} className={styles.eventBadge}>
-              {eventId}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Col 3: Role */}
+      <div className={styles.roleCell}>
+        {isLobby && onPreAssignRole ? (
+          <select
+            className={styles.roleSelect}
+            value={player.preAssignedRole || ''}
+            onChange={(e) => onPreAssignRole(player.id, e.target.value)}
+            title='Pre-assign role'
+          >
+            <option value=''>Random</option>
+            {AVAILABLE_ROLES.map((roleId) => (
+              <option key={roleId} value={roleId}>
+                {roleId}
+              </option>
+            ))}
+          </select>
+        ) : player.role && !isLobby && onChangeRole ? (
+          <select
+            className={styles.roleChangeSelect}
+            style={{ color: player.roleColor }}
+            value={player.role}
+            onChange={(e) => {
+              if (e.target.value !== player.role) {
+                onChangeRole(player.id, e.target.value);
+              }
+            }}
+            title='Change role'
+          >
+            {AVAILABLE_ROLES.map((roleId) => (
+              <option key={roleId} value={roleId}>
+                {ROLE_DISPLAY[roleId]?.name || roleId}
+              </option>
+            ))}
+          </select>
+        ) : player.role ? (
+          <span className={styles.role} style={{ color: player.roleColor }}>
+            {player.roleName}
+          </span>
+        ) : null}
+      </div>
 
-      {/* Targeting pips - shows who is targeting this player */}
-      <div className={styles.targetingPips}>
+      {/* Col 4: Items */}
+      <div className={styles.inventory}>
+        {player.inventory && player.inventory.map((item, idx) => (
+          <span
+            key={idx}
+            className={styles.itemBadge}
+            title={`${ITEM_DISPLAY[item.id]?.name || item.id} (x${item.uses})`}
+          >
+            {ITEM_DISPLAY[item.id]?.emoji || '?'}
+          </span>
+        ))}
+      </div>
+
+      {/* Col 5: Indicators + Actions */}
+      <div className={styles.actions}>
         {targeters.map(({ odId, seatNumber, roleColor, confirmed }) => (
           <div
             key={odId}
@@ -190,36 +209,19 @@ const PlayerCard = memo(function PlayerCard({
             {seatNumber}
           </div>
         ))}
-      </div>
-
-      {/* Actions */}
-      <div className={styles.actions}>
+        {events.map((eventId) => (
+          <span key={eventId} className={styles.eventBadge}>
+            {eventId}
+          </span>
+        ))}
         {isLobby ? (
-          <>
-            {/* Role Pre-Assignment Dropdown */}
-            {onPreAssignRole && (
-              <select
-                className={styles.roleSelect}
-                value={player.preAssignedRole || ''}
-                onChange={(e) => onPreAssignRole(player.id, e.target.value)}
-                title='Pre-assign role'
-              >
-                <option value=''>Random</option>
-                {AVAILABLE_ROLES.map((roleId) => (
-                  <option key={roleId} value={roleId}>
-                    {roleId}
-                  </option>
-                ))}
-              </select>
-            )}
-            <button
-              className={styles.actionBtn}
-              onClick={() => onKick(player.id)}
-              title='Kick player'
-            >
-              ✕
-            </button>
-          </>
+          <button
+            className={styles.actionBtn}
+            onClick={() => onKick(player.id)}
+            title='Kick player'
+          >
+            ✕
+          </button>
         ) : (
           <>
             {isAlive ? (
@@ -240,7 +242,6 @@ const PlayerCard = memo(function PlayerCard({
               </button>
             )}
 
-            {/* Debug Auto-Select Button */}
             {DEBUG_MODE && hasUncommittedSelection && onDebugAutoSelect && (
               <button
                 className={`${styles.actionBtn} ${styles.debug}`}
@@ -251,39 +252,18 @@ const PlayerCard = memo(function PlayerCard({
               </button>
             )}
 
-            {/* Give Item Dropdown */}
-            {onGiveItem && (
-              <select
-                className={styles.itemSelect}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    onGiveItem(player.id, e.target.value);
-                    e.target.value = '';
-                  }
-                }}
-                defaultValue=''
-                title='Give item'
+            {onItemManage && (
+              <button
+                className={styles.actionBtn}
+                onClick={() => onItemManage(player)}
+                title='Manage items'
               >
-                <option value='' disabled>
-                  + Item
-                </option>
-                {AVAILABLE_ITEMS.map((itemId) => (
-                  <option key={itemId} value={itemId}>
-                    {itemId}
-                  </option>
-                ))}
-              </select>
+                📦
+              </button>
             )}
           </>
         )}
       </div>
-
-      {/* Status overlay for dead players */}
-      {!isAlive && (
-        <div className={styles.deadOverlay}>
-          <span>DEAD</span>
-        </div>
-      )}
     </div>
   );
 },
@@ -299,6 +279,7 @@ export default function PlayerGrid({
   onKick,
   onGiveItem,
   onRemoveItem,
+  onChangeRole,
   onPreAssignRole,
   onDebugAutoSelect,
   onSetName,
@@ -307,6 +288,7 @@ export default function PlayerGrid({
   const [editingPlayerId, setEditingPlayerId] = useState(null);
   const [editedName, setEditedName] = useState('');
   const [portraitModalPlayer, setPortraitModalPlayer] = useState(null);
+  const [itemModalPlayer, setItemModalPlayer] = useState(null);
 
   // Memoize event participation lookup
   const playerEvents = useMemo(() => {
@@ -400,7 +382,7 @@ export default function PlayerGrid({
   }
 
   return (
-    <div className={styles.grid}>
+    <div className={`${styles.grid} ${!isLobby ? styles.inGame : ''}`}>
       {players.map((player) => {
         const isAlive = player.status === PlayerStatus.ALIVE;
         const events = playerEvents[player.id] || [];
@@ -431,8 +413,8 @@ export default function PlayerGrid({
             onKill={onKill}
             onRevive={onRevive}
             onKick={onKick}
-            onGiveItem={onGiveItem}
-            onRemoveItem={onRemoveItem}
+            onItemManage={onGiveItem ? setItemModalPlayer : null}
+            onChangeRole={onChangeRole}
             onPreAssignRole={onPreAssignRole}
             onDebugAutoSelect={onDebugAutoSelect}
           />
@@ -447,6 +429,17 @@ export default function PlayerGrid({
           onSelect={handlePortraitSelect}
           currentPortrait={portraitModalPlayer.portrait}
           playerName={portraitModalPlayer.name}
+        />
+      )}
+
+      {/* Item Manager Modal */}
+      {itemModalPlayer && (
+        <ItemManagerModal
+          isOpen={!!itemModalPlayer}
+          onClose={() => setItemModalPlayer(null)}
+          player={players.find(p => p.id === itemModalPlayer.id) || itemModalPlayer}
+          onGiveItem={onGiveItem}
+          onRemoveItem={onRemoveItem}
         />
       )}
     </div>
