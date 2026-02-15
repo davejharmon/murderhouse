@@ -399,8 +399,25 @@ export class Player {
       if (packmates.length === 0) {
         this.tutorialTip = 'Lone wolf';
       } else {
-        const label = packmates.length === 1 ? 'Packmate' : 'Packmates';
-        this.tutorialTip = `${label}: ${packmates.map((p) => p.name).join(', ')}`;
+        // Non-alpha idle during KILL: show alpha's current/confirmed pick
+        const killInstance = game.activeEvents?.get(EventId.KILL);
+        if (killInstance && this.role.id !== RoleId.ALPHA) {
+          const alpha = packmates.find(p => p.role.id === RoleId.ALPHA);
+          if (alpha) {
+            const alphaResult = alpha.getActiveResult(game);
+            const alphaPick = (alphaResult && !alphaResult.abstained) ? alphaResult.targetId : alpha.currentSelection;
+            if (alphaPick) {
+              const targetName = game.getPlayer(alphaPick)?.name || 'Unknown';
+              this.tutorialTip = `PACK: ${targetName.toUpperCase()}`;
+            } else {
+              this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+            }
+          } else {
+            this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+          }
+        } else {
+          this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+        }
       }
     }
 
@@ -460,10 +477,15 @@ export class Player {
     } else {
       line2Text = targetName.toUpperCase();
     }
+    // Show pack hint alongside "Selection locked" for KILL/HUNT
+    const packHint = this._getPackHint(game, activeEventId);
+    const line3 = packHint
+      ? { left: 'Selection locked', center: packHint }
+      : { text: 'Selection locked' };
     return this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: line2Text, style: DisplayStyle.LOCKED },
-      { text: 'Selection locked' },
+      line3,
       { yes: LedState.OFF, no: LedState.OFF },
       StatusLed.LOCKED
     );
@@ -709,34 +731,46 @@ export class Player {
   }
 
   /**
-   * Get pack hint (most popular target among pack)
+   * Get pack hint for KILL/HUNT events.
+   * Alpha (in KILL): majority of packmates' confirmedSelection ?? currentSelection
+   * Non-alpha (in HUNT): alpha's confirmedSelection ?? currentSelection
    */
   _getPackHint(game, eventId) {
     if (!this.role || this.role.team !== Team.WEREWOLF) return '';
-    if (![EventId.KILL, EventId.HUNT].includes(eventId)) return '';
+    if (!game.activeEvents?.has(EventId.KILL)) return '';
 
-    // Count pack selections
-    const tally = {};
     const packMembers = game.getAlivePlayers()
       .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id);
 
+    if (packMembers.length === 0) return '';
+
+    // Non-alpha: show alpha's specific pick
+    if (this.role.id !== RoleId.ALPHA) {
+      const alpha = packMembers.find(p => p.role.id === RoleId.ALPHA);
+      if (!alpha) return '';
+      const alphaResult = alpha.getActiveResult(game);
+      const alphaPick = (alphaResult && !alphaResult.abstained) ? alphaResult.targetId : alpha.currentSelection;
+      if (!alphaPick) return '';
+      const target = game.getPlayer(alphaPick);
+      return target ? target.name.toUpperCase() : '';
+    }
+
+    // Alpha: tally packmates' confirmedSelection ?? currentSelection
+    const tally = {};
     for (const member of packMembers) {
-      if (member.currentSelection) {
-        tally[member.currentSelection] = (tally[member.currentSelection] || 0) + 1;
+      const result = member.getActiveResult(game);
+      const pick = (result && !result.abstained) ? result.targetId : member.currentSelection;
+      if (pick) {
+        tally[pick] = (tally[pick] || 0) + 1;
       }
     }
 
-    // Find most popular
     const entries = Object.entries(tally);
     if (entries.length === 0) return '';
 
     const [topTargetId] = entries.sort((a, b) => b[1] - a[1])[0];
     const topTarget = game.getPlayer(topTargetId);
-
-    if (topTarget) {
-      return topTarget.name.toUpperCase();
-    }
-    return '';
+    return topTarget ? topTarget.name.toUpperCase() : '';
   }
 
   // Inventory management

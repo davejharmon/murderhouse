@@ -280,5 +280,3 @@ _(none currently)_
 - Add slide to game end that shows score including suspect tracking
 
 ## Bugs
-
-- Roleblocker doesn't have packsense during a kill, only at game start. All players with packsense should have it for both.
