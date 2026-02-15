@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
+import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY, ROLE_DISPLAY } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
@@ -126,6 +126,9 @@ export default function Host() {
   const handlePreAssignRole = (playerId, roleId) =>
     send(ClientMsg.PRE_ASSIGN_ROLE, { playerId, roleId });
   const handleRandomizeRoles = () => send(ClientMsg.RANDOMIZE_ROLES);
+  const handlePushCompSlide = () => send(ClientMsg.PUSH_COMP_SLIDE);
+  const handlePushRoleTipSlide = (roleId) =>
+    send(ClientMsg.PUSH_ROLE_TIP_SLIDE, { roleId });
 
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
@@ -207,6 +210,31 @@ export default function Host() {
               <button onClick={handleLoadPresets}>Load</button>
             </div>
           </section>
+
+          {/* Tutorial Slides */}
+          {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (() => {
+            const uniqueRoles = [...new Set(
+              gameState.players
+                .filter(p => p.preAssignedRole)
+                .map(p => p.preAssignedRole)
+            )];
+            return (
+              <section className={styles.section}>
+                <h2>Tutorial Slides</h2>
+                <div className={styles.buttonGroup}>
+                  <button onClick={handlePushCompSlide}>Reveal Comp</button>
+                  {uniqueRoles.map(roleId => {
+                    const display = ROLE_DISPLAY[roleId];
+                    return display ? (
+                      <button key={roleId} onClick={() => handlePushRoleTipSlide(roleId)}>
+                        {display.emoji} {display.name}
+                      </button>
+                    ) : null;
+                  })}
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Event Controls */}
           {!isLobby && !isGameOver && (

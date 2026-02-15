@@ -514,6 +514,22 @@ export function createHandlers(game) {
       return { success: false, error: 'Item not found in inventory' };
     },
 
+    // === Lobby Tutorial Slides ===
+
+    [ClientMsg.PUSH_COMP_SLIDE]: (ws) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.pushCompSlide();
+    },
+
+    [ClientMsg.PUSH_ROLE_TIP_SLIDE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.pushRoleTipSlide(payload.roleId);
+    },
+
     // === Player Presets ===
 
     [ClientMsg.SAVE_PLAYER_PRESETS]: (ws) => {

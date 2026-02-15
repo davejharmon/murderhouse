@@ -9,6 +9,7 @@ import {
   EventId,
   RoleId,
   SlideStyle,
+  SlideType,
   MIN_PLAYERS,
   MAX_PLAYERS,
   EVENT_TIMER_DURATION,
@@ -297,44 +298,44 @@ export class Game {
 
   randomizeRoles() {
     if (this.phase !== GamePhase.LOBBY) {
-      return { success: false, error: 'Can only randomize roles in lobby' }
+      return { success: false, error: 'Can only randomize roles in lobby' };
     }
 
     // Collect all pre-assigned roles
-    const roles = []
+    const roles = [];
     for (const player of this.players.values()) {
       if (player.preAssignedRole) {
-        roles.push(player.preAssignedRole)
+        roles.push(player.preAssignedRole);
       }
-      player.preAssignedRole = null
+      player.preAssignedRole = null;
     }
 
     if (roles.length === 0) {
-      return { success: false, error: 'No roles to randomize' }
+      return { success: false, error: 'No roles to randomize' };
     }
 
     // Fisher-Yates shuffle roles
     for (let i = roles.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [roles[i], roles[j]] = [roles[j], roles[i]]
+      [roles[i], roles[j]] = [roles[j], roles[i]];
     }
 
     // Shuffle players
-    const playerList = [...this.players.values()]
+    const playerList = [...this.players.values()];
     for (let i = playerList.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [playerList[i], playerList[j]] = [playerList[j], playerList[i]]
+      [playerList[i], playerList[j]] = [playerList[j], playerList[i]];
     }
 
     // Assign shuffled roles to first N players
     for (let i = 0; i < roles.length; i++) {
-      playerList[i].preAssignedRole = roles[i]
+      playerList[i].preAssignedRole = roles[i];
     }
 
-    this.addLog(`Roles randomized`)
-    this.broadcastPlayerList()
-    this.broadcastGameState()
-    return { success: true }
+    this.addLog(`Roles randomized`);
+    this.broadcastPlayerList();
+    this.broadcastGameState();
+    return { success: true };
   }
 
   assignRoles() {
@@ -1526,8 +1527,15 @@ export class Game {
     this.addLog(`Game over — ${winnerName} win!`);
 
     const winners = [...this.players.values()]
-      .filter(p => p.role.team === winner)
-      .map(p => ({ id: p.id, name: p.name, portrait: p.portrait, roleName: p.role.name, roleColor: p.role.color, isAlive: p.isAlive }))
+      .filter((p) => p.role.team === winner)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        portrait: p.portrait,
+        roleName: p.role.name,
+        roleColor: p.role.color,
+        isAlive: p.isAlive,
+      }));
 
     this.pushSlide(
       {
@@ -1983,6 +1991,115 @@ export class Game {
       map[eventId] = Object.keys(instance.results);
     }
     return map;
+  }
+
+  // === Lobby Tutorial Slides ===
+
+  pushCompSlide() {
+    if (this.phase !== GamePhase.LOBBY) {
+      return { success: false, error: 'Only available in lobby' };
+    }
+
+    const players = [...this.players.values()];
+    const preAssigned = players.filter((p) => p.preAssignedRole);
+    if (preAssigned.length === 0) {
+      return { success: false, error: 'No roles pre-assigned' };
+    }
+
+    // Count roles by team
+    const roleCounts = {};
+    const teamCounts = { village: 0, werewolf: 0 };
+    for (const player of preAssigned) {
+      const roleDef = getRole(player.preAssignedRole);
+      if (!roleDef) continue;
+      if (!roleCounts[roleDef.id]) {
+        roleCounts[roleDef.id] = {
+          roleId: roleDef.id,
+          roleName: roleDef.name,
+          roleEmoji: roleDef.emoji,
+          roleColor: roleDef.color,
+          team: roleDef.team,
+          count: 0,
+        };
+      }
+      roleCounts[roleDef.id].count++;
+      if (roleDef.team === Team.VILLAGE) teamCounts.village++;
+      else if (roleDef.team === Team.WEREWOLF) teamCounts.werewolf++;
+    }
+
+    const unassigned = players.length - preAssigned.length;
+
+    this.pushSlide({
+      type: SlideType.COMPOSITION,
+      title: 'ASSIGNED ROLES',
+      playerIds: players.map((p) => p.id),
+      roles: Object.values(roleCounts),
+      teamCounts: { ...teamCounts, unassigned },
+      style: SlideStyle.NEUTRAL,
+    });
+
+    this.addLog('Composition slide pushed');
+    return { success: true };
+  }
+
+  pushRoleTipSlide(roleId) {
+    if (this.phase !== GamePhase.LOBBY) {
+      return { success: false, error: 'Only available in lobby' };
+    }
+
+    const roleDef = getRole(roleId);
+    if (!roleDef) {
+      return { success: false, error: 'Unknown role' };
+    }
+
+    this.pushSlide({
+      type: SlideType.ROLE_TIP,
+      title: 'NEW ROLE',
+      roleName: roleDef.name,
+      roleEmoji: roleDef.emoji,
+      roleColor: roleDef.color,
+      team: roleDef.team,
+      abilities: this._getRoleAbilities(roleDef),
+      detailedTip: roleDef.detailedTip || roleDef.description,
+      style:
+        roleDef.team === Team.WEREWOLF
+          ? SlideStyle.HOSTILE
+          : SlideStyle.NEUTRAL,
+    });
+
+    this.addLog(`Role tip slide pushed: ${roleDef.name}`);
+    return { success: true };
+  }
+
+  // Derive display ability labels from a role's events (and passives/flows)
+  _getRoleAbilities(roleDef) {
+    // Color rules: red = hurts, blue = helps, yellow = fallback
+    const abilityColors = {
+      vote: '#d4af37',
+      kill: '#c94c4c',
+      hunt: '#c94c4c',
+      vigil: '#c94c4c',
+      block: '#c94c4c',
+      revenge: '#c94c4c',
+      protect: '#7eb8da',
+      investigate: '#7eb8da',
+      pardon: '#7eb8da',
+    };
+    const fallbackColor = '#d4af37';
+
+    const abilities = Object.keys(roleDef.events || {}).map((e) => ({
+      label: e.toUpperCase(),
+      color: abilityColors[e] || fallbackColor,
+    }));
+
+    // Roles whose key abilities are passive/flow-based, not in events
+    const passiveAbilities = {
+      [RoleId.HUNTER]: [{ label: 'REVENGE', color: abilityColors.revenge }],
+      [RoleId.GOVERNOR]: [{ label: 'PARDON', color: abilityColors.pardon }],
+    };
+    const extras = passiveAbilities[roleDef.id] || [];
+
+    return [...abilities, ...extras];
   }
 
   // === Logging ===

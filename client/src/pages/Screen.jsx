@@ -79,6 +79,12 @@ export default function Screen() {
       case SlideType.VICTORY:
         return renderVictory(effectiveSlide);
 
+      case SlideType.COMPOSITION:
+        return renderComposition(effectiveSlide);
+
+      case SlideType.ROLE_TIP:
+        return renderRoleTip(effectiveSlide);
+
       default:
         return renderTitle(effectiveSlide);
     }
@@ -386,6 +392,86 @@ export default function Screen() {
             </p>
           )}
         </div>
+      </div>
+    );
+  };
+
+  const renderComposition = (slide) => {
+    const { roles = [], teamCounts = {} } = slide;
+
+    const werewolfRoles = roles.filter(r => r.team === 'werewolf');
+    const villageRoles = roles.filter(r => r.team === 'village');
+    const unassignedCount = teamCounts.unassigned || 0;
+
+    const renderRoleCluster = (role) => (
+      <div key={role.roleId} className={styles.compCluster}>
+        <div className={styles.compClusterEmojis}>
+          {Array(role.count).fill(null).map((_, i) => (
+            <span key={i} className={styles.compEmoji}>{role.roleEmoji}</span>
+          ))}
+        </div>
+        <span className={styles.compLabel}>{role.roleName}</span>
+      </div>
+    );
+
+    return (
+      <div key={slide.id} className={styles.slide}>
+        <h1 className={styles.title}>{slide.title}</h1>
+        <div className={styles.compRow}>
+          {werewolfRoles.length > 0 && (
+            <div className={`${styles.compGroup} ${styles.compGroupWerewolf}`}>
+              {werewolfRoles.map(renderRoleCluster)}
+            </div>
+          )}
+          {villageRoles.length > 0 && (
+            <div className={`${styles.compGroup} ${styles.compGroupVillage}`}>
+              {villageRoles.map(renderRoleCluster)}
+            </div>
+          )}
+          {unassignedCount > 0 && (
+            <div className={styles.compGroup}>
+              <div className={styles.compCluster}>
+                <div className={styles.compClusterEmojis}>
+                  {Array(unassignedCount).fill(null).map((_, i) => (
+                    <span key={i} className={styles.compEmoji}>👤</span>
+                  ))}
+                </div>
+                <span className={styles.compLabel}>Unassigned</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderRoleTip = (slide) => {
+    const isWerewolf = slide.team === 'werewolf';
+    const teamColor = isWerewolf ? '#c94c4c' : '#7eb8da';
+
+    return (
+      <div key={slide.id} className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}>
+        {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+        <div className={styles.roleEmoji}>{slide.roleEmoji}</div>
+        <h1 className={styles.title} style={{ color: slide.roleColor }}>
+          {slide.roleName}
+        </h1>
+        <div className={styles.badgeRow}>
+          <div className={styles.teamBadge} style={{ borderColor: teamColor, color: teamColor }}>
+            {isWerewolf ? 'WEREWOLF' : 'VILLAGE'}
+          </div>
+          {[...(slide.abilities || [])]
+            .sort((a, b) => {
+              const order = { '#c94c4c': 0, '#7eb8da': 1, '#d4af37': 2 };
+              return (order[a.color] ?? 3) - (order[b.color] ?? 3);
+            })
+            .map(ability => (
+            <div key={ability.label} className={styles.abilityBadge} style={{ borderColor: ability.color, color: ability.color }}>
+              {ability.label}
+            </div>
+          ))}
+        </div>
+        <p className={styles.roleTipText}>{slide.detailedTip}</p>
       </div>
     );
   };

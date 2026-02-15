@@ -85,6 +85,10 @@ export const ClientMsg = {
   GIVE_ITEM: 'giveItem',
   REMOVE_ITEM: 'removeItem',
 
+  // Lobby tutorial slides
+  PUSH_COMP_SLIDE: 'pushCompSlide',
+  PUSH_ROLE_TIP_SLIDE: 'pushRoleTipSlide',
+
   // Player presets
   SAVE_PLAYER_PRESETS: 'savePlayerPresets',
   LOAD_PLAYER_PRESETS: 'loadPlayerPresets',
@@ -102,6 +106,8 @@ export const SlideType = {
   COUNTDOWN: 'countdown',
   DEATH: 'death',
   VICTORY: 'victory',
+  COMPOSITION: 'composition',
+  ROLE_TIP: 'roleTip',
 };
 
 export const SlideStyle = {
@@ -150,6 +156,20 @@ export const ItemId = {
   PISTOL: 'pistol',
   PHONE: 'phone',
   CRYSTAL_BALL: 'crystalBall',
+};
+
+// Display info for roles (used by host UI for tutorial slide buttons)
+export const ROLE_DISPLAY = {
+  [RoleId.VILLAGER]:    { name: 'Villager',     emoji: '👨‍🌾' },
+  [RoleId.ALPHA]:       { name: 'Alpha',        emoji: '👑' },
+  [RoleId.WEREWOLF]:    { name: 'Werewolf',     emoji: '🐺' },
+  [RoleId.SEER]:        { name: 'Seer',         emoji: '🔮' },
+  [RoleId.DOCTOR]:      { name: 'Doctor',       emoji: '🧑‍⚕️' },
+  [RoleId.HUNTER]:      { name: 'Hunter',       emoji: '🔫' },
+  [RoleId.VIGILANTE]:   { name: 'Vigilante',    emoji: '🤠' },
+  [RoleId.GOVERNOR]:    { name: 'Governor',     emoji: '🎩' },
+  [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
+  [RoleId.ROLEBLOCKER]: { name: 'Roleblocker',  emoji: '🚫' },
 };
 
 export const MIN_PLAYERS = 4;

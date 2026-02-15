@@ -366,6 +366,98 @@
   margin-top: 0.3vh;
 }
 
+/* Composition Slide */
+.compRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3vw;
+  margin: 4vh 0;
+}
+
+.compGroup {
+  display: flex;
+  gap: 1vw;
+  padding: 1.5vh 2vw;
+  border-radius: 8px;
+}
+
+.compGroupWerewolf {
+  background: rgba(201, 76, 76, 0.15);
+}
+
+.compGroupVillage {
+  background: rgba(126, 184, 218, 0.15);
+}
+
+.compCluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.compClusterEmojis {
+  display: flex;
+  gap: 0.5vw;
+}
+
+.compEmoji {
+  font-size: 6vw;
+}
+
+.compLabel {
+  font-family: var(--font-mono);
+  font-size: 1vw;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.5vh;
+}
+
+/* Role Tip Slide */
+.roleEmoji {
+  font-size: 15vw;
+  line-height: 1;
+  margin-bottom: 2vh;
+}
+
+.roleTipText {
+  font-family: var(--font-sans);
+  font-size: 2.5vw;
+  font-weight: 300;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  max-width: 70vw;
+  text-align: center;
+  margin-top: 3vh;
+}
+
+.badgeRow {
+  display: flex;
+  gap: 1vw;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 1vh;
+}
+
+.teamBadge,
+.abilityBadge {
+  font-family: var(--font-mono);
+  font-size: 1.5vw;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.5vh 2vw;
+  border: 2px solid;
+  border-radius: 4px;
+}
+
+.werewolfTip {
+  background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
+}
+
 /* Event Timer Radial Widget */
 .timerWidget {
   position: relative;

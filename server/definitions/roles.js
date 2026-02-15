@@ -43,6 +43,7 @@ const roles = {
     color: '#7eb8da',
     emoji: '👨‍🌾',
     tip: 'Good luck!',
+    detailedTip: 'You have no special abilities — but your vote is your weapon. Pay attention to accusations, watch for slips, and trust your gut. The village wins when all werewolves are eliminated.',
     events: {
       vote: {},
       suspect: {},
@@ -58,6 +59,7 @@ const roles = {
     color: '#c94c4c',
     emoji: '👑',
     tip: null, // Dynamic: shows packmate name
+    detailedTip: 'You are the pack leader. Each night, you choose who the wolves kill. Your pack sees your pick. Blend in during the day. The pack wins when werewolves equal or outnumber the village.',
     events: {
       vote: {},
       kill: {
@@ -98,6 +100,7 @@ const roles = {
     color: '#c94c4c',
     emoji: '🐺',
     tip: null, // Dynamic: shows packmate name
+    detailedTip: 'You hunt with the Alpha. Each night, suggest a target — the Alpha sees your pick and makes the final call. Deflect suspicion during the day. The pack wins when you equal or outnumber the village.',
     events: {
       vote: {},
       hunt: {
@@ -119,6 +122,7 @@ const roles = {
     color: '#9b7ed9',
     emoji: '🔮',
     tip: 'Investigate each night',
+    detailedTip: 'Each night, investigate one player to learn if they are a werewolf. Revealing your findings can guide the village — but also makes you a target. Share information strategically.',
     events: {
       vote: {},
       investigate: {
@@ -149,6 +153,7 @@ const roles = {
     color: '#7ed9a6',
     emoji: '🧑‍⚕️',
     tip: 'Protect someone each night',
+    detailedTip: 'Each night, choose one player to protect. If the werewolves target them, they survive. Predicting the wolves\' target is key — a well-timed save can turn the entire game.',
     events: {
       vote: {},
       protect: {
@@ -180,6 +185,7 @@ const roles = {
     color: '#d9a67e',
     emoji: '🔫',
     tip: 'Revenge shot on death',
+    detailedTip: 'You have no night action, but when you die — by any cause — you take a revenge shot, killing one player of your choice. This trigger is automatic and cannot be prevented.',
     events: {
       vote: {},
       suspect: {},
@@ -202,6 +208,7 @@ const roles = {
     color: '#8b7355',
     emoji: '🤠',
     tip: 'One kill per game',
+    detailedTip: 'Once per game, you may kill a player at night. Unlike the wolves, you act alone. If you shoot a villager, the village suffers. Use your one shot wisely.',
     events: {
       vote: {},
       vigil: {
@@ -221,6 +228,7 @@ const roles = {
     color: '#d4af37',
     emoji: '🎩',
     tip: 'Pardon the condemned',
+    detailedTip: 'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. This power can save the innocent or inadvertently spare a wolf.',
     events: {
       vote: {},
     },
@@ -235,6 +243,7 @@ const roles = {
     color: '#e991c9',
     emoji: '💘',
     tip: 'Link two lovers',
+    detailedTip: 'At the start of the game, you link two players as lovers. If either dies, the other dies of heartbreak — regardless of team. Choose a pair that helps the village, or create chaos.',
     companions: [RoleId.CUPID], // Needs a second cupid for two lover pairs
     events: {
       vote: {},
@@ -275,6 +284,7 @@ const roles = {
     color: '#8b0000',
     emoji: '🚫',
     tip: null, // Dynamic: shows packmate names
+    detailedTip: 'Each night, choose a player to silence. Their night ability fails — and they won\'t know they were blocked. Neutralize the Doctor, Seer, or Vigilante at critical moments.',
     events: {
       vote: {},
       block: {
