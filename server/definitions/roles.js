@@ -54,7 +54,7 @@ const roles = {
 
   alpha: {
     id: 'alpha',
-    name: 'Alpha',
+    name: 'Alpha Werewolf',
     team: Team.WEREWOLF,
     description: 'The pack leader who makes the final kill.',
     color: '#f02121',
