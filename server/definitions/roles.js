@@ -43,7 +43,8 @@ const roles = {
     color: '#7eb8da',
     emoji: '👨‍🌾',
     tip: 'Good luck!',
-    detailedTip: 'You have no special abilities — but your vote is your weapon. Pay attention to accusations, watch for slips, and trust your gut. The village wins when all werewolves are eliminated.',
+    detailedTip:
+      'You have no special abilities — but your vote is your weapon. Pay attention to accusations, watch for slips, and trust your gut. The village wins when all werewolves are eliminated.',
     events: {
       vote: {},
       suspect: {},
@@ -56,10 +57,11 @@ const roles = {
     name: 'Alpha',
     team: Team.WEREWOLF,
     description: 'The pack leader who makes the final kill.',
-    color: '#c94c4c',
+    color: '#f02121',
     emoji: '👑',
     tip: null, // Dynamic: shows packmate name
-    detailedTip: 'You are the pack leader. Each night, you choose who the wolves kill. Your pack sees your pick. Blend in during the day. The pack wins when werewolves equal or outnumber the village.',
+    detailedTip:
+      'You are the pack leader. Each night, you choose who the wolves kill. Your pack sees your pick. Blend in during the day. The pack wins when werewolves equal or outnumber the village.',
     events: {
       vote: {},
       kill: {
@@ -75,13 +77,15 @@ const roles = {
         // Promote a living pack member to alpha: prefer werewolves, then any team member
         const alive = game.getAlivePlayers();
         const werewolves = alive.filter((p) => p.role.id === RoleId.WEREWOLF);
-        const candidates = werewolves.length > 0
-          ? werewolves
-          : alive.filter((p) => p.role.team === Team.WEREWOLF);
+        const candidates =
+          werewolves.length > 0
+            ? werewolves
+            : alive.filter((p) => p.role.team === Team.WEREWOLF);
 
         if (candidates.length === 0) return null;
 
-        const promoted = candidates[Math.floor(Math.random() * candidates.length)];
+        const promoted =
+          candidates[Math.floor(Math.random() * candidates.length)];
         const alphaRole = getRole(RoleId.ALPHA);
         promoted.assignRole(alphaRole);
 
@@ -100,7 +104,8 @@ const roles = {
     color: '#c94c4c',
     emoji: '🐺',
     tip: null, // Dynamic: shows packmate name
-    detailedTip: 'You hunt with the Alpha. Each night, suggest a target — the Alpha sees your pick and makes the final call. Deflect suspicion during the day. The pack wins when you equal or outnumber the village.',
+    detailedTip:
+      'You hunt with the Alpha. Each night, suggest a target — the Alpha sees your pick and makes the final call. Deflect suspicion during the day. The pack wins when you equal or outnumber the village.',
     events: {
       vote: {},
       hunt: {
@@ -122,7 +127,8 @@ const roles = {
     color: '#9b7ed9',
     emoji: '🔮',
     tip: 'Investigate each night',
-    detailedTip: 'Each night, investigate one player to learn if they are a werewolf. Revealing your findings can guide the village — but also makes you a target. Share information strategically.',
+    detailedTip:
+      'Each night, investigate one player to learn if they are a werewolf. Revealing your findings can guide the village — but also makes you a target. Share information strategically.',
     events: {
       vote: {},
       investigate: {
@@ -153,7 +159,8 @@ const roles = {
     color: '#7ed9a6',
     emoji: '🧑‍⚕️',
     tip: 'Protect someone each night',
-    detailedTip: 'Each night, choose one player to protect. If the werewolves target them, they survive. Predicting the wolves\' target is key — a well-timed save can turn the entire game.',
+    detailedTip:
+      "Each night, choose one player to protect. If the werewolves target them, they survive. Predicting the wolves' target is key — a well-timed save can turn the entire game.",
     events: {
       vote: {},
       protect: {
@@ -185,7 +192,8 @@ const roles = {
     color: '#d9a67e',
     emoji: '🔫',
     tip: 'Revenge shot on death',
-    detailedTip: 'You have no night action, but when you die — by any cause — you take a revenge shot, killing one player of your choice. This trigger is automatic and cannot be prevented.',
+    detailedTip:
+      'You have no night action, but when you die — by any cause — you take a revenge shot, killing one player of your choice. This trigger is automatic and cannot be prevented.',
     events: {
       vote: {},
       suspect: {},
@@ -208,7 +216,8 @@ const roles = {
     color: '#8b7355',
     emoji: '🤠',
     tip: 'One kill per game',
-    detailedTip: 'Once per game, you may kill a player at night. Unlike the wolves, you act alone. If you shoot a villager, the village suffers. Use your one shot wisely.',
+    detailedTip:
+      'Once per game, you may kill a player at night. Unlike the wolves, you act alone. If you shoot a villager, the village suffers. Use your one shot wisely.',
     events: {
       vote: {},
       vigil: {
@@ -228,7 +237,8 @@ const roles = {
     color: '#d4af37',
     emoji: '🎩',
     tip: 'Pardon the condemned',
-    detailedTip: 'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. This power can save the innocent or inadvertently spare a wolf.',
+    detailedTip:
+      'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. This power can save the innocent or inadvertently spare a wolf.',
     events: {
       vote: {},
     },
@@ -243,7 +253,8 @@ const roles = {
     color: '#e991c9',
     emoji: '💘',
     tip: 'Link two lovers',
-    detailedTip: 'At the start of the game, you link two players as lovers. If either dies, the other dies of heartbreak — regardless of team. Choose a pair that helps the village, or create chaos.',
+    detailedTip:
+      'At the start of the game, you link two players as lovers. If either dies, the other dies of heartbreak — regardless of team. Choose a pair that helps the village, or create chaos.',
     companions: [RoleId.CUPID], // Needs a second cupid for two lover pairs
     events: {
       vote: {},
@@ -280,11 +291,13 @@ const roles = {
     id: 'roleblocker',
     name: 'Roleblocker',
     team: Team.WEREWOLF,
-    description: 'You silence the night. Block one player\'s ability.',
-    color: '#8b0000',
+    description: "You silence the night. Block one player's ability.",
+    color: '#c94c4c',
+
     emoji: '🚫',
     tip: null, // Dynamic: shows packmate names
-    detailedTip: 'Each night, choose a player to silence. Their night ability fails — and they won\'t know they were blocked. Neutralize the Doctor, Seer, or Vigilante at critical moments.',
+    detailedTip:
+      "Each night, choose a player to silence. Their night ability fails — and they won't know they were blocked. Neutralize the Doctor, Seer, or Vigilante at critical moments.",
     events: {
       vote: {},
       block: {
@@ -301,11 +314,12 @@ const roles = {
     id: 'janitor',
     name: 'Janitor',
     team: Team.WEREWOLF,
-    description: 'You clean up after the kill. The victim\'s role stays hidden.',
-    color: '#8b0000',
+    description: "You clean up after the kill. The victim's role stays hidden.",
+    color: '#c94c4c',
     emoji: '🧹',
     tip: null, // Dynamic: shows packmate names
-    detailedTip: 'Each night, choose whether to clean up. If you say YES and the Alpha kills, the victim\'s role stays hidden from everyone until the game ends. Use this to protect your pack from the Seer\'s deductions.',
+    detailedTip:
+      "Each night, choose whether to clean up. If you say YES and the Alpha kills, the victim's role stays hidden from everyone until the game ends. Use this to protect your pack from the Seer's deductions.",
     events: {
       vote: {},
       clean: { priority: 58 },
@@ -317,22 +331,46 @@ const roles = {
 // Explicit role composition keyed by player count
 // Each value is the list of required special roles; remaining slots become villagers
 export const GAME_COMPOSITION = {
-  4:  [RoleId.ALPHA, RoleId.SEER],
-  5:  [RoleId.ALPHA, RoleId.SEER],
-  6:  [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR],
-  7:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR],
-  8:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE],
-  9:  [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.ROLEBLOCKER, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER],
-  10: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.ROLEBLOCKER, RoleId.SEER, RoleId.DOCTOR, RoleId.VIGILANTE, RoleId.HUNTER, RoleId.GOVERNOR],
-}
+  4: [RoleId.ALPHA, RoleId.SEER],
+  5: [RoleId.ALPHA, RoleId.SEER],
+  6: [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR],
+  7: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR],
+  8: [
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.VIGILANTE,
+  ],
+  9: [
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.ROLEBLOCKER,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.VIGILANTE,
+    RoleId.HUNTER,
+  ],
+  10: [
+    RoleId.ALPHA,
+    RoleId.WEREWOLF,
+    RoleId.ROLEBLOCKER,
+    RoleId.SEER,
+    RoleId.DOCTOR,
+    RoleId.VIGILANTE,
+    RoleId.HUNTER,
+    RoleId.GOVERNOR,
+  ],
+};
 
 // Build a role pool for a given player count from GAME_COMPOSITION, padded with villagers
 export function buildRolePool(playerCount) {
-  const composition = GAME_COMPOSITION[playerCount]
-  if (!composition) throw new Error(`No composition for ${playerCount} players`)
-  const pool = [...composition]
-  while (pool.length < playerCount) pool.push(RoleId.VILLAGER)
-  return pool
+  const composition = GAME_COMPOSITION[playerCount];
+  if (!composition)
+    throw new Error(`No composition for ${playerCount} players`);
+  const pool = [...composition];
+  while (pool.length < playerCount) pool.push(RoleId.VILLAGER);
+  return pool;
 }
 
 export function getRole(roleId) {
