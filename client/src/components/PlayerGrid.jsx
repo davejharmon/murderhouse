@@ -136,7 +136,7 @@ const PlayerCard = memo(function PlayerCard({
             {player.name}
           </span>
         )}
-        {!isAlive && <span className={styles.deadBadge}>DEAD</span>}
+
       </div>
 
       {/* Col 3: Role */}

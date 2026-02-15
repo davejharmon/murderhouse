@@ -37,70 +37,11 @@ const COLOR_BG = '#0a0800'
 // Icon color (all icons drawn at same brightness; selection shown via bar)
 const ICON_COLOR = COLOR_NORMAL
 
-// Character glyph substitutions (ASCII, matching ESP32 terminal rendering)
-const CHAR_GLYPHS = {
-  ':pistol:': '*',
-  ':phone:': '$',
-  ':crystal:': '@',
-  ':village:': 'V',
-  ':lock:': '!',
-  ':check:': '+',
-  ':x:': '-',
-  ':alpha:': 'A',
-  ':pack:': 'P',
-}
-
-// Bitmap glyph XBM data (from PixelGlyph.jsx / ESP32 protocol.h)
-const BITMAP_GLYPHS = {
-  ':skull:': [0x3C, 0x7E, 0xFF, 0xDB, 0xFF, 0xFF, 0xBD, 0xA5],
-  ':wolf:': [0x81, 0xC3, 0xFF, 0xDB, 0xFF, 0x7E, 0x3C, 0x18],
-}
-
 /**
- * Process a text string with :glyph: tokens into renderable segments
- * Returns array of { type: 'text', text } or { type: 'bitmap', bytes }
+ * Measure the pixel width of a text string
  */
-function parseGlyphs(str) {
-  if (!str) return []
-  const segments = []
-  let lastIndex = 0
-  const regex = /:(\w+):/g
-  let match
-
-  while ((match = regex.exec(str)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({ type: 'text', text: str.slice(lastIndex, match.index) })
-    }
-    const token = match[0]
-    if (BITMAP_GLYPHS[token]) {
-      segments.push({ type: 'bitmap', bytes: BITMAP_GLYPHS[token] })
-    } else if (CHAR_GLYPHS[token]) {
-      segments.push({ type: 'text', text: CHAR_GLYPHS[token] })
-    } else {
-      segments.push({ type: 'text', text: token })
-    }
-    lastIndex = match.index + match[0].length
-  }
-
-  if (lastIndex < str.length) {
-    segments.push({ type: 'text', text: str.slice(lastIndex) })
-  }
-  return segments
-}
-
-/**
- * Measure the pixel width of parsed segments
- */
-function measureSegments(segments, font) {
-  let w = 0
-  for (const seg of segments) {
-    if (seg.type === 'bitmap') {
-      w += 8 // 8px wide bitmap glyph
-    } else {
-      w += seg.text.length * font.width
-    }
-  }
-  return w
+function measureText(str, font) {
+  return (str || '').length * font.width
 }
 
 /**
@@ -147,40 +88,6 @@ function drawText(ctx, text, x, baselineY, font) {
       drawChar(ctx, code, x + i * font.width, baselineY, font)
     }
   }
-}
-
-/**
- * Draw an 8x8 XBM bitmap at (x, baselineY) vertically centered on the font
- */
-function drawBitmap(ctx, bytes, x, baselineY, font) {
-  // Center the 8px tall bitmap on the font's ascent area
-  const topY = baselineY - font.baseline + Math.floor((font.height - 8) / 2)
-  for (let row = 0; row < 8; row++) {
-    const byte = bytes[row]
-    if (byte === 0) continue
-    for (let bit = 7; bit >= 0; bit--) {
-      if (byte & (1 << bit)) {
-        ctx.fillRect(x + (7 - bit), topY + row, 1, 1)
-      }
-    }
-  }
-}
-
-/**
- * Draw parsed segments starting at x, return total width drawn
- */
-function drawSegments(ctx, segments, x, baselineY, font) {
-  let cx = x
-  for (const seg of segments) {
-    if (seg.type === 'bitmap') {
-      drawBitmap(ctx, seg.bytes, cx, baselineY, font)
-      cx += 8
-    } else {
-      drawText(ctx, seg.text, cx, baselineY, font)
-      cx += seg.text.length * font.width
-    }
-  }
-  return cx - x
 }
 
 /**
@@ -239,9 +146,10 @@ function renderDisplay(ctx, display, color) {
         drawIcon(ctx, icon.id, ICON_COL_X, ICON_Y[i])
       }
     }
-    // Draw selection bar next to the active icon slot
+    // Draw selection bar next to the active icon slot (only if 2+ icons visible)
+    const visibleCount = icons.filter(ic => ic && ic.id && ic.id !== 'empty').length
     const idleIdx = display.idleScrollIndex
-    if (idleIdx !== undefined && idleIdx >= 0 && idleIdx <= 2) {
+    if (visibleCount >= 2 && idleIdx !== undefined && idleIdx >= 0 && idleIdx <= 2) {
       drawSelectionBar(ctx, idleIdx, color)
     }
   }
@@ -250,19 +158,16 @@ function renderDisplay(ctx, display, color) {
   ctx.fillStyle = color
 
   // === LINE 1: small font, left + right ===
-  const l1Left = parseGlyphs(line1.left)
-  const l1Right = parseGlyphs(line1.right)
-
-  drawSegments(ctx, l1Left, MARGIN_X, LINE1_Y, FONT_6x10)
-
-  if (l1Right.length > 0) {
-    const rightW = measureSegments(l1Right, FONT_6x10)
-    drawSegments(ctx, l1Right, TEXT_AREA_W - MARGIN_X - rightW, LINE1_Y, FONT_6x10)
+  if (line1.left) {
+    drawText(ctx, line1.left, MARGIN_X, LINE1_Y, FONT_6x10)
+  }
+  if (line1.right) {
+    const rightW = measureText(line1.right, FONT_6x10)
+    drawText(ctx, line1.right, TEXT_AREA_W - MARGIN_X - rightW, LINE1_Y, FONT_6x10)
   }
 
   // === LINE 2: large font, centered within text area ===
-  const l2Segs = parseGlyphs(line2.text)
-  const l2W = measureSegments(l2Segs, FONT_10x20)
+  const l2W = measureText(line2.text, FONT_10x20)
   const l2X = Math.floor((TEXT_AREA_W - l2W) / 2)
 
   if (isLocked) {
@@ -283,7 +188,7 @@ function renderDisplay(ctx, display, color) {
     ctx.fillRect(frameX + frameW - 1, frameY, 1, frameH)
   }
 
-  drawSegments(ctx, l2Segs, l2X, LINE2_Y, FONT_10x20)
+  drawText(ctx, line2.text, l2X, LINE2_Y, FONT_10x20)
 
   // Reset color after locked
   if (isLocked) {
@@ -294,26 +199,21 @@ function renderDisplay(ctx, display, color) {
   const hasLine3Split = line3.left || line3.right
 
   if (hasLine3Split) {
-    const l3Left = parseGlyphs(line3.left)
-    const l3Right = parseGlyphs(line3.right)
-
-    drawSegments(ctx, l3Left, MARGIN_X, LINE3_Y, FONT_6x10)
-
-    if (line3.center) {
-      const l3Center = parseGlyphs(line3.center)
-      const centerW = measureSegments(l3Center, FONT_6x10)
-      drawSegments(ctx, l3Center, Math.floor((TEXT_AREA_W - centerW) / 2), LINE3_Y, FONT_6x10)
+    if (line3.left) {
+      drawText(ctx, line3.left, MARGIN_X, LINE3_Y, FONT_6x10)
     }
-
-    if (l3Right.length > 0) {
-      const rightW = measureSegments(l3Right, FONT_6x10)
-      drawSegments(ctx, l3Right, TEXT_AREA_W - MARGIN_X - rightW, LINE3_Y, FONT_6x10)
+    if (line3.center) {
+      const centerW = measureText(line3.center, FONT_6x10)
+      drawText(ctx, line3.center, Math.floor((TEXT_AREA_W - centerW) / 2), LINE3_Y, FONT_6x10)
+    }
+    if (line3.right) {
+      const rightW = measureText(line3.right, FONT_6x10)
+      drawText(ctx, line3.right, TEXT_AREA_W - MARGIN_X - rightW, LINE3_Y, FONT_6x10)
     }
   } else {
-    const l3Segs = parseGlyphs(line3.text)
-    const l3W = measureSegments(l3Segs, FONT_6x10)
+    const l3W = measureText(line3.text, FONT_6x10)
     const l3X = Math.floor((TEXT_AREA_W - l3W) / 2)
-    drawSegments(ctx, l3Segs, l3X, LINE3_Y, FONT_6x10)
+    drawText(ctx, line3.text, l3X, LINE3_Y, FONT_6x10)
   }
 }
 

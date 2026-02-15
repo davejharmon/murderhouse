@@ -61,6 +61,7 @@ export class Game {
         this.playerCustomizations.set(playerId, {
           name: player.name,
           portrait: player.portrait,
+          preAssignedRole: player.preAssignedRole || null,
         });
       }
     }
@@ -130,6 +131,9 @@ export class Game {
     if (customization) {
       player.name = customization.name;
       player.portrait = customization.portrait;
+      if (this.phase === GamePhase.LOBBY && customization.preAssignedRole) {
+        player.preAssignedRole = customization.preAssignedRole;
+      }
     }
 
     this.players.set(id, player);
@@ -147,13 +151,14 @@ export class Game {
       ...customization,
       name: player.name,
       portrait: player.portrait,
+      preAssignedRole: player.preAssignedRole || customization.preAssignedRole || null,
     });
   }
 
   savePlayerPresets() {
     const presets = {};
     for (const player of this.players.values()) {
-      presets[player.id] = { name: player.name, portrait: player.portrait };
+      presets[player.id] = { name: player.name, portrait: player.portrait, preAssignedRole: player.preAssignedRole || null };
     }
     fs.writeFileSync(PRESETS_PATH, JSON.stringify(presets, null, 2));
     const count = Object.keys(presets).length;
@@ -171,18 +176,23 @@ export class Game {
         this.playerCustomizations.set(id, {
           name: data.name,
           portrait: data.portrait,
+          preAssignedRole: data.preAssignedRole || null,
         });
         // Update any currently connected player
         const player = this.players.get(id);
         if (player) {
           player.name = data.name;
           player.portrait = data.portrait;
+          if (this.phase === GamePhase.LOBBY) {
+            player.preAssignedRole = data.preAssignedRole || null;
+          }
         }
         count++;
       }
       if (this.players.size > 0) {
         this.addLog(`Loaded ${count} player presets`);
         this.broadcastPlayerList();
+        this.broadcastGameState();
       }
       console.log(`[Server] Loaded ${count} player presets`);
       return count;

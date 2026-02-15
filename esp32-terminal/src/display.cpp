@@ -38,56 +38,6 @@ U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
 static const int ICON_Y[] = {1, 23, 45};    // Y positions for 3 icons (centered in slots)
 static const int SLOT_Y[] = {0, 22, 44};    // Y positions for 3 slots (for bar)
 
-// Process text to extract bitmap glyphs and their positions
-// Returns the text with bitmap glyphs replaced by spaces
-static GlyphRenderResult processGlyphsForRender(const String& input, int startX, int charWidth) {
-    GlyphRenderResult result;
-    result.text = input;
-    result.bitmapCount = 0;
-
-    // Process each glyph type
-    for (int i = 0; GLYPHS[i].token != nullptr; i++) {
-        if (GLYPHS[i].type == GlyphType::CHARACTER) {
-            // Simple character replacement
-            result.text.replace(GLYPHS[i].token, String(GLYPHS[i].display));
-        } else if (GLYPHS[i].type == GlyphType::BITMAP) {
-            // Find all occurrences of this bitmap glyph
-            int pos = 0;
-            String searchText = result.text;
-            while ((pos = searchText.indexOf(GLYPHS[i].token)) != -1 &&
-                   result.bitmapCount < MAX_BITMAP_GLYPHS) {
-                // Calculate the X position for this glyph
-                // Position = startX + (characters before glyph * char width)
-                int xPos = startX + (pos * charWidth);
-
-                // Store bitmap info
-                result.bitmaps[result.bitmapCount].x = xPos;
-                result.bitmaps[result.bitmapCount].bitmap = GLYPHS[i].bitmap;
-                result.bitmaps[result.bitmapCount].width = GLYPHS[i].width;
-                result.bitmaps[result.bitmapCount].height = GLYPHS[i].height;
-                result.bitmapCount++;
-
-                // Replace with space in the result text
-                result.text.replace(GLYPHS[i].token, " ");
-                searchText = result.text;  // Update search text for next iteration
-            }
-        }
-    }
-
-    return result;
-}
-
-// Draw bitmap glyphs at their calculated positions
-static void drawBitmapGlyphs(const GlyphRenderResult& glyphs, int baselineY, int fontHeight) {
-    for (uint8_t i = 0; i < glyphs.bitmapCount; i++) {
-        const BitmapGlyph& g = glyphs.bitmaps[i];
-        // Center bitmap vertically relative to text baseline
-        // Baseline is at bottom of text, so we need to offset upward
-        int yPos = baselineY - fontHeight + (fontHeight - g.height) / 2;
-        u8g2.drawXBM(g.x, yPos, g.width, g.height, g.bitmap);
-    }
-}
-
 void displayInit() {
     // Initialize SPI with ESP32-S3 pins
     SPI.begin(PIN_OLED_CLK, -1, PIN_OLED_MOSI, PIN_OLED_CS);
@@ -141,38 +91,30 @@ void displayRender(const DisplayState& state) {
         const uint8_t* bitmap = getIconBitmap(state.icons[i].id);
         drawIconXBM(bitmap, ICON_COL_X, ICON_Y[i]);
     }
-    // Draw selection bar next to the active icon slot
-    drawSelectionBar(state.idleScrollIndex);
+    // Draw selection bar next to the active icon slot (only if 2+ icons visible)
+    int visibleIcons = 0;
+    for (int i = 0; i < 3; i++) {
+        if (state.icons[i].id != "empty") visibleIcons++;
+    }
+    if (visibleIcons >= 2) {
+        drawSelectionBar(state.idleScrollIndex);
+    }
 
     // === LINE 1: Context (small, left and right aligned) ===
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
 
-    // Get character width for position calculations
-    int charWidth = u8g2.getMaxCharWidth();
-    int fontHeight = 10;  // FONT_SMALL is 10px height
+    u8g2.drawStr(MARGIN_X, LINE1_Y, state.line1.left.c_str());
 
-    // Left side - process for bitmap glyphs
-    GlyphRenderResult leftGlyphs = processGlyphsForRender(state.line1.left, MARGIN_X, charWidth);
-    u8g2.drawStr(MARGIN_X, LINE1_Y, leftGlyphs.text.c_str());
-    drawBitmapGlyphs(leftGlyphs, LINE1_Y, fontHeight);
-
-    // Right side (right-aligned within text area)
     if (state.line1.right.length() > 0) {
-        String rightText = renderGlyphs(state.line1.right);
-        int rightWidth = u8g2.getStrWidth(rightText.c_str());
-        int rightStartX = TEXT_AREA_W - rightWidth - MARGIN_X;
-
-        GlyphRenderResult rightGlyphs = processGlyphsForRender(state.line1.right, rightStartX, charWidth);
-        u8g2.drawStr(rightStartX, LINE1_Y, rightGlyphs.text.c_str());
-        drawBitmapGlyphs(rightGlyphs, LINE1_Y, fontHeight);
+        int rightWidth = u8g2.getStrWidth(state.line1.right.c_str());
+        u8g2.drawStr(TEXT_AREA_W - rightWidth - MARGIN_X, LINE1_Y, state.line1.right.c_str());
     }
 
     // === LINE 2: Main content (large, centered within text area) ===
     u8g2.setFont(FONT_LARGE);
 
-    String line2Text = renderGlyphs(state.line2.text);
-    int line2Width = u8g2.getStrWidth(line2Text.c_str());
+    int line2Width = u8g2.getStrWidth(state.line2.text.c_str());
     int line2X = (TEXT_AREA_W - line2Width) / 2;
 
     // Draw based on style
@@ -185,7 +127,7 @@ void displayRender(const DisplayState& state) {
         u8g2.setDrawColor(1);
     }
 
-    u8g2.drawStr(line2X, LINE2_Y, line2Text.c_str());
+    u8g2.drawStr(line2X, LINE2_Y, state.line2.text.c_str());
 
     // === LINE 3: Tutorial/tip (small, centered or left/right within text area) ===
     u8g2.setFont(FONT_SMALL);
@@ -193,24 +135,20 @@ void displayRender(const DisplayState& state) {
 
     if (state.line3.left.length() > 0 || state.line3.right.length() > 0) {
         if (state.line3.left.length() > 0) {
-            String leftText = renderGlyphs(state.line3.left);
-            u8g2.drawStr(MARGIN_X, LINE3_Y, leftText.c_str());
+            u8g2.drawStr(MARGIN_X, LINE3_Y, state.line3.left.c_str());
         }
         if (state.line3.center.length() > 0) {
-            String centerText = renderGlyphs(state.line3.center);
-            int centerWidth = u8g2.getStrWidth(centerText.c_str());
-            u8g2.drawStr((TEXT_AREA_W - centerWidth) / 2, LINE3_Y, centerText.c_str());
+            int centerWidth = u8g2.getStrWidth(state.line3.center.c_str());
+            u8g2.drawStr((TEXT_AREA_W - centerWidth) / 2, LINE3_Y, state.line3.center.c_str());
         }
         if (state.line3.right.length() > 0) {
-            String rightText = renderGlyphs(state.line3.right);
-            int rightWidth = u8g2.getStrWidth(rightText.c_str());
-            u8g2.drawStr(TEXT_AREA_W - rightWidth - MARGIN_X, LINE3_Y, rightText.c_str());
+            int rightWidth = u8g2.getStrWidth(state.line3.right.c_str());
+            u8g2.drawStr(TEXT_AREA_W - rightWidth - MARGIN_X, LINE3_Y, state.line3.right.c_str());
         }
     } else {
-        String line3Text = renderGlyphs(state.line3.text);
-        int line3Width = u8g2.getStrWidth(line3Text.c_str());
+        int line3Width = u8g2.getStrWidth(state.line3.text.c_str());
         int line3X = (TEXT_AREA_W - line3Width) / 2;
-        u8g2.drawStr(line3X, LINE3_Y, line3Text.c_str());
+        u8g2.drawStr(line3X, LINE3_Y, state.line3.text.c_str());
     }
 
     // Send buffer to display

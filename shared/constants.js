@@ -213,29 +213,6 @@ export const AVAILABLE_ROLES = [
   RoleId.JANITOR,
 ];
 
-// Display glyphs for TinyScreen
-// Format: :glyphId: in strings, rendered differently by React vs ESP
-export const Glyphs = {
-  PISTOL: ':pistol:',
-  PHONE: ':phone:',
-  CRYSTAL: ':crystal:',
-  WOLF: ':wolf:',
-  VILLAGE: ':village:',
-  LOCK: ':lock:',
-  CHECK: ':check:',
-  X: ':x:',
-  ALPHA: ':alpha:',
-  PACK: ':pack:',
-  SKULL: ':skull:',
-};
-
-// Item ID to glyph mapping
-export const ItemGlyphs = {
-  [ItemId.PISTOL]: Glyphs.PISTOL,
-  [ItemId.PHONE]: Glyphs.PHONE,
-  [ItemId.CRYSTAL_BALL]: Glyphs.CRYSTAL,
-};
-
 // LED states for physical buttons
 export const LedState = {
   OFF: 'off',

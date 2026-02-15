@@ -8,7 +8,6 @@ import {
   GamePhase,
   RoleId,
   EventId,
-  Glyphs,
   LedState,
   DisplayStyle,
   StatusLed,
@@ -637,7 +636,7 @@ export class Player {
     // Build action part
     let actionPart = '';
     if (!this.isAlive) {
-      actionPart = ' :skull:';
+      actionPart = ' > DEAD';
     } else if (eventName) {
       actionPart = ` > ${eventName.toUpperCase()}`;
       // Add item name for item-triggered events
@@ -735,7 +734,7 @@ export class Player {
     const topTarget = game.getPlayer(topTargetId);
 
     if (topTarget) {
-      return `${Glyphs.WOLF} ${topTarget.name.toUpperCase()}`;
+      return topTarget.name.toUpperCase();
     }
     return '';
   }
