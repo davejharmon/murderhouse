@@ -8,8 +8,9 @@ import {
   SlideStyleColors,
   GamePhase,
   PlayerStatus,
-  EVENT_TIMER_DURATION,
+  USE_PIXEL_GLYPHS,
 } from '@shared/constants.js';
+import PixelGlyph from '../components/PixelGlyph';
 import styles from './Screen.module.css';
 
 export default function Screen() {
@@ -454,7 +455,11 @@ export default function Screen() {
             .fill(null)
             .map((_, i) => (
               <span key={i} className={styles.compEmoji}>
-                {role.roleEmoji}
+                {USE_PIXEL_GLYPHS ? (
+                  <PixelGlyph iconId={role.roleId} size="6vw">
+                    {role.roleEmoji}
+                  </PixelGlyph>
+                ) : role.roleEmoji}
               </span>
             ))}
         </div>
@@ -507,7 +512,13 @@ export default function Screen() {
         className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}
       >
         {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
-        <div className={styles.roleEmoji}>{slide.roleEmoji}</div>
+        <div className={styles.roleEmoji}>
+          {USE_PIXEL_GLYPHS ? (
+            <PixelGlyph iconId={slide.roleId} size="15vw">
+              {slide.roleEmoji}
+            </PixelGlyph>
+          ) : slide.roleEmoji}
+        </div>
         <h1 className={styles.title} style={{ color: slide.roleColor }}>
           {slide.roleName}
         </h1>
@@ -612,7 +623,7 @@ export default function Screen() {
       } else {
         setTimerDisplay({
           seconds: Math.ceil(remaining / 1000),
-          fraction: remaining / EVENT_TIMER_DURATION,
+          fraction: remaining / earliest.duration,
         });
       }
     };
@@ -689,7 +700,7 @@ export default function Screen() {
       <div
         key={effectiveSlide?.id}
         ref={wrapperRef}
-        className={styles.slideWrapper}
+        className={`${styles.slideWrapper} ${effectiveSlide?.type === SlideType.ROLE_TIP && effectiveSlide?.team === 'werewolf' ? styles.werewolfBg : ''}`}
       >
         {renderSlide()}
       </div>

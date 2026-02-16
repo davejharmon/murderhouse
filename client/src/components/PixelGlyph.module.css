@@ -1,0 +1,40 @@
+/* Pixel glyph renderer — chromatic aberration + glow */
+
+.container {
+  position: relative;
+  display: inline-block;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.glow {
+  composes: canvas;
+  filter: blur(8px) brightness(1.5);
+  opacity: 0.35;
+}
+
+.layerR {
+  composes: canvas;
+  mix-blend-mode: screen;
+  transform: translateX(-1.5px);
+  opacity: 0.7;
+}
+
+.layerG {
+  composes: canvas;
+  mix-blend-mode: screen;
+  opacity: 1;
+}
+
+.layerB {
+  composes: canvas;
+  mix-blend-mode: screen;
+  transform: translateX(1.5px);
+  opacity: 0.7;
+}

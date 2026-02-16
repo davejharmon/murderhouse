@@ -182,11 +182,11 @@ export const MAX_PLAYERS = 10;
 // Auto-advance delay for slides (in milliseconds)
 export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
 
-// Event timer duration (in milliseconds)
-export const EVENT_TIMER_DURATION = 3000;
-
 // Debug mode - enables testing tools
 export const DEBUG_MODE = true;
+
+// Use pixel glyph icons instead of native emoji on Screen slides
+export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
 export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CRYSTAL_BALL];

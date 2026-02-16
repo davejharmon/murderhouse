@@ -104,7 +104,7 @@ export function GameProvider({ children }) {
 
       case ServerMsg.EVENT_TIMER:
         if (payload.duration != null) {
-          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration } }));
+          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration, duration: payload.duration } }));
         } else {
           setEventTimers(prev => {
             const next = { ...prev };

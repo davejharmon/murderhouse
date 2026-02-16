@@ -30,6 +30,9 @@ export default function Host() {
     const saved = localStorage.getItem('autoAdvanceEnabled');
     return saved ? JSON.parse(saved) : false;
   });
+  const [timerDuration, setTimerDuration] = useState(() => {
+    return parseInt(localStorage.getItem('timerDuration')) || 30;
+  });
   const autoAdvanceTimerRef = useRef(null);
 
   // Mobile tab navigation
@@ -109,6 +112,7 @@ export default function Host() {
   const phase = gameState?.phase || GamePhase.LOBBY;
   const isLobby = phase === GamePhase.LOBBY;
   const isGameOver = phase === GamePhase.GAME_OVER;
+  const hasActive = (gameState?.activeEvents || []).length > 0;
 
   const handleStartGame = () => send(ClientMsg.START_GAME);
   const handleNextPhase = () => send(ClientMsg.NEXT_PHASE);
@@ -130,8 +134,12 @@ export default function Host() {
     send(ClientMsg.SKIP_EVENT, { eventId });
   const handleResetEvent = (eventId) =>
     send(ClientMsg.RESET_EVENT, { eventId });
-  const handleStartEventTimer = (eventId) =>
-    send(ClientMsg.START_EVENT_TIMER, { eventId });
+  const handleStartEventTimer = () =>
+    send(ClientMsg.START_EVENT_TIMER, { duration: timerDuration * 1000 });
+  const handleTimerDurationChange = (seconds) => {
+    setTimerDuration(seconds);
+    localStorage.setItem('timerDuration', String(seconds));
+  };
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => send(ClientMsg.PREV_SLIDE);
@@ -225,6 +233,29 @@ export default function Host() {
         </div>
       </section>
 
+      <section className={styles.section}>
+        <h2>Event Timer</h2>
+        <div className={styles.timerRow}>
+          <input
+            type='number'
+            min='1'
+            max='300'
+            value={timerDuration}
+            onChange={(e) => handleTimerDurationChange(parseInt(e.target.value) || 1)}
+            className={styles.timerInput}
+            title='Timer duration in seconds'
+          />
+          <span className={styles.timerUnit}>s</span>
+          <button
+            onClick={handleStartEventTimer}
+            disabled={!hasActive}
+            title={hasActive ? 'Start countdown timer for all active events' : 'No active events'}
+          >
+            ⏱️ Timer
+          </button>
+        </div>
+      </section>
+
       {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (() => {
         const uniqueRoles = [...new Set(
           gameState.players
@@ -264,7 +295,6 @@ export default function Host() {
           onSkipEvent={handleSkipEvent}
           onResetEvent={handleResetEvent}
           onDebugAutoSelectAll={handleDebugAutoSelectAll}
-          onStartEventTimer={handleStartEventTimer}
         />
       )}
 

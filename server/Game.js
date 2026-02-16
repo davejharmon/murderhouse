@@ -12,7 +12,6 @@ import {
   SlideType,
   MIN_PLAYERS,
   MAX_PLAYERS,
-  EVENT_TIMER_DURATION,
 } from '../shared/constants.js';
 import { Player, resetSeatCounter } from './Player.js';
 import {
@@ -1013,7 +1012,7 @@ export class Game {
     return { success: false, error: 'No active event for player' };
   }
 
-  startEventTimer(eventId) {
+  startEventTimer(eventId, duration) {
     const instance = this.activeEvents.get(eventId);
     if (!instance) {
       return { success: false, error: 'Event not active' };
@@ -1025,33 +1024,56 @@ export class Game {
     const timeout = setTimeout(() => {
       this.eventTimers.delete(eventId);
       this.resolveEvent(eventId, { force: true });
-    }, EVENT_TIMER_DURATION);
+    }, duration);
 
     this.eventTimers.set(eventId, {
       timeout,
-      endsAt: Date.now() + EVENT_TIMER_DURATION,
+      endsAt: Date.now() + duration,
     });
 
     this.broadcast(ServerMsg.EVENT_TIMER, {
       eventId,
-      duration: EVENT_TIMER_DURATION,
+      duration,
     });
 
-    // Push a timer slide with participant gallery
+    return { success: true };
+  }
+
+  startAllEventTimers(duration) {
+    const eventIds = [...this.activeEvents.keys()];
+    if (eventIds.length === 0) {
+      return { success: false, error: 'No active events' };
+    }
+
+    // Collect all participants across all active events for the slide
+    const allParticipants = [];
+    for (const eventId of eventIds) {
+      this.startEventTimer(eventId, duration);
+      const instance = this.activeEvents.get(eventId);
+      if (instance) {
+        for (const pid of instance.participants) {
+          if (!allParticipants.includes(pid)) {
+            allParticipants.push(pid);
+          }
+        }
+      }
+    }
+
+    // Push a single timer slide for all events
     this.pushSlide(
       {
         type: 'gallery',
         title: "TIME'S UP",
         subtitle: "Confirm your selection before it's too late.",
-        playerIds: instance.participants,
+        playerIds: allParticipants,
         targetsOnly: true,
-        timerEventId: eventId,
+        timerEventId: eventIds[0],
         style: SlideStyle.WARNING,
       },
       true,
     );
 
-    this.addLog(`Timer started for ${instance.event.name}`);
+    this.addLog(`Timer started for ${eventIds.length} event(s)`);
 
     return { success: true };
   }
@@ -1451,13 +1473,14 @@ export class Game {
         runoffSubtitle = `Choose who to elect as ${rewardParam}`;
     }
 
-    // Queue runoff slide with eligible candidates (after the tally slide)
+    // Queue runoff slide with all participants (not just frontrunners)
+    // so that vote confirmation highlights work the same as normal votes
     this.pushSlide(
       {
         type: 'gallery',
         title: `RUNOFF VOTE #${instance.runoffRound}`,
         subtitle: runoffSubtitle,
-        playerIds: frontrunners,
+        playerIds: instance.participants,
         targetsOnly: true,
         activeEventId: eventId,
         style: SlideStyle.NEUTRAL,
@@ -2074,6 +2097,7 @@ export class Game {
     this.pushSlide({
       type: SlideType.ROLE_TIP,
       title: 'NEW ROLE',
+      roleId: roleDef.id,
       roleName: roleDef.name,
       roleEmoji: roleDef.emoji,
       roleColor: roleDef.color,

@@ -284,8 +284,8 @@ _(none currently)_
 - Pistol should have two slides - kill and role reveal. in fact all non-host kills should work this way.
 - VILLAGER/WEREWOLF should have different colours to kill/hunt actions
 - Runoff votes don't show confirmation colours
-- Timer only works once.
 - Add a half width margin between role groups on game composition screen & plurals.
-- replace emojis with fancy pixel art
+- replace emojis with fancy pixel art - in progress could look better
 - janitor is missing a glyph
 - janitor cleanup should show a string "Good cleanup work"
+- Rapidly scrolling the encoder leads to delayed scrubbing with no attempts to catch up.

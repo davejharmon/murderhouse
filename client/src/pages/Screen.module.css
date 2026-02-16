@@ -455,6 +455,9 @@
 }
 
 .werewolfTip {
+}
+
+.werewolfBg {
   background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
 }
 

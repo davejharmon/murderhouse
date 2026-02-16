@@ -346,7 +346,7 @@ export function createHandlers(game) {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
-      return game.startEventTimer(payload.eventId);
+      return game.startAllEventTimers(payload.duration);
     },
 
     [ClientMsg.NEXT_PHASE]: (ws) => {

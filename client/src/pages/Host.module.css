@@ -78,6 +78,30 @@
   gap: var(--space-sm);
 }
 
+.timerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.timerInput {
+  width: 3.5rem;
+  padding: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
+.timerUnit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .main {
   overflow-y: auto;
   padding: var(--space-lg);
