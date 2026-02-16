@@ -115,6 +115,16 @@ void setup() {
     ledsSetYes(LedState::OFF);
     ledsSetNo(LedState::OFF);
 
+    // Brief panel indicator LED test at boot
+    Serial.println("Testing panel LEDs (D2/D3)...");
+    pinMode(PIN_LED_I2C, OUTPUT);
+    pinMode(PIN_LED_HEARTBEAT, OUTPUT);
+    digitalWrite(PIN_LED_I2C, HIGH);
+    digitalWrite(PIN_LED_HEARTBEAT, HIGH);
+    delay(500);
+    digitalWrite(PIN_LED_I2C, LOW);
+    digitalWrite(PIN_LED_HEARTBEAT, LOW);
+
     Serial.println("Initializing input...");
     inputInit();
 
@@ -122,7 +132,7 @@ void setup() {
     Serial.println("Entering player selection...");
     lastConnState = ConnectionState::PLAYER_SELECT;
     ledsSetStatus(ConnectionState::PLAYER_SELECT);
-    ledsSetYes(LedState::PULSE);  // Pulse YES button to indicate it confirms
+    ledsSetYes(LedState::BRIGHT);  // Light YES button to indicate it confirms
     displayPlayerSelect(selectedPlayer);
     playerSelectDirty = false;
 

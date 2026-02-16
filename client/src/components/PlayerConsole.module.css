@@ -160,27 +160,7 @@
   transform: scale(0.95);
 }
 
-.led_yes_pulse {
-  animation: yesLedPulse 1s ease-in-out infinite;
-}
 
-@keyframes yesLedPulse {
-  0%,
-  100% {
-    background: #1a1800;
-    border-color: rgba(230, 168, 0, 0.3);
-    color: rgba(230, 168, 0, 0.5);
-    box-shadow: 0 0 6px rgba(230, 168, 0, 0.1);
-  }
-  50% {
-    background: #3a2e00;
-    border-color: #e6a800;
-    color: #e6a800;
-    box-shadow:
-      0 0 20px rgba(230, 168, 0, 0.4),
-      inset 0 0 10px rgba(230, 168, 0, 0.2);
-  }
-}
 
 /* === NO Button - Red LED arcade button === */
 .noButton {
@@ -239,27 +219,6 @@
   transform: scale(0.95);
 }
 
-.led_no_pulse {
-  animation: noLedPulse 1s ease-in-out infinite;
-}
-
-@keyframes noLedPulse {
-  0%,
-  100% {
-    background: #2a1a1a;
-    border-color: rgba(239, 68, 68, 0.3);
-    color: rgba(239, 68, 68, 0.5);
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.1);
-  }
-  50% {
-    background: #5a2a2a;
-    border-color: #ef4444;
-    color: #ef4444;
-    box-shadow:
-      0 0 20px rgba(239, 68, 68, 0.4),
-      inset 0 0 10px rgba(239, 68, 68, 0.2);
-  }
-}
 
 /* ===== COMPACT MODE ===== */
 /* For debug grid view */

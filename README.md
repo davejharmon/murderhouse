@@ -280,3 +280,12 @@ _(none currently)_
 - Add slide to game end that shows score including suspect tracking
 
 ## Bugs
+
+- Pistol should have two slides - kill and role reveal. in fact all non-host kills should work this way.
+- VILLAGER/WEREWOLF should have different colours to kill/hunt actions
+- Runoff votes don't show confirmation colours
+- Timer only works once.
+- Add a half width margin between role groups on game composition screen & plurals.
+- replace emojis with fancy pixel art
+- janitor is missing a glyph
+- janitor cleanup should show a string "Good cleanup work"

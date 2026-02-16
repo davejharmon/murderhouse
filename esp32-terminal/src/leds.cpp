@@ -26,6 +26,7 @@ static float getPulseBrightness() {
 
 // Apply LED state to PWM output
 static void applyLedState(uint8_t channel, LedState state) {
+    uint8_t bright = (channel == PWM_CHANNEL_NO) ? LED_BRIGHT_NO : LED_BRIGHT;
     uint8_t brightness = LED_OFF;
 
     switch (state) {
@@ -36,11 +37,11 @@ static void applyLedState(uint8_t channel, LedState state) {
             brightness = LED_DIM;
             break;
         case LedState::BRIGHT:
-            brightness = LED_BRIGHT;
+            brightness = bright;
             break;
         case LedState::PULSE:
-            // Calculate pulsing brightness
-            brightness = (uint8_t)(LED_DIM + (LED_BRIGHT - LED_DIM) * getPulseBrightness());
+            // Treat pulse same as bright for button LEDs
+            brightness = bright;
             break;
     }
 
@@ -61,7 +62,7 @@ void ledsInit() {
 
     // Initialize Neopixel
     neopixel.begin();
-    neopixel.setBrightness(50);  // 50/255 brightness
+    neopixel.setBrightness(25);  // 25/255 brightness
     neopixel.clear();
     neopixel.show();
 }
@@ -77,14 +78,6 @@ void ledsUpdate() {
         pulsePhase += (2.0f * PI * 16.0f) / LED_PULSE_MS;
         if (pulsePhase > 2.0f * PI) {
             pulsePhase -= 2.0f * PI;
-        }
-
-        // Update button LEDs if pulsing
-        if (yesLedState == LedState::PULSE) {
-            applyLedState(PWM_CHANNEL_YES, LedState::PULSE);
-        }
-        if (noLedState == LedState::PULSE) {
-            applyLedState(PWM_CHANNEL_NO, LedState::PULSE);
         }
 
         // Update neopixel if pulsing

@@ -2,11 +2,25 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { SlideType, SlideStyle, SlideStyleColors, GamePhase, PlayerStatus, EVENT_TIMER_DURATION } from '@shared/constants.js';
+import {
+  SlideType,
+  SlideStyle,
+  SlideStyleColors,
+  GamePhase,
+  PlayerStatus,
+  EVENT_TIMER_DURATION,
+} from '@shared/constants.js';
 import styles from './Screen.module.css';
 
 export default function Screen() {
-  const { connected, gameState, currentSlide, slideQueue, eventTimers, connectAsScreen } = useGame();
+  const {
+    connected,
+    gameState,
+    currentSlide,
+    slideQueue,
+    eventTimers,
+    connectAsScreen,
+  } = useGame();
 
   // Use currentSlide if available, otherwise fall back to slideQueue.current
   // This handles timing gaps where SLIDE_QUEUE arrives but SLIDE hasn't yet
@@ -18,9 +32,15 @@ export default function Screen() {
       connected,
       phase: gameState?.phase,
       playerCount: gameState?.players?.length,
-      currentSlide: currentSlide ? { type: currentSlide.type, id: currentSlide.id } : null,
-      slideQueueCurrent: slideQueue?.current ? { type: slideQueue.current.type, id: slideQueue.current.id } : null,
-      effectiveSlide: effectiveSlide ? { type: effectiveSlide.type, id: effectiveSlide.id } : null,
+      currentSlide: currentSlide
+        ? { type: currentSlide.type, id: currentSlide.id }
+        : null,
+      slideQueueCurrent: slideQueue?.current
+        ? { type: slideQueue.current.type, id: slideQueue.current.id }
+        : null,
+      effectiveSlide: effectiveSlide
+        ? { type: effectiveSlide.type, id: effectiveSlide.id }
+        : null,
       slideQueueLen: slideQueue?.queue?.length,
     });
   }, [connected, gameState, currentSlide, slideQueue, effectiveSlide]);
@@ -51,7 +71,9 @@ export default function Screen() {
   // Render slide based on type
   const renderSlide = () => {
     if (!effectiveSlide) {
-      console.log('[Screen] renderSlide: no effectiveSlide, rendering fallback');
+      console.log(
+        '[Screen] renderSlide: no effectiveSlide, rendering fallback',
+      );
       return renderFallback();
     }
     console.log('[Screen] renderSlide:', effectiveSlide.type);
@@ -67,7 +89,8 @@ export default function Screen() {
         return renderVoteTally(effectiveSlide);
 
       case SlideType.GALLERY:
-        if (effectiveSlide.timerEventId) return renderTimerGallery(effectiveSlide);
+        if (effectiveSlide.timerEventId)
+          return renderTimerGallery(effectiveSlide);
         return renderGallery(effectiveSlide);
 
       case SlideType.COUNTDOWN:
@@ -139,9 +162,7 @@ export default function Screen() {
             className={styles.largePortrait}
           />
         )}
-        <h1 className={styles.title}>
-          {slide.title}
-        </h1>
+        <h1 className={styles.title}>{slide.title}</h1>
         {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
       </div>
     );
@@ -189,7 +210,10 @@ export default function Screen() {
             <div className={styles.votersGallery}>
               {voters.map((voter) => (
                 <div key={voter.id} className={styles.voterThumb}>
-                  <img src={`/images/players/${voter.portrait}`} alt={voter.name} />
+                  <img
+                    src={`/images/players/${voter.portrait}`}
+                    alt={voter.name}
+                  />
                 </div>
               ))}
             </div>
@@ -200,7 +224,8 @@ export default function Screen() {
   };
 
   const renderVoteTally = (slide) => {
-    const { tally, voters, frontrunners, anonymousVoting, title, subtitle } = slide;
+    const { tally, voters, frontrunners, anonymousVoting, title, subtitle } =
+      slide;
 
     // Convert tally to sorted array
     const sorted = Object.entries(tally || {})
@@ -256,11 +281,14 @@ export default function Screen() {
 
   // Memoize dead werewolves at top level (hooks can't be inside render functions)
   const allPlayers = gameState?.players || [];
-  const deadWerewolves = useMemo(() =>
-    allPlayers
-      .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf')
-      .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
-    [allPlayers]
+  const deadWerewolves = useMemo(
+    () =>
+      allPlayers
+        .filter(
+          (p) => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf',
+        )
+        .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
+    [allPlayers],
   );
 
   const renderGallery = (slide) => {
@@ -274,10 +302,15 @@ export default function Screen() {
       return (
         <div key={slide.id} className={styles.slide}>
           {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
-          {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
+          {slide.subtitle && (
+            <p className={styles.subtitle}>{slide.subtitle}</p>
+          )}
           <div className={styles.gallery}>
             {players.map((p) => (
-              <div key={p.id} className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}>
+              <div
+                key={p.id}
+                className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}
+              >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
@@ -288,8 +321,8 @@ export default function Screen() {
     }
 
     // Filter out dead werewolves from main gallery
-    const playersWithoutDeadWerewolves = players.filter(p =>
-      p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf'
+    const playersWithoutDeadWerewolves = players.filter(
+      (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf',
     );
 
     // Get werewolf info from game state
@@ -332,8 +365,13 @@ export default function Screen() {
                       key={`werewolf-${index}`}
                       className={`${styles.playerThumb} ${styles.deadWerewolf}`}
                     >
-                      <img src={`/images/players/${deadWerewolf.portrait}`} alt={deadWerewolf.name} />
-                      <span className={styles.thumbName}>{deadWerewolf.name}</span>
+                      <img
+                        src={`/images/players/${deadWerewolf.portrait}`}
+                        alt={deadWerewolf.name}
+                      />
+                      <span className={styles.thumbName}>
+                        {deadWerewolf.name}
+                      </span>
                     </div>
                   );
                 } else {
@@ -343,7 +381,10 @@ export default function Screen() {
                       key={`werewolf-${index}`}
                       className={`${styles.playerThumb} ${styles.anonWerewolf}`}
                     >
-                      <img src="/images/players/anon.png" alt="Unknown Werewolf" />
+                      <img
+                        src='/images/players/anon.png'
+                        alt='Unknown Werewolf'
+                      />
                       <span className={styles.thumbName}>WEREWOLF</span>
                     </div>
                   );
@@ -373,7 +414,10 @@ export default function Screen() {
 
     return (
       <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
-        <h1 className={styles.title} style={{ color: getSlideColor(slide, SlideStyle.HOSTILE) }}>
+        <h1
+          className={styles.title}
+          style={{ color: getSlideColor(slide, SlideStyle.HOSTILE) }}
+        >
           {slide.title || 'ELIMINATED'}
         </h1>
         <div className={styles.deathReveal}>
@@ -399,18 +443,22 @@ export default function Screen() {
   const renderComposition = (slide) => {
     const { roles = [], teamCounts = {} } = slide;
 
-    const werewolfRoles = roles.filter(r => r.team === 'werewolf');
-    const villageRoles = roles.filter(r => r.team === 'village');
+    const werewolfRoles = roles.filter((r) => r.team === 'werewolf');
+    const villageRoles = roles.filter((r) => r.team === 'village');
     const unassignedCount = teamCounts.unassigned || 0;
 
     const renderRoleCluster = (role) => (
       <div key={role.roleId} className={styles.compCluster}>
         <div className={styles.compClusterEmojis}>
-          {Array(role.count).fill(null).map((_, i) => (
-            <span key={i} className={styles.compEmoji}>{role.roleEmoji}</span>
-          ))}
+          {Array(role.count)
+            .fill(null)
+            .map((_, i) => (
+              <span key={i} className={styles.compEmoji}>
+                {role.roleEmoji}
+              </span>
+            ))}
         </div>
-        <span className={styles.compLabel}>{role.roleName}</span>
+        <span className={styles.compLabel}>{role.roleId}</span>
       </div>
     );
 
@@ -432,9 +480,13 @@ export default function Screen() {
             <div className={styles.compGroup}>
               <div className={styles.compCluster}>
                 <div className={styles.compClusterEmojis}>
-                  {Array(unassignedCount).fill(null).map((_, i) => (
-                    <span key={i} className={styles.compEmoji}>👤</span>
-                  ))}
+                  {Array(unassignedCount)
+                    .fill(null)
+                    .map((_, i) => (
+                      <span key={i} className={styles.compEmoji}>
+                        👤
+                      </span>
+                    ))}
                 </div>
                 <span className={styles.compLabel}>Unassigned</span>
               </div>
@@ -450,14 +502,20 @@ export default function Screen() {
     const teamColor = isWerewolf ? '#c94c4c' : '#7eb8da';
 
     return (
-      <div key={slide.id} className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}>
+      <div
+        key={slide.id}
+        className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}
+      >
         {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
         <div className={styles.roleEmoji}>{slide.roleEmoji}</div>
         <h1 className={styles.title} style={{ color: slide.roleColor }}>
           {slide.roleName}
         </h1>
         <div className={styles.badgeRow}>
-          <div className={styles.teamBadge} style={{ borderColor: teamColor, color: teamColor }}>
+          <div
+            className={styles.teamBadge}
+            style={{ borderColor: teamColor, color: teamColor }}
+          >
             {isWerewolf ? 'WEREWOLF' : 'VILLAGE'}
           </div>
           {[...(slide.abilities || [])]
@@ -465,11 +523,15 @@ export default function Screen() {
               const order = { '#c94c4c': 0, '#7eb8da': 1, '#d4af37': 2 };
               return (order[a.color] ?? 3) - (order[b.color] ?? 3);
             })
-            .map(ability => (
-            <div key={ability.label} className={styles.abilityBadge} style={{ borderColor: ability.color, color: ability.color }}>
-              {ability.label}
-            </div>
-          ))}
+            .map((ability) => (
+              <div
+                key={ability.label}
+                className={styles.abilityBadge}
+                style={{ borderColor: ability.color, color: ability.color }}
+              >
+                {ability.label}
+              </div>
+            ))}
         </div>
         <p className={styles.roleTipText}>{slide.detailedTip}</p>
       </div>
@@ -479,17 +541,26 @@ export default function Screen() {
   const renderVictory = (slide) => {
     return (
       <div key={slide.id} className={`${styles.slide} ${styles.victorySlide}`}>
-        <h1 className={styles.victoryTitle} style={{ color: getSlideColor(slide) }}>
+        <h1
+          className={styles.victoryTitle}
+          style={{ color: getSlideColor(slide) }}
+        >
           {slide.title}
         </h1>
         {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
         {slide.winners && slide.winners.length > 0 && (
           <div className={styles.victoryGallery}>
-            {slide.winners.map(w => (
-              <div key={w.id} className={`${styles.playerThumb} ${!w.isAlive ? styles.dead : ''}`}>
+            {slide.winners.map((w) => (
+              <div
+                key={w.id}
+                className={`${styles.playerThumb} ${!w.isAlive ? styles.dead : ''}`}
+              >
                 <img src={`/images/players/${w.portrait}`} alt={w.name} />
                 <span className={styles.thumbName}>{w.name}</span>
-                <span className={styles.victoryRole} style={{ color: w.roleColor }}>
+                <span
+                  className={styles.victoryRole}
+                  style={{ color: w.roleColor }}
+                >
                   {w.roleName}
                 </span>
               </div>
@@ -529,7 +600,10 @@ export default function Screen() {
       return;
     }
 
-    const earliest = entries.reduce((min, [, t]) => t.endsAt < min.endsAt ? t : min, entries[0][1]);
+    const earliest = entries.reduce(
+      (min, [, t]) => (t.endsAt < min.endsAt ? t : min),
+      entries[0][1],
+    );
 
     const tick = () => {
       const remaining = Math.max(0, earliest.endsAt - Date.now());
@@ -569,10 +643,17 @@ export default function Screen() {
 
         {timerDisplay && (
           <div className={styles.timerWidget}>
-            <svg viewBox="0 0 120 120" className={styles.timerSvg}>
-              <circle cx="60" cy="60" r={TIMER_RADIUS} className={styles.timerTrack} />
+            <svg viewBox='0 0 120 120' className={styles.timerSvg}>
               <circle
-                cx="60" cy="60" r={TIMER_RADIUS}
+                cx='60'
+                cy='60'
+                r={TIMER_RADIUS}
+                className={styles.timerTrack}
+              />
+              <circle
+                cx='60'
+                cy='60'
+                r={TIMER_RADIUS}
                 className={styles.timerFill}
                 strokeDasharray={TIMER_CIRCUMFERENCE}
                 strokeDashoffset={dashOffset}
@@ -586,7 +667,10 @@ export default function Screen() {
 
         <div className={styles.gallery}>
           {players.map((p) => (
-            <div key={p.id} className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}>
+            <div
+              key={p.id}
+              className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}
+            >
               <img src={`/images/players/${p.portrait}`} alt={p.name} />
               <span className={styles.thumbName}>{p.name}</span>
             </div>
@@ -602,7 +686,11 @@ export default function Screen() {
         <Link to='/host'>Host</Link>
         <Link to='/debug'>Debug</Link>
       </div>
-      <div key={effectiveSlide?.id} ref={wrapperRef} className={styles.slideWrapper}>
+      <div
+        key={effectiveSlide?.id}
+        ref={wrapperRef}
+        className={styles.slideWrapper}
+      >
         {renderSlide()}
       </div>
     </div>

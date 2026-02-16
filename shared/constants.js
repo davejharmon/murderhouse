@@ -218,7 +218,6 @@ export const LedState = {
   OFF: 'off',
   DIM: 'dim',
   BRIGHT: 'bright',
-  PULSE: 'pulse',
 };
 
 // Status LED states for neopixel (game state indicator)

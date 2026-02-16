@@ -63,6 +63,13 @@
 #define PIN_NEOPIXEL    8   // WS2811 data pin
 
 // ============================================================================
+// PIN DEFINITIONS - PANEL INDICATOR LEDs (optional) - ESP32-S3
+// ============================================================================
+
+#define PIN_LED_I2C     19  // D2 - Red I2C status LED (active HIGH)
+#define PIN_LED_HEARTBEAT 20  // D3 - Green heartbeat LED (active HIGH)
+
+// ============================================================================
 // TIMING CONFIGURATION
 // ============================================================================
 
@@ -105,6 +112,7 @@
 #define LED_OFF          0
 #define LED_DIM          76    // ~30%
 #define LED_BRIGHT       255   // 100%
+#define LED_BRIGHT_NO    40    // ~16% - red LED perceived much brighter than yellow, needs heavy cap
 
 // ============================================================================
 // DISPLAY CONFIGURATION

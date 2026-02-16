@@ -43,8 +43,7 @@ const roles = {
     color: '#7eb8da',
     emoji: '👨‍🌾',
     tip: 'Good luck!',
-    detailedTip:
-      'You have no special abilities — but your vote is your weapon. Pay attention to accusations, watch for slips, and trust your gut. The village wins when all werewolves are eliminated.',
+    detailedTip: 'You have no special abilities. Good luck!',
     events: {
       vote: {},
       suspect: {},
@@ -61,7 +60,7 @@ const roles = {
     emoji: '👑',
     tip: null, // Dynamic: shows packmate name
     detailedTip:
-      'You are the pack leader. Each night, you choose who the wolves kill. Your pack sees your pick. Blend in during the day. The pack wins when werewolves equal or outnumber the village.',
+      'You are the pack leader. Each night, you choose who the wolves kill.',
     events: {
       vote: {},
       kill: {
@@ -105,7 +104,7 @@ const roles = {
     emoji: '🐺',
     tip: null, // Dynamic: shows packmate name
     detailedTip:
-      'You hunt with the Alpha. Each night, suggest a target — the Alpha sees your pick and makes the final call. Deflect suspicion during the day. The pack wins when you equal or outnumber the village.',
+      'You hunt with the pack. Each night, suggest a target — the Alpha makes the final call.',
     events: {
       vote: {},
       hunt: {
@@ -128,7 +127,7 @@ const roles = {
     emoji: '🔮',
     tip: 'Investigate each night',
     detailedTip:
-      'Each night, investigate one player to learn if they are a werewolf. Revealing your findings can guide the village — but also makes you a target. Share information strategically.',
+      'Each night, investigate one player to learn if they are a werewolf.',
     events: {
       vote: {},
       investigate: {
@@ -160,7 +159,7 @@ const roles = {
     emoji: '🧑‍⚕️',
     tip: 'Protect someone each night',
     detailedTip:
-      "Each night, choose one player to protect. If the werewolves target them, they survive. Predicting the wolves' target is key — a well-timed save can turn the entire game.",
+      'Each night, choose one player to protect. You cannot choose the same target twice in a row.',
     events: {
       vote: {},
       protect: {
@@ -217,7 +216,7 @@ const roles = {
     emoji: '🤠',
     tip: 'One kill per game',
     detailedTip:
-      'Once per game, you may kill a player at night. Unlike the wolves, you act alone. If you shoot a villager, the village suffers. Use your one shot wisely.',
+      'Once per game, you may kill a player at night. Use your one shot wisely.',
     events: {
       vote: {},
       vigil: {
@@ -238,7 +237,7 @@ const roles = {
     emoji: '🎩',
     tip: 'Pardon the condemned',
     detailedTip:
-      'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. This power can save the innocent or inadvertently spare a wolf.',
+      'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. Use it wiseley.',
     events: {
       vote: {},
     },
