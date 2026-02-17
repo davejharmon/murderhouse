@@ -7,6 +7,7 @@
 #include "display.h"
 #include "input.h"
 #include "leds.h"
+#include "heartrate.h"
 #include "network.h"
 
 // Current display state (updated by network callback)
@@ -115,14 +116,13 @@ void setup() {
     ledsSetYes(LedState::OFF);
     ledsSetNo(LedState::OFF);
 
-    // Brief panel indicator LED test at boot
-    Serial.println("Testing panel LEDs (D2/D3)...");
-    pinMode(PIN_LED_I2C, OUTPUT);
-    pinMode(PIN_LED_HEARTBEAT, OUTPUT);
-    digitalWrite(PIN_LED_I2C, HIGH);
+    Serial.println("Initializing heart rate monitor...");
+    heartrateInit();
+
+    // Brief heartbeat LED test at boot
+    Serial.println("Testing heartbeat LED (D3)...");
     digitalWrite(PIN_LED_HEARTBEAT, HIGH);
     delay(500);
-    digitalWrite(PIN_LED_I2C, LOW);
     digitalWrite(PIN_LED_HEARTBEAT, LOW);
 
     Serial.println("Initializing input...");
@@ -142,6 +142,9 @@ void setup() {
 void loop() {
     // Update LEDs (for pulse animations)
     ledsUpdate();
+
+    // Update heart rate monitor (sampling + LED control)
+    heartrateUpdate();
 
     // Check for reset gesture (hold both buttons for 3 seconds)
     if (checkResetGesture()) {

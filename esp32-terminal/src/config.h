@@ -66,8 +66,24 @@
 // PIN DEFINITIONS - PANEL INDICATOR LEDs (optional) - ESP32-S3
 // ============================================================================
 
-#define PIN_LED_I2C     19  // D2 - Red I2C status LED (active HIGH)
-#define PIN_LED_HEARTBEAT 20  // D3 - Green heartbeat LED (active HIGH)
+#define PIN_LED_I2C     19  // D2 - Blue leads-on LED (active HIGH)
+#define PIN_LED_HEARTBEAT 20  // D3 - Red heartbeat LED (active HIGH)
+
+// ============================================================================
+// PIN DEFINITIONS - AD8232 HEART RATE MONITOR - ESP32-S3
+// ============================================================================
+
+#define PIN_AD8232_OUT   3   // Analog output (ADC1_CH2)
+#define PIN_AD8232_LOP  18   // LO+ leads-off detection
+#define PIN_AD8232_LOM  17   // LO- leads-off detection
+#define PIN_AD8232_SDN  13   // Shutdown (LOW = active)
+
+// ============================================================================
+// AD8232 TIMING CONFIGURATION
+// ============================================================================
+
+#define AD8232_SAMPLE_MS     4     // ~250 Hz sample rate
+#define AD8232_BEAT_FLASH_MS 80    // LED on-time per beat
 
 // ============================================================================
 // TIMING CONFIGURATION
