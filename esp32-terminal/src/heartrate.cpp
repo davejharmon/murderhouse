@@ -9,6 +9,15 @@ static unsigned long lastBeatTime = 0;
 static unsigned long beatLedOnTime = 0;
 static bool beatLedOn = false;
 
+// BPM calculation — circular buffer of last 4 beat intervals
+static const int BPM_BUFFER_SIZE = 4;
+static unsigned long beatIntervals[BPM_BUFFER_SIZE] = {0};
+static int beatIntervalIndex = 0;
+static int beatIntervalCount = 0;
+static unsigned long prevBeatTime = 0;
+
+static const unsigned long ACTIVE_TIMEOUT_MS = 3000; // Consider inactive after 3s without a beat
+
 // Adaptive threshold — sliding window min/max
 static const unsigned long WINDOW_MS = 2000;     // 2-second rolling window
 static const unsigned long REFRACTORY_MS = 300;   // ~200 BPM cap
@@ -70,7 +79,17 @@ void heartrateUpdate() {
 
     if (sample >= threshold) {
         if (wasBelowThreshold && (now - lastBeatTime >= REFRACTORY_MS)) {
-            // Beat detected
+            // Beat detected — record interval for BPM
+            if (prevBeatTime > 0) {
+                unsigned long interval = now - prevBeatTime;
+                if (interval > 300 && interval < 2000) { // 30-200 BPM range
+                    beatIntervals[beatIntervalIndex] = interval;
+                    beatIntervalIndex = (beatIntervalIndex + 1) % BPM_BUFFER_SIZE;
+                    if (beatIntervalCount < BPM_BUFFER_SIZE) beatIntervalCount++;
+                }
+            }
+            prevBeatTime = now;
+
             Serial.printf("[HR] Beat detected  sample=%d  threshold=%d  range=%d\n", sample, threshold, range);
             lastBeatTime = now;
             digitalWrite(PIN_LED_HEARTBEAT, HIGH);
@@ -81,4 +100,24 @@ void heartrateUpdate() {
     } else {
         wasBelowThreshold = true;
     }
+}
+
+uint8_t heartrateGetBPM() {
+    if (beatIntervalCount == 0) return 0;
+
+    unsigned long sum = 0;
+    int count = min(beatIntervalCount, BPM_BUFFER_SIZE);
+    for (int i = 0; i < count; i++) {
+        sum += beatIntervals[i];
+    }
+    unsigned long avgInterval = sum / count;
+    if (avgInterval == 0) return 0;
+
+    unsigned long bpm = 60000 / avgInterval;
+    if (bpm > 220) bpm = 220;
+    return (uint8_t)bpm;
+}
+
+bool heartrateIsActive() {
+    return (lastBeatTime > 0) && (millis() - lastBeatTime < ACTIVE_TIMEOUT_MS);
 }

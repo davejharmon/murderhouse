@@ -94,6 +94,10 @@ export const ClientMsg = {
   SAVE_PLAYER_PRESETS: 'savePlayerPresets',
   LOAD_PLAYER_PRESETS: 'loadPlayerPresets',
 
+  // Heartbeat
+  HEARTBEAT: 'heartbeat',
+  PUSH_HEARTBEAT_SLIDE: 'pushHeartbeatSlide',
+
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',
   DEBUG_AUTO_SELECT_ALL: 'debugAutoSelectAll',
@@ -109,6 +113,7 @@ export const SlideType = {
   VICTORY: 'victory',
   COMPOSITION: 'composition',
   ROLE_TIP: 'roleTip',
+  HEARTBEAT: 'heartbeat',
 };
 
 export const SlideStyle = {

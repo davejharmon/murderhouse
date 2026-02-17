@@ -174,6 +174,9 @@ export default function Host() {
   const handlePushRoleTipSlide = (roleId) =>
     send(ClientMsg.PUSH_ROLE_TIP_SLIDE, { roleId });
 
+  const handlePushHeartbeatSlide = (playerId) =>
+    send(ClientMsg.PUSH_HEARTBEAT_SLIDE, { playerId });
+
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
   const handleDebugAutoSelectAll = (eventId) =>
@@ -255,6 +258,22 @@ export default function Host() {
           </button>
         </div>
       </section>
+
+      {gameState?.players?.some(p => p.heartbeat?.active) && (
+        <section className={styles.section}>
+          <h2>Heartbeat</h2>
+          <div className={styles.buttonGroup}>
+            {gameState.players
+              .filter(p => p.heartbeat?.active)
+              .map(p => (
+                <button key={p.id} onClick={() => handlePushHeartbeatSlide(p.id)}>
+                  ❤️ {p.name} ({p.heartbeat.bpm})
+                </button>
+              ))
+            }
+          </div>
+        </section>
+      )}
 
       {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (() => {
         const uniqueRoles = [...new Set(

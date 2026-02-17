@@ -89,6 +89,9 @@ export class Player {
     // Inventory
     this.inventory = []; // Array of { id, uses, maxUses }
 
+    // Heartbeat (from ESP32 AD8232)
+    this.heartbeat = { bpm: 0, active: false, lastUpdate: 0 };
+
     // Connection
     this.lastSeen = Date.now();
   }

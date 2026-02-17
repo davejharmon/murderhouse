@@ -278,6 +278,15 @@ void networkSendUseItem(const char* itemId) {
     }
 }
 
+void networkSendHeartbeat(uint8_t bpm) {
+    if (networkIsConnected()) {
+        StaticJsonDocument<128> doc;
+        doc["bpm"] = bpm;
+        JsonObject payload = doc.as<JsonObject>();
+        sendMessage(ClientMsg::HEARTBEAT, &payload);
+    }
+}
+
 const char* networkGetLastError() {
     return lastError;
 }

@@ -34,6 +34,7 @@ namespace ClientMsg {
     const char* const USE_ITEM = "useItem";
     const char* const IDLE_SCROLL_UP = "idleScrollUp";
     const char* const IDLE_SCROLL_DOWN = "idleScrollDown";
+    const char* const HEARTBEAT = "heartbeat";
 }
 
 // ============================================================================

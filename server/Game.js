@@ -2024,12 +2024,18 @@ export class Game {
   // === State Getters ===
 
   getGameState({ audience = 'public' } = {}) {
+    const now = Date.now();
     const players = this.getPlayersBySeat().map((p) => {
-      if (audience === 'host') {
-        return p.getPrivateState(this);
-      }
+      const base = audience === 'host' ? p.getPrivateState(this) : p.getPublicState();
 
-      return p.getPublicState();
+      // Include heartbeat data for all audiences
+      const stale = now - p.heartbeat.lastUpdate > 5000;
+      base.heartbeat = {
+        bpm: p.heartbeat.bpm,
+        active: p.heartbeat.active && !stale,
+      };
+
+      return base;
     });
 
     // Count total werewolves (both alive and dead)

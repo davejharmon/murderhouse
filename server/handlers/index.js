@@ -4,6 +4,8 @@
 import {
   ClientMsg,
   ServerMsg,
+  SlideType,
+  SlideStyle,
   DEBUG_MODE,
   Team,
 } from '../../shared/constants.js';
@@ -566,6 +568,41 @@ export function createHandlers(game) {
       }
       const count = game.loadPlayerPresets();
       return { success: true, count };
+    },
+
+    // === Heartbeat ===
+
+    [ClientMsg.HEARTBEAT]: (ws, payload) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+
+      player.heartbeat = {
+        bpm: payload.bpm || 0,
+        active: (payload.bpm || 0) > 0,
+        lastUpdate: Date.now(),
+      };
+      game.broadcastGameState();
+      return { success: true };
+    },
+
+    [ClientMsg.PUSH_HEARTBEAT_SLIDE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const player = game.getPlayer(payload.playerId);
+      if (!player) {
+        return { success: false, error: 'Player not found' };
+      }
+      const bpm = player.heartbeat?.bpm || 0;
+      game.pushSlide({
+        type: SlideType.HEARTBEAT,
+        playerId: payload.playerId,
+        playerName: player.name,
+        portrait: player.portrait,
+        bpm,
+        style: SlideStyle.HOSTILE,
+      }, true);
+      return { success: true };
     },
 
     // === Debug Actions ===

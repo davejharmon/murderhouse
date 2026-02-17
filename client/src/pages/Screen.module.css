@@ -467,6 +467,10 @@
   background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
 }
 
+.heartbeatBg {
+  background: linear-gradient(180deg, #1a0808 0%, #0a0c0f 100%);
+}
+
 /* Event Timer Radial Widget */
 .timerWidget {
   position: relative;
@@ -506,4 +510,80 @@
   font-weight: 700;
   color: #d4af37;
   text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+/* Heartbeat Slide */
+.heartbeatSlide {
+  background: linear-gradient(180deg, #1a0808 0%, #0a0c0f 100%);
+}
+
+.heartbeatHeader {
+  display: flex;
+  align-items: center;
+  gap: 2vw;
+  margin-bottom: 3vh;
+}
+
+.heartbeatPortrait {
+  width: 12vw;
+  height: 12vw;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #c94c4c;
+}
+
+.heartbeatName {
+  font-family: var(--font-mono);
+  font-size: 4vw;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.heartbeatCanvas {
+  width: 70vw;
+  height: 20vh;
+  border-radius: 4px;
+}
+
+.heartbeatBpmRow {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5vw;
+  margin-top: 3vh;
+}
+
+.heartbeatBpm {
+  font-family: var(--font-mono);
+  font-size: 12vw;
+  font-weight: 700;
+  color: #c94c4c;
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(201, 76, 76, 0.6);
+  animation: heartbeatGlow 1.5s ease-in-out infinite;
+}
+
+.heartbeatBpmLost {
+  color: rgba(201, 76, 76, 0.3);
+  text-shadow: none;
+  animation: none;
+}
+
+.heartbeatLabel {
+  font-family: var(--font-mono);
+  font-size: 3vw;
+  font-weight: 300;
+  color: rgba(201, 76, 76, 0.7);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+@keyframes heartbeatGlow {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(201, 76, 76, 0.4);
+  }
+  50% {
+    text-shadow: 0 0 60px rgba(201, 76, 76, 0.8), 0 0 90px rgba(201, 76, 76, 0.4);
+  }
 }

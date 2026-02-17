@@ -36,6 +36,7 @@ void networkSendAbstain();
 void networkSendUseItem(const char* itemId);
 void networkSendIdleScrollUp();
 void networkSendIdleScrollDown();
+void networkSendHeartbeat(uint8_t bpm);
 
 // Get last error message (if any)
 const char* networkGetLastError();

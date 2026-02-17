@@ -1,5 +1,5 @@
 // client/src/pages/Screen.jsx
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import {
@@ -12,6 +12,209 @@ import {
 } from '@shared/constants.js';
 import PixelGlyph from '../components/PixelGlyph';
 import styles from './Screen.module.css';
+
+// BPM history ring buffer — stores {time, bpm} samples for the trend graph
+const BPM_HISTORY_DURATION = 30000; // 30 seconds visible on graph
+const BPM_SAMPLE_INTERVAL = 200;    // Record a point every 200ms
+
+function HeartbeatSlide({ slide, gameState }) {
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const bpmRef = useRef(slide.bpm || 72);
+  const activeRef = useRef(true);
+  const historyRef = useRef([]); // [{time, bpm}]
+  const lastSampleRef = useRef(0);
+
+  // Live data from gameState
+  const livePlayer = gameState?.players?.find(p => p.id === slide.playerId);
+  const liveActive = livePlayer?.heartbeat?.active ?? true;
+  const liveBpm = liveActive ? (livePlayer?.heartbeat?.bpm || slide.bpm || 72) : 0;
+
+  bpmRef.current = liveBpm;
+  activeRef.current = liveActive;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const PAD_TOP = 30;
+    const PAD_BOT = 20;
+    const graphH = H - PAD_TOP - PAD_BOT;
+
+    // Seed history with initial BPM
+    const startTime = performance.now();
+    historyRef.current = [{ time: startTime, bpm: bpmRef.current }];
+    lastSampleRef.current = startTime;
+
+    const draw = (now) => {
+      const currentBpm = bpmRef.current;
+      const isActive = activeRef.current;
+
+      // Sample BPM into history at regular intervals
+      if (now - lastSampleRef.current >= BPM_SAMPLE_INTERVAL) {
+        historyRef.current.push({ time: now, bpm: isActive ? currentBpm : -1 });
+        lastSampleRef.current = now;
+        // Trim old entries
+        const cutoff = now - BPM_HISTORY_DURATION - 2000;
+        while (historyRef.current.length > 2 && historyRef.current[0].time < cutoff) {
+          historyRef.current.shift();
+        }
+      }
+
+      const history = historyRef.current;
+
+      // Fixed Y range: 50 BPM (ice calm) to 180 BPM (apoplectic)
+      const yMin = 50;
+      const yMax = 180;
+      const yRange = yMax - yMin;
+
+      const bpmToY = (bpm) => PAD_TOP + graphH - ((bpm - yMin) / yRange) * graphH;
+      const timeToX = (t) => ((t - (now - BPM_HISTORY_DURATION)) / BPM_HISTORY_DURATION) * W;
+
+      // Clear
+      ctx.fillStyle = 'rgba(10, 12, 15, 1)';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid lines (faint horizontal)
+      ctx.strokeStyle = 'rgba(201, 76, 76, 0.08)';
+      ctx.lineWidth = 1;
+      const gridStep = yRange < 30 ? 5 : yRange < 80 ? 10 : 20;
+      const gridStart = Math.ceil(yMin / gridStep) * gridStep;
+      ctx.font = '16px monospace';
+      ctx.fillStyle = 'rgba(201, 76, 76, 0.25)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let v = gridStart; v <= yMax; v += gridStep) {
+        const gy = bpmToY(v);
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(W, gy);
+        ctx.stroke();
+        ctx.fillText(String(v), W - 8, gy);
+      }
+
+      // Draw BPM trend line
+      // Split into active/inactive segments
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      let inSegment = false;
+      let lastActiveY = bpmToY(currentBpm > 0 ? currentBpm : (yMin + yMax) / 2);
+
+      for (let i = 0; i < history.length; i++) {
+        const pt = history[i];
+        const x = timeToX(pt.time);
+        if (x < -20) continue; // Off-screen left
+
+        if (pt.bpm < 0) {
+          // Inactive — end current segment
+          if (inSegment) {
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            inSegment = false;
+          }
+          continue;
+        }
+
+        const y = bpmToY(pt.bpm);
+        lastActiveY = y;
+
+        if (!inSegment) {
+          ctx.beginPath();
+          ctx.strokeStyle = '#c94c4c';
+          ctx.shadowColor = '#c94c4c';
+          ctx.shadowBlur = 16;
+          ctx.moveTo(x, y);
+          inSegment = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+
+      if (inSegment) {
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Leading dot at the latest point
+      if (isActive && history.length > 0) {
+        const lastPt = history[history.length - 1];
+        const x = timeToX(lastPt.time);
+        const y = lastPt.bpm > 0 ? bpmToY(lastPt.bpm) : lastActiveY;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.shadowColor = '#ff6b6b';
+        ctx.shadowBlur = 24;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // "SIGNAL LOST" overlay when inactive
+      if (!isActive) {
+        // Dim flatline across center
+        const flatY = H / 2;
+        ctx.strokeStyle = 'rgba(201, 76, 76, 0.3)';
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.moveTo(0, flatY);
+        ctx.lineTo(W, flatY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Blinking text
+        const blink = Math.sin(now / 500) > 0;
+        if (blink) {
+          ctx.font = 'bold 40px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(201, 76, 76, 0.8)';
+          ctx.fillText('SIGNAL LOST', W / 2, H / 2);
+        }
+      }
+
+      animRef.current = requestAnimationFrame(draw);
+    };
+
+    animRef.current = requestAnimationFrame(draw);
+
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
+
+  return (
+    <div className={`${styles.slide} ${styles.heartbeatSlide}`}>
+      <div className={styles.heartbeatHeader}>
+        <img
+          src={`/images/players/${slide.portrait}`}
+          alt={slide.playerName}
+          className={styles.heartbeatPortrait}
+        />
+        <span className={styles.heartbeatName}>{slide.playerName}</span>
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={1200}
+        height={300}
+        className={styles.heartbeatCanvas}
+      />
+      <div className={styles.heartbeatBpmRow}>
+        <span className={`${styles.heartbeatBpm} ${!liveActive ? styles.heartbeatBpmLost : ''}`}>
+          {liveActive ? liveBpm : '—'}
+        </span>
+        <span className={styles.heartbeatLabel}>BPM</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Screen() {
   const {
@@ -108,6 +311,9 @@ export default function Screen() {
 
       case SlideType.ROLE_TIP:
         return renderRoleTip(effectiveSlide);
+
+      case SlideType.HEARTBEAT:
+        return <HeartbeatSlide slide={effectiveSlide} gameState={gameState} />;
 
       default:
         return renderTitle(effectiveSlide);
@@ -702,7 +908,7 @@ export default function Screen() {
       <div
         key={effectiveSlide?.id}
         ref={wrapperRef}
-        className={`${styles.slideWrapper} ${effectiveSlide?.type === SlideType.ROLE_TIP && effectiveSlide?.team === 'werewolf' ? styles.werewolfBg : ''}`}
+        className={`${styles.slideWrapper} ${effectiveSlide?.type === SlideType.ROLE_TIP && effectiveSlide?.team === 'werewolf' ? styles.werewolfBg : ''} ${effectiveSlide?.type === SlideType.HEARTBEAT ? styles.heartbeatBg : ''}`}
       >
         {renderSlide()}
       </div>

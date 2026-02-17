@@ -22,6 +22,11 @@ static uint8_t selectedPlayer = 1;  // 1-9
 static bool playerSelectDirty = true;
 static bool playerConfirmed = false;
 
+// Heartbeat send state
+static unsigned long lastHeartbeatSend = 0;
+static bool lastHeartbeatActive = false;
+static const unsigned long HEARTBEAT_SEND_MS = 2000; // Send BPM every 2 seconds
+
 // Reset detection state (hold encoder button for 3 seconds)
 static unsigned long encoderBtnHeldSince = 0;
 static bool resetMessageShown = false;
@@ -145,6 +150,22 @@ void loop() {
 
     // Update heart rate monitor (sampling + LED control)
     heartrateUpdate();
+
+    // Periodically send heartbeat BPM to server
+    if (networkIsConnected()) {
+        unsigned long now2 = millis();
+        bool active = heartrateIsActive();
+
+        if (active && (now2 - lastHeartbeatSend >= HEARTBEAT_SEND_MS)) {
+            networkSendHeartbeat(heartrateGetBPM());
+            lastHeartbeatSend = now2;
+            lastHeartbeatActive = true;
+        } else if (!active && lastHeartbeatActive) {
+            // Send one final message with bpm=0 to clear
+            networkSendHeartbeat(0);
+            lastHeartbeatActive = false;
+        }
+    }
 
     // Check for reset gesture (hold both buttons for 3 seconds)
     if (checkResetGesture()) {
