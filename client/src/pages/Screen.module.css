@@ -396,6 +396,12 @@
   align-items: center;
 }
 
+.compClusterSep {
+  margin-left: 0.5vw;
+  padding-left: 1.5vw;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .compClusterEmojis {
   display: flex;
   gap: 0.5vw;

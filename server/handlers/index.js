@@ -140,7 +140,7 @@ export function createHandlers(game) {
           const selected = player.selectUp(targets);
 
           player.syncState(game);
-          game.broadcastGameState(); // Update host with selection changes
+          game.debouncedBroadcastGameState(); // Debounced - host updates after dial settles
 
           // Broadcast pack state for werewolf events (real-time selection sharing)
           if (game.shouldBroadcastPackState(eventId, player)) {
@@ -165,7 +165,7 @@ export function createHandlers(game) {
           const selected = player.selectDown(targets);
 
           player.syncState(game);
-          game.broadcastGameState(); // Update host with selection changes
+          game.debouncedBroadcastGameState(); // Debounced - host updates after dial settles
 
           // Broadcast pack state for werewolf events (real-time selection sharing)
           if (game.shouldBroadcastPackState(eventId, player)) {

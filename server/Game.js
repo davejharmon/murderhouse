@@ -49,6 +49,9 @@ export class Game {
     this._deathQueue = [];
     this._processingDeaths = false;
 
+    // Debounced broadcast for rapid dial input (selection changes)
+    this._broadcastDebounceTimer = null;
+
     this.reset();
     this.loadPlayerPresets();
   }
@@ -1004,6 +1007,9 @@ export class Game {
           this.resolveEvent(eventId);
         }
 
+        // End timer early if all participants have responded
+        this.checkEventTimersComplete();
+
         this.broadcastGameState();
         return { success: true, eventId };
       }
@@ -1084,6 +1090,20 @@ export class Game {
       clearTimeout(timer.timeout);
       this.eventTimers.delete(eventId);
       this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: null });
+    }
+  }
+
+  // End event timers early if all participants have confirmed or abstained
+  checkEventTimersComplete() {
+    for (const [eventId, timer] of this.eventTimers) {
+      const instance = this.activeEvents.get(eventId);
+      if (!instance) continue;
+
+      const { participants, results } = instance;
+      if (Object.keys(results).length >= participants.length) {
+        this.clearEventTimer(eventId);
+        this.resolveEvent(eventId);
+      }
     }
   }
 
@@ -1427,7 +1447,7 @@ export class Game {
         // Add voter IDs to death slide for vote results (shows who voted for elimination)
         const victimId = resolution.victim?.id;
         const voterIds = victimId ? tallySlide.voters[victimId] || [] : [];
-        this.queueDeathSlide({ ...resolution.slide, voterIds }, false);
+        this.queueDeathSlide({ ...resolution.slide, voterIds, skipDaySplit: true }, false);
       } else {
         this.pushSlide(resolution.slide, false);
       }
@@ -1762,9 +1782,31 @@ export class Game {
   // === Slide Management ===
 
   // Centralized death slide queuing - handles flow follow-up slides automatically
+  // During DAY phase (non-host kills), splits into two slides:
+  //   1. "PLAYER KILLED" (no role reveal) for suspense
+  //   2. Role reveal slide with team affiliation
   queueDeathSlide(slide, jumpTo = true) {
-    // Push the death slide
-    this.pushSlide(slide, jumpTo);
+    const isDayDeath = this.phase === GamePhase.DAY && !slide.hostKill && !slide.skipDaySplit;
+
+    if (isDayDeath && slide.revealRole) {
+      // Slide 1: anonymous death (no role info)
+      const anonymousSlide = {
+        ...slide,
+        title: 'PLAYER KILLED',
+        revealRole: false,
+        revealText: undefined,
+      };
+      this.pushSlide(anonymousSlide, jumpTo);
+
+      // Slide 2: role reveal
+      const revealSlide = {
+        ...slide,
+        jumpTo: false,
+      };
+      this.pushSlide(revealSlide, false);
+    } else {
+      this.pushSlide(slide, jumpTo);
+    }
 
     // Check all flows for pending slides to queue after the death slide
     for (const flow of this.flows.values()) {
@@ -1810,6 +1852,7 @@ export class Game {
       title: titles[cause] || `${teamName} DEAD`,
       subtitle: subtitles[cause] || player.name,
       revealRole: true,
+      hostKill: cause === 'host',
       style: SlideStyle.HOSTILE,
     };
   }
@@ -1914,6 +1957,19 @@ export class Game {
 
     // Screen gets public state
     this.sendToScreen(ServerMsg.GAME_STATE, publicState);
+  }
+
+  // Debounced version of broadcastGameState for rapid dial input.
+  // Fires immediately on first call, then coalesces subsequent calls
+  // within the debounce window into a single trailing broadcast.
+  debouncedBroadcastGameState(delayMs = 120) {
+    if (this._broadcastDebounceTimer) {
+      clearTimeout(this._broadcastDebounceTimer)
+    }
+    this._broadcastDebounceTimer = setTimeout(() => {
+      this._broadcastDebounceTimer = null
+      this.broadcastGameState()
+    }, delayMs)
   }
 
   broadcastPlayerList() {

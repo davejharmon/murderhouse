@@ -197,12 +197,12 @@ export default function Screen() {
           ) : (
             <h1 className={styles.title}>{player.name}</h1>
           )}
-          {slide.revealRole && player.role && (
+          {slide.revealRole && (player.role || slide.revealText) && (
             <p
               className={styles.roleReveal}
-              style={{ color: player.roleColor }}
+              style={{ color: slide.revealText ? '#888' : player.roleColor }}
             >
-              {player.roleName}
+              {slide.revealText || player.roleName}
             </p>
           )}
         </div>
@@ -428,12 +428,12 @@ export default function Screen() {
             className={`${styles.largePortrait} ${styles.deathPortrait}`}
           />
           <h2 className={styles.deathName}>{slide.subtitle || player.name}</h2>
-          {slide.revealRole && player.role && (
+          {slide.revealRole && (player.role || slide.revealText) && (
             <p
               className={styles.roleReveal}
-              style={{ color: player.roleColor }}
+              style={{ color: slide.revealText ? '#888' : player.roleColor }}
             >
-              {player.roleName}
+              {slide.revealText || player.roleName}
             </p>
           )}
         </div>
@@ -448,8 +448,10 @@ export default function Screen() {
     const villageRoles = roles.filter((r) => r.team === 'village');
     const unassignedCount = teamCounts.unassigned || 0;
 
-    const renderRoleCluster = (role) => (
-      <div key={role.roleId} className={styles.compCluster}>
+    const pluralize = (name, count) => count > 1 ? `${name}s` : name;
+
+    const renderRoleCluster = (role, index) => (
+      <div key={role.roleId} className={`${styles.compCluster} ${index > 0 ? styles.compClusterSep : ''}`}>
         <div className={styles.compClusterEmojis}>
           {Array(role.count)
             .fill(null)
@@ -463,7 +465,7 @@ export default function Screen() {
               </span>
             ))}
         </div>
-        <span className={styles.compLabel}>{role.roleId}</span>
+        <span className={styles.compLabel}>{pluralize(role.roleName, role.count)}</span>
       </div>
     );
 

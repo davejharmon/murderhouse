@@ -481,7 +481,8 @@ const events = {
           playerId: victim.id,
           title: `${teamName} KILLED`,
           subtitle: victim.name,
-          revealRole: !cleaned,
+          revealRole: true,
+          revealText: cleaned ? 'Good cleanup work' : null,
           style: SlideStyle.HOSTILE,
         },
       };
