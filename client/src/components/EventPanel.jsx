@@ -18,6 +18,8 @@ export default function EventPanel({
   onDebugAutoSelectAll,
   onCreateCustomEvent,
   onResetEvent,
+  onStartEventTimer,
+  timerDuration,
 }) {
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
@@ -147,6 +149,15 @@ export default function EventPanel({
                 );
               })}
             </div>
+            {onStartEventTimer && (
+              <button
+                className={styles.eventBtn}
+                onClick={onStartEventTimer}
+                title={`Start ${timerDuration}s countdown`}
+              >
+                ⏱ {timerDuration}s
+              </button>
+            )}
             {activeEvents.length > 1 && (
               <button
                 className={`${styles.eventBtn} success`}

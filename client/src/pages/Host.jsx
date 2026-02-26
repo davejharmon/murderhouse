@@ -2,11 +2,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY, ROLE_DISPLAY } from '@shared/constants.js';
+import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
 import GameLog from '../components/GameLog';
+import SettingsModal from '../components/SettingsModal';
+import TutorialSlidesModal from '../components/TutorialSlidesModal';
 import styles from './Host.module.css';
 
 const TAB_CONTROLS = 0;
@@ -34,6 +36,9 @@ export default function Host() {
     return parseInt(localStorage.getItem('timerDuration')) || 30;
   });
   const autoAdvanceTimerRef = useRef(null);
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTutorialSlides, setShowTutorialSlides] = useState(false);
 
   // Mobile tab navigation
   const [mobileTab, setMobileTab] = useState(TAB_PLAYERS);
@@ -112,7 +117,6 @@ export default function Host() {
   const phase = gameState?.phase || GamePhase.LOBBY;
   const isLobby = phase === GamePhase.LOBBY;
   const isGameOver = phase === GamePhase.GAME_OVER;
-  const hasActive = (gameState?.activeEvents || []).length > 0;
 
   const handleStartGame = () => send(ClientMsg.START_GAME);
   const handleNextPhase = () => send(ClientMsg.NEXT_PHASE);
@@ -190,6 +194,7 @@ export default function Host() {
         <div className={styles.navLinks}>
           <Link to='/screen'>Screen</Link>
           <Link to='/debug'>Debug</Link>
+          <button className={styles.navButton} onClick={() => setShowSettings(true)}>Settings</button>
         </div>
         <div className={styles.phaseIndicator}>
           {isLobby && 'LOBBY'}
@@ -228,37 +233,6 @@ export default function Host() {
         </div>
       </section>
 
-      <section className={styles.section}>
-        <h2>Player Presets</h2>
-        <div className={styles.buttonGroup}>
-          <button onClick={handleSavePresets}>Save</button>
-          <button onClick={handleLoadPresets}>Load</button>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2>Event Timer</h2>
-        <div className={styles.timerRow}>
-          <input
-            type='number'
-            min='1'
-            max='300'
-            value={timerDuration}
-            onChange={(e) => handleTimerDurationChange(parseInt(e.target.value) || 1)}
-            className={styles.timerInput}
-            title='Timer duration in seconds'
-          />
-          <span className={styles.timerUnit}>s</span>
-          <button
-            onClick={handleStartEventTimer}
-            disabled={!hasActive}
-            title={hasActive ? 'Start countdown timer for all active events' : 'No active events'}
-          >
-            ⏱️ Timer
-          </button>
-        </div>
-      </section>
-
       {gameState?.players?.some(p => p.heartbeat?.active) && (
         <section className={styles.section}>
           <h2>Heartbeat</h2>
@@ -275,29 +249,11 @@ export default function Host() {
         </section>
       )}
 
-      {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (() => {
-        const uniqueRoles = [...new Set(
-          gameState.players
-            .filter(p => p.preAssignedRole)
-            .map(p => p.preAssignedRole)
-        )];
-        return (
-          <section className={styles.section}>
-            <h2>Tutorial Slides</h2>
-            <div className={styles.buttonGroup}>
-              <button onClick={handlePushCompSlide}>Reveal Comp</button>
-              {uniqueRoles.map(roleId => {
-                const display = ROLE_DISPLAY[roleId];
-                return display ? (
-                  <button key={roleId} onClick={() => handlePushRoleTipSlide(roleId)}>
-                    {display.emoji} {display.name}
-                  </button>
-                ) : null;
-              })}
-            </div>
-          </section>
-        );
-      })()}
+      {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (
+        <section className={styles.section}>
+          <button onClick={() => setShowTutorialSlides(true)}>Tutorial Slides...</button>
+        </section>
+      )}
 
       {!isLobby && !isGameOver && (
         <EventPanel
@@ -314,6 +270,8 @@ export default function Host() {
           onSkipEvent={handleSkipEvent}
           onResetEvent={handleResetEvent}
           onDebugAutoSelectAll={handleDebugAutoSelectAll}
+          onStartEventTimer={handleStartEventTimer}
+          timerDuration={timerDuration}
         />
       )}
 
@@ -322,8 +280,6 @@ export default function Host() {
         onNext={handleNextSlide}
         onPrev={handlePrevSlide}
         onClear={handleClearSlides}
-        autoAdvanceEnabled={autoAdvanceEnabled}
-        onToggleAutoAdvance={setAutoAdvanceEnabled}
       />
     </>
   );
@@ -349,6 +305,25 @@ export default function Host() {
 
   return (
     <div className={styles.container}>
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onSavePresets={handleSavePresets}
+        onLoadPresets={handleLoadPresets}
+        timerDuration={timerDuration}
+        onTimerDurationChange={handleTimerDurationChange}
+        autoAdvanceEnabled={autoAdvanceEnabled}
+        onToggleAutoAdvance={setAutoAdvanceEnabled}
+      />
+
+      <TutorialSlidesModal
+        isOpen={showTutorialSlides}
+        onClose={() => setShowTutorialSlides(false)}
+        players={gameState?.players || []}
+        onPushCompSlide={handlePushCompSlide}
+        onPushRoleTipSlide={handlePushRoleTipSlide}
+      />
+
       {/* Connection indicator */}
       <div
         className={`connection-badge ${
