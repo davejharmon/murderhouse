@@ -26,6 +26,7 @@ const EVENT_ACTIONS = {
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
   [EventId.BLOCK]:        { confirm: 'BLOCK',   abstain: 'ABSTAIN', prompt: 'BLOCK SOMEONE' },
   [EventId.CLEAN]:        { confirm: 'YES',     abstain: 'NO',      prompt: 'CLEAN UP?' },
+  [EventId.POISON]:       { confirm: 'YES',     abstain: 'NO',      prompt: 'USE POISON?' },
   [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.CUSTOM_EVENT]: { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
   hunterRevenge:          { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
@@ -85,6 +86,8 @@ export class Player {
 
     // Role-specific state
     this.vigilanteUsed = false;
+    this.isPoisoned = false;
+    this.poisonedAt = null; // dayCount value of the night poison was applied
 
     // Inventory
     this.inventory = []; // Array of { id, uses, maxUses }
@@ -133,6 +136,8 @@ export class Player {
     this.suspicions = [];
     this.lastProtected = null;
     this.vigilanteUsed = false;
+    this.isPoisoned = false;
+    this.poisonedAt = null;
     this.inventory = [];
   }
 
@@ -279,6 +284,7 @@ export class Player {
       roleColor: showRole ? this.role?.color : null,
       roleTeam: showRole ? this.role?.team : null,
       deathTimestamp: isDead ? this.deathTimestamp : null,
+      isPoisoned: this.isPoisoned,
     };
   }
 
@@ -393,6 +399,8 @@ export class Player {
       return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
 
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
+
+    if (this.isPoisoned && !hasActiveEvent) return this._displayPoisoned(getLine1, phaseLed);
 
     // Dynamically compute packmate tip for werewolves (reflects living members)
     if (this.role?.team === Team.WEREWOLF) {
@@ -546,6 +554,16 @@ export class Player {
         : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
       { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING
+    );
+  }
+
+  _displayPoisoned(getLine1, phaseLed) {
+    return this._display(
+      { left: getLine1(), right: '' },
+      { text: 'POISONED', style: DisplayStyle.LOCKED },
+      { text: 'You will not survive the night' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      phaseLed
     );
   }
 

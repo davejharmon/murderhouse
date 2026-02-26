@@ -309,6 +309,23 @@ const roles = {
     passives: {},
   },
 
+  poisoner: {
+    id: 'poisoner',
+    name: 'Poisoner',
+    team: Team.WEREWOLF,
+    description: "You replace the alpha's kill with a slow-acting poison.",
+    color: '#c94c4c',
+    emoji: '🧪',
+    tip: null, // Dynamic: shows packmate names
+    detailedTip:
+      "Each night, choose YES to poison the alpha's target instead of killing them outright. They will die at the end of the following night. The doctor can cure them if they act in time.",
+    events: {
+      vote: {},
+      poison: { priority: 59 },
+    },
+    passives: {},
+  },
+
   janitor: {
     id: 'janitor',
     name: 'Janitor',

@@ -371,6 +371,43 @@ const events = {
     },
   },
 
+  poison: {
+    id: 'poison',
+    name: 'Poison',
+    description: "Use your poison on the alpha's target instead of a direct kill?",
+    verb: 'poison',
+    verbPastTense: 'poisoned',
+    phase: [GamePhase.NIGHT],
+    priority: 59, // Just before kill (60)
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.POISONER);
+    },
+
+    validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
+
+    aggregation: 'individual',
+    allowAbstain: true, // NO = abstain
+
+    resolve: (results, game) => {
+      for (const [actorId] of Object.entries(results)) {
+        const result = results[actorId];
+        if (result === null) continue; // NO
+        const poisoner = game.getPlayer(actorId);
+        if (poisoner?.isRoleblocked) continue; // Blocked — ability fails silently
+        game.poisonerActing = true;
+      }
+      if (game.poisonerActing) {
+        return {
+          success: true,
+          message: 'Poisoner is using their poison tonight',
+          silent: false,
+        };
+      }
+      return { success: true, silent: true };
+    },
+  },
+
   clean: {
     id: 'clean',
     name: 'Clean',
@@ -431,6 +468,7 @@ const events = {
       const { tally, frontrunners, isEmpty } = tallyVotes(results);
 
       if (isEmpty) {
+        game.poisonerActing = false; // No target — poisoner's action wasted
         return { success: true, silent: true };
       }
 
@@ -441,10 +479,40 @@ const events = {
 
       // Skip if already dead (killed by another event this round)
       if (!victim.isAlive) {
+        game.poisonerActing = false;
         return { success: true, silent: true };
       }
 
-      // Check protection
+      // Poisoner intercepts the kill — replace with delayed poison
+      if (game.poisonerActing) {
+        game.poisonerActing = false;
+
+        // Doctor protection on the same night cancels the poison — no slide
+        if (victim.isProtected) {
+          victim.isProtected = false;
+          return {
+            success: true,
+            message: `${victim.getNameWithEmoji()} was saved from poison`,
+          };
+        }
+
+        // Apply poison state — victim dies at end of next night
+        victim.isPoisoned = true;
+        victim.poisonedAt = game.dayCount;
+        return {
+          success: true,
+          outcome: 'poisoned',
+          message: `${victim.getNameWithEmoji()} was poisoned`,
+          slide: {
+            type: 'title',
+            title: 'PROTECTED',
+            subtitle: 'Someone was saved tonight.',
+            style: SlideStyle.POSITIVE,
+          },
+        };
+      }
+
+      // Check protection (normal kill path)
       if (victim.isProtected) {
         victim.isProtected = false;
         return {

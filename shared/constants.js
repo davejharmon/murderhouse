@@ -143,6 +143,7 @@ export const RoleId = {
   CUPID: 'cupid',
   ROLEBLOCKER: 'roleblocker',
   JANITOR: 'janitor',
+  POISONER: 'poisoner',
 };
 
 export const EventId = {
@@ -158,6 +159,7 @@ export const EventId = {
   CUSTOM_EVENT: 'customEvent',
   LINK: 'link',
   CLEAN: 'clean',
+  POISON: 'poison',
 };
 
 export const ItemId = {
@@ -179,6 +181,7 @@ export const ROLE_DISPLAY = {
   [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
   [RoleId.ROLEBLOCKER]: { name: 'Roleblocker',  emoji: '🚫' },
   [RoleId.JANITOR]:     { name: 'Janitor',      emoji: '🧹' },
+  [RoleId.POISONER]:    { name: 'Poisoner',     emoji: '🧪' },
 };
 
 export const MIN_PLAYERS = 4;
@@ -216,6 +219,7 @@ export const AVAILABLE_ROLES = [
   RoleId.CUPID,
   RoleId.ROLEBLOCKER,
   RoleId.JANITOR,
+  RoleId.POISONER,
 ];
 
 // LED states for physical buttons

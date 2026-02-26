@@ -108,6 +108,9 @@ export class Game {
     // Janitor cleaning flag (set by clean event, read by kill event)
     this.janitorCleaning = false;
 
+    // Poisoner flag (set by poison event, read by kill event)
+    this.poisonerActing = false;
+
     // Death processing queue
     this._deathQueue = [];
     this._processingDeaths = false;
@@ -506,8 +509,14 @@ export class Game {
       }
     }
 
+    // Process poison deaths (night → day only) before isProtected is cleared
+    if (this.phase === GamePhase.NIGHT) {
+      this._processPoisonDeaths();
+    }
+
     // Clear protection, player event state, and janitor flag
     this.janitorCleaning = false;
+    this.poisonerActing = false;
     for (const player of this.players.values()) {
       player.resetForPhase();
     }
@@ -1696,6 +1705,44 @@ export class Game {
 
   // === Death Handling ===
 
+  // Process poison deaths when transitioning from night to day.
+  // Called before resetForPhase() so isProtected is still readable.
+  _processPoisonDeaths() {
+    const teamDisplayNames = {
+      village: 'VILLAGER',
+      werewolf: 'WEREWOLF',
+      neutral: 'INDEPENDENT',
+    };
+
+    for (const player of this.players.values()) {
+      if (!player.isPoisoned || !player.isAlive) continue;
+      // Trigger one night after poison was applied (poisonedAt + 1 === current dayCount)
+      if (this.dayCount !== player.poisonedAt + 1) continue;
+
+      player.isPoisoned = false;
+      player.poisonedAt = null;
+
+      // Doctor protection on the death night cures the poison — no slide
+      if (player.isProtected) {
+        player.isProtected = false;
+        this.addLog(`${player.getNameWithEmoji()} was saved from poison by the Doctor`);
+        continue;
+      }
+
+      this.addLog(`${player.getNameWithEmoji()} died from poison`);
+      this.killPlayer(player.id, 'poison');
+      const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
+      this.queueDeathSlide({
+        type: 'death',
+        playerId: player.id,
+        title: `${teamName} POISONED`,
+        subtitle: player.name,
+        revealRole: true,
+        style: SlideStyle.HOSTILE,
+      }, false);
+    }
+  }
+
   killPlayer(playerId, cause) {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return false;
@@ -1834,6 +1881,7 @@ export class Game {
       hunter: `${teamName} KILLED`,
       heartbreak: `${teamName} HEARTBROKEN`,
       host: `${teamName} REMOVED`,
+      poison: `${teamName} POISONED`,
     };
 
     const subtitles = {
@@ -1844,6 +1892,7 @@ export class Game {
       hunter: `${player.name} was killed`,
       heartbreak: `${player.name} died of a broken heart`,
       host: `${player.name} was removed by the host`,
+      poison: `${player.name} succumbed to poison`,
     };
 
     return {
