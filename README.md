@@ -278,9 +278,17 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
+- Add drunk
+- Add prospect
+- Add tanner
+- Add halo (priest collar)
+- Add bar terminal mode
 
 ## Bugs
 
 - VILLAGER/WEREWOLF should have different colours to kill/hunt actions
 - replace emojis with fancy pixel art - in progress could look better
 - janitor is missing a glyph
+- ALPHA WEREWO on terminal - needs to just say ALPHA (short v long names)
+- Poisoned victim should not say 'poisoned' on death - more generic
+- poison death will be skipped if you go next phase

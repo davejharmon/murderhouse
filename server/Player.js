@@ -485,6 +485,8 @@ export class Player {
       line2Text = `PARDONING ${targetName.toUpperCase()}`;
     } else if (activeEventId === EventId.CLEAN) {
       line2Text = 'CLEANING UP';
+    } else if (activeEventId === EventId.POISON) {
+      line2Text = 'POISONING';
     } else {
       line2Text = targetName.toUpperCase();
     }
@@ -514,6 +516,8 @@ export class Player {
       line2Text = `PARDON ${targetName.toUpperCase()}?`;
     } else if (activeEventId === EventId.CLEAN) {
       line2Text = 'CLEAN UP?';
+    } else if (activeEventId === EventId.POISON) {
+      line2Text = 'USE POISON?';
     } else {
       line2Text = targetName.toUpperCase();
     }

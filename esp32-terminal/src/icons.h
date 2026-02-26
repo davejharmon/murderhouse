@@ -319,6 +319,28 @@ const uint8_t PROGMEM ICON_EMPTY[] = {
   0x00, 0x00, 0x00,
 };
 
+// Poisoner - poison vial
+const uint8_t PROGMEM ICON_POISONER[] = {
+  0x00, 0x00, 0x00,  // blank
+  0xC0, 0x01, 0x00,  // stopper cap (cols 6-8)
+  0x20, 0x02, 0x00,  // neck (cols 5,9)
+  0x20, 0x02, 0x00,  // neck
+  0xF0, 0x07, 0x00,  // shoulder (cols 4-10)
+  0x10, 0x04, 0x00,  // body walls (cols 4,10)
+  0x10, 0x04, 0x00,  // body walls
+  0xD0, 0x05, 0x00,  // liquid (cols 4,6,7,8,10)
+  0xD0, 0x05, 0x00,  // liquid
+  0xD0, 0x05, 0x00,  // liquid
+  0xF0, 0x07, 0x00,  // solid fill (cols 4-10)
+  0xF0, 0x07, 0x00,  // solid fill
+  0xE0, 0x03, 0x00,  // rounded bottom (cols 5-9)
+  0xC0, 0x01, 0x00,  // bottom tip (cols 6-8)
+  0x00, 0x00, 0x00,  // blank
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+};
+
 // Skull - death indicator
 const uint8_t PROGMEM ICON_SKULL[] = {
   0x00, 0x00, 0x00,
@@ -353,6 +375,7 @@ inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "governor") return ICON_GOVERNOR;
     if (id == "cupid") return ICON_CUPID;
     if (id == "roleblocker") return ICON_ROLEBLOCKER;
+    if (id == "poisoner") return ICON_POISONER;
     if (id == "pistol") return ICON_PISTOL;
     if (id == "phone") return ICON_PHONE;
     if (id == "crystalBall") return ICON_CRYSTAL_BALL;
