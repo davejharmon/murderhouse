@@ -63,31 +63,31 @@ For production/remote deployment, `server/web.js` serves the built client over H
 
 ## Roles
 
-| Role            | Team     | Night Action  | Special                                                              |
-| --------------- | -------- | ------------- | -------------------------------------------------------------------- |
-| **Villager**    | Village  | Suspect       | —                                                                    |
-| **Seer**        | Village  | Investigate   | Learns if target is EVIL or INNOCENT                                 |
-| **Doctor**      | Village  | Protect       | Prevents one kill per night                                          |
-| **Hunter**      | Village  | —             | Revenge kill on death (interrupt flow)                               |
-| **Vigilante**   | Village  | Kill (once)   | One-shot night kill, then becomes villager                           |
-| **Governor**    | Village  | —             | Can pardon a condemned player once per game                          |
-| **Cupid**       | Village  | Link (setup)  | Links two lovers at game start; heartbreak kills both                |
-| **Drunk**       | Village  | Stumble       | Disguised as Seer; random action (investigate/kill/protect/block), always shows INNOCENT |
-| **Alpha**       | Werewolf | Kill          | Final kill decision; promotes successor on death                     |
-| **Werewolf**    | Werewolf | Hunt          | Suggests targets to alpha; sees pack selections live                 |
-| **Roleblocker** | Werewolf | Block         | Blocks one player's night ability                                    |
-| **Janitor**     | Werewolf | Clean         | Hides victim's role reveal when the pack kills                       |
-| **Poisoner**    | Werewolf | Poison        | Replaces pack kill with delayed poison (victim dies next night)      |
+| Role            | Team     | Night Action | Special                                                                                  |
+| --------------- | -------- | ------------ | ---------------------------------------------------------------------------------------- |
+| **Villager**    | Village  | Suspect      | —                                                                                        |
+| **Seer**        | Village  | Investigate  | Learns if target is EVIL or INNOCENT                                                     |
+| **Doctor**      | Village  | Protect      | Prevents one kill per night                                                              |
+| **Hunter**      | Village  | —            | Revenge kill on death (interrupt flow)                                                   |
+| **Vigilante**   | Village  | Kill (once)  | One-shot night kill, then becomes villager                                               |
+| **Governor**    | Village  | —            | Can pardon a condemned player once per game                                              |
+| **Cupid**       | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both                                    |
+| **Drunk**       | Village  | Stumble      | Disguised as Seer; random action (investigate/kill/protect/block), always shows INNOCENT |
+| **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death                                         |
+| **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live                                     |
+| **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                                                        |
+| **Janitor**     | Werewolf | Clean        | Hides victim's role reveal when the pack kills                                           |
+| **Poisoner**    | Werewolf | Poison       | Replaces pack kill with delayed poison (victim dies next night)                          |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
 ## Items
 
-| Item             | Uses | Effect                                                               |
-| ---------------- | ---- | -------------------------------------------------------------------- |
-| **Pistol**       | 1    | Shoot a player during the day (player-initiated, instant resolution) |
-| **Phone**        | 1    | Grants pardon ability (same as Governor, consumed on use)            |
-| **Clue**         | 1    | Investigate a player (same as Seer)                                  |
+| Item       | Uses | Effect                                                               |
+| ---------- | ---- | -------------------------------------------------------------------- |
+| **Pistol** | 1    | Shoot a player during the day (player-initiated, instant resolution) |
+| **Phone**  | 1    | Grants pardon ability (same as Governor, consumed on use)            |
+| **Clue**   | 1    | Investigate a player (same as Seer)                                  |
 
 Items are given by the host. Items with `startsEvent` (pistol, crystal ball) appear in the player's ability selector when idle. Items stack if the same type is given twice.
 
@@ -287,16 +287,20 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
-- Add prospect
-- Add tanner
-- Add halo (priest collar)
+- Add item: prospect
+- Add item: tanner
+- Add role: tanner
+- Add item: barricade
 - Add bar terminal mode
+- Improve pulse test
+- Add pulse test debug pulse
+- Add detonator
+- Add library of night and day fallback phrases
 
 ## Bugs
 
 - VILLAGER/WEREWOLF should have different colours to kill/hunt actions
 - replace emojis with fancy pixel art - in progress could look better
 - janitor is missing a glyph
-- ALPHA WEREWO on terminal - needs to just say ALPHA (short v long names)
 - Poisoned victim should not say 'poisoned' on death - more generic
 - poison death will be skipped if you go next phase

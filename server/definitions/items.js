@@ -9,7 +9,8 @@ import { EventId } from '../../shared/constants.js';
  * Item Definition Schema:
  * {
  *   id: string,           // Unique identifier
- *   name: string,         // Display name
+ *   name: string,         // Full display name
+ *   shortName?: string,   // Optional compact name for space-constrained displays
  *   description: string,  // Flavor text shown to player
  *   maxUses: number,      // Maximum uses (-1 for unlimited)
  *
@@ -57,6 +58,7 @@ const items = {
   coward: {
     id: 'coward',
     name: "The Coward's Way Out",
+    shortName: 'Coward',
     description: 'You hide from danger. No attacks can reach you — but you cannot act.',
     maxUses: -1, // Passive: always active while held
     grantsAbility: 'coward', // Checked by Game.getEventParticipants and event validTargets

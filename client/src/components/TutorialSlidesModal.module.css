@@ -1,7 +1,56 @@
 /* client/src/components/TutorialSlidesModal.module.css */
 
+.section {
+  margin-bottom: var(--space-md);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.sectionLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.sectionHint {
+  font-size: 0.65rem;
+  color: #555;
+}
+
+.expandBtn {
+  margin-left: auto;
+  font-size: 0.65rem;
+  padding: 0.15em 0.5em;
+  opacity: 0.7;
+}
+
+.expandBtn:hover {
+  opacity: 1;
+}
+
 .buttonGroup {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+.dimmed {
+  opacity: 0.4;
+}
+
+.empty {
+  font-size: 0.75rem;
+  color: #555;
+  margin: 0;
 }

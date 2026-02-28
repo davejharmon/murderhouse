@@ -554,6 +554,13 @@ export function createHandlers(game) {
       return game.pushRoleTipSlide(payload.roleId);
     },
 
+    [ClientMsg.PUSH_ITEM_TIP_SLIDE]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      return game.pushItemTipSlide(payload.itemId);
+    },
+
     // === Game Presets ===
 
     [ClientMsg.LIST_GAME_PRESETS]: (ws) => {

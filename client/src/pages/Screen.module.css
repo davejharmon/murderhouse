@@ -76,6 +76,7 @@
   letter-spacing: 0.1em;
   margin-bottom: 2vh;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .subtitle {
@@ -131,6 +132,12 @@
 .playerThumb.cowering img {
   filter: sepia(0.5) saturate(2) hue-rotate(-8deg) brightness(0.85);
   border-color: #8b5e1a;
+}
+
+/* Generic relative wrapper for portrait + badge overlay */
+.portraitWrap {
+  position: relative;
+  display: inline-block;
 }
 
 /* Coward reveal — large portrait with badge */

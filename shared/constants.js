@@ -89,9 +89,10 @@ export const ClientMsg = {
   GIVE_ITEM: 'giveItem',
   REMOVE_ITEM: 'removeItem',
 
-  // Lobby tutorial slides
+  // Tutorial slides
   PUSH_COMP_SLIDE: 'pushCompSlide',
   PUSH_ROLE_TIP_SLIDE: 'pushRoleTipSlide',
+  PUSH_ITEM_TIP_SLIDE: 'pushItemTipSlide',
 
   // Game presets (named multi-slot)
   SAVE_GAME_PRESET: 'saveGamePreset',
@@ -122,6 +123,7 @@ export const SlideType = {
   VICTORY: 'victory',
   COMPOSITION: 'composition',
   ROLE_TIP: 'roleTip',
+  ITEM_TIP: 'itemTip',
   HEARTBEAT: 'heartbeat',
 };
 
@@ -217,7 +219,7 @@ export const ITEM_DISPLAY = {
   [ItemId.PISTOL]:       { name: 'Pistol',              emoji: '🔫' },
   [ItemId.PHONE]:        { name: 'Phone',               emoji: '📱' },
   [ItemId.CLUE]:         { name: 'Clue',                emoji: '🔎' },
-  [ItemId.COWARD]:       { name: "The Coward's Way Out", emoji: '🏳️' },
+  [ItemId.COWARD]:       { name: 'Coward',               emoji: '🏳️' },
 };
 
 // Available roles (for host pre-assignment UI)

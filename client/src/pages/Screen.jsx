@@ -13,6 +13,14 @@ import {
 import PixelGlyph from '../components/PixelGlyph';
 import styles from './Screen.module.css';
 
+// Compute font-size so a title string never wraps. .slide has 5vw side padding
+// → 90vw available. Monospace + letter-spacing:0.1em ≈ 0.65× font-size per char.
+function fitFontSize(text, maxVw = 8) {
+  if (!text) return `${maxVw}vw`;
+  const sized = 90 / (String(text).length * 0.65);
+  return `${Math.min(maxVw, sized).toFixed(2)}vw`;
+}
+
 // BPM history ring buffer — stores {time, bpm} samples for the trend graph
 const BPM_HISTORY_DURATION = 30000; // 30 seconds visible on graph
 const BPM_SAMPLE_INTERVAL = 200;    // Record a point every 200ms
@@ -312,6 +320,9 @@ export default function Screen() {
       case SlideType.ROLE_TIP:
         return renderRoleTip(effectiveSlide);
 
+      case SlideType.ITEM_TIP:
+        return renderItemTip(effectiveSlide);
+
       case SlideType.HEARTBEAT:
         return <HeartbeatSlide slide={effectiveSlide} gameState={gameState} />;
 
@@ -365,13 +376,16 @@ export default function Screen() {
     return (
       <div className={styles.slide}>
         {player && (
-          <img
-            src={`/images/players/${player.portrait}`}
-            alt={player.name}
-            className={styles.largePortrait}
-          />
+          <div className={styles.portraitWrap}>
+            <img
+              src={`/images/players/${player.portrait}`}
+              alt={player.name}
+              className={styles.largePortrait}
+            />
+            {player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
+          </div>
         )}
-        <h1 className={styles.title}>{slide.title}</h1>
+        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
         {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
       </div>
     );
@@ -390,20 +404,23 @@ export default function Screen() {
     return (
       <div key={slide.id} className={styles.slide}>
         {slide.title && (
-          <h1 className={styles.title} style={{ color: getSlideColor(slide) }}>
+          <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide) }}>
             {slide.title}
           </h1>
         )}
         <div className={styles.playerReveal}>
-          <img
-            src={`/images/players/${player.portrait}`}
-            alt={player.name}
-            className={styles.largePortrait}
-          />
+          <div className={styles.portraitWrap}>
+            <img
+              src={`/images/players/${player.portrait}`}
+              alt={player.name}
+              className={styles.largePortrait}
+            />
+            {player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
+          </div>
           {slide.subtitle ? (
             <h2 className={styles.deathName}>{slide.subtitle}</h2>
           ) : (
-            <h1 className={styles.title}>{player.name}</h1>
+            <h1 className={styles.title} style={{ fontSize: fitFontSize(player.name) }}>{player.name}</h1>
           )}
           {slide.revealRole && (player.role || slide.revealText) && (
             <p
@@ -449,7 +466,7 @@ export default function Screen() {
 
     return (
       <div key={slide.id} className={styles.slide}>
-        <h1 className={styles.title}>{title || 'VOTES'}</h1>
+        <h1 className={styles.title} style={{ fontSize: fitFontSize(title || 'VOTES') }}>{title || 'VOTES'}</h1>
         <div className={styles.tallyList}>
           {sorted.map(({ player, count, voterIds, isFrontrunner }) => (
             <div
@@ -510,7 +527,7 @@ export default function Screen() {
 
       return (
         <div key={slide.id} className={styles.slide}>
-          {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+          {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
           {slide.subtitle && (
             <p className={styles.subtitle}>{slide.subtitle}</p>
           )}
@@ -543,7 +560,7 @@ export default function Screen() {
 
     return (
       <div key={slide.id} className={styles.slide}>
-        {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
 
         {/* Main player gallery */}
         <div className={styles.gallery}>
@@ -613,7 +630,7 @@ export default function Screen() {
 
   const renderCountdown = (slide) => (
     <div key={slide.id} className={styles.slide}>
-      {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+      {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
       <div className={styles.countdown}>{slide.seconds || 0}</div>
       {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
     </div>
@@ -631,7 +648,7 @@ export default function Screen() {
         <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
           <h1
             className={styles.title}
-            style={{ color: getSlideColor(slide, SlideStyle.WARNING) }}
+            style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide, SlideStyle.WARNING) }}
           >
             {slide.title}
           </h1>
@@ -659,7 +676,7 @@ export default function Screen() {
       <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
         <h1
           className={styles.title}
-          style={{ color: getSlideColor(slide, SlideStyle.HOSTILE) }}
+          style={{ fontSize: fitFontSize(slide.title || 'ELIMINATED'), color: getSlideColor(slide, SlideStyle.HOSTILE) }}
         >
           {slide.title || 'ELIMINATED'}
         </h1>
@@ -713,7 +730,7 @@ export default function Screen() {
 
     return (
       <div key={slide.id} className={styles.slide}>
-        <h1 className={styles.title}>{slide.title}</h1>
+        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
         <div className={styles.compRow}>
           {werewolfRoles.length > 0 && (
             <div className={`${styles.compGroup} ${styles.compGroupWerewolf}`}>
@@ -755,7 +772,7 @@ export default function Screen() {
         key={slide.id}
         className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}
       >
-        {slide.title && <h1 className={styles.title}>{slide.title}</h1>}
+        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
         <div className={styles.roleEmoji}>
           {USE_PIXEL_GLYPHS ? (
             <PixelGlyph iconId={slide.roleId} size="15vw">
@@ -763,7 +780,7 @@ export default function Screen() {
             </PixelGlyph>
           ) : slide.roleEmoji}
         </div>
-        <h1 className={styles.title} style={{ color: slide.roleColor }}>
+        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.roleName), color: slide.roleColor }}>
           {slide.roleName}
         </h1>
         <div className={styles.badgeRow}>
@@ -789,6 +806,33 @@ export default function Screen() {
             ))}
         </div>
         <p className={styles.roleTipText}>{slide.detailedTip}</p>
+      </div>
+    );
+  };
+
+  const renderItemTip = (slide) => {
+    const itemColor = '#d4af37';
+    const usesLabel = slide.maxUses === -1 ? 'PASSIVE' : slide.maxUses === 1 ? 'SINGLE USE' : `${slide.maxUses} USES`;
+
+    return (
+      <div key={slide.id} className={styles.slide}>
+        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
+        <div className={styles.roleEmoji}>
+          {USE_PIXEL_GLYPHS ? (
+            <PixelGlyph iconId={slide.itemId} size="15vw">
+              {slide.itemEmoji}
+            </PixelGlyph>
+          ) : slide.itemEmoji}
+        </div>
+        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.itemName), color: itemColor }}>
+          {slide.itemName}
+        </h1>
+        <div className={styles.badgeRow}>
+          <div className={styles.abilityBadge} style={{ borderColor: itemColor, color: itemColor }}>
+            {usesLabel}
+          </div>
+        </div>
+        <p className={styles.roleTipText}>{slide.itemDescription}</p>
       </div>
     );
   };
@@ -891,7 +935,7 @@ export default function Screen() {
     return (
       <div key={slide.id} className={styles.slide}>
         {slide.title && (
-          <h1 className={styles.title} style={{ color: getSlideColor(slide) }}>
+          <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide) }}>
             {slide.title}
           </h1>
         )}

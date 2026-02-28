@@ -10,6 +10,7 @@ import {
   RoleId,
   SlideStyle,
   SlideType,
+  ITEM_DISPLAY,
   MIN_PLAYERS,
   MAX_PLAYERS,
 } from '../shared/constants.js';
@@ -2328,21 +2329,18 @@ export class Game {
   // === Lobby Tutorial Slides ===
 
   pushCompSlide() {
-    if (this.phase !== GamePhase.LOBBY) {
-      return { success: false, error: 'Only available in lobby' };
-    }
-
     const players = [...this.players.values()];
-    const preAssigned = players.filter((p) => p.preAssignedRole);
-    if (preAssigned.length === 0) {
-      return { success: false, error: 'No roles pre-assigned' };
+    // In lobby use preAssignedRole; in game use active role
+    const assigned = players.filter((p) => p.preAssignedRole || p.role);
+    if (assigned.length === 0) {
+      return { success: false, error: 'No roles assigned' };
     }
 
     // Count roles by team
     const roleCounts = {};
     const teamCounts = { village: 0, werewolf: 0 };
-    for (const player of preAssigned) {
-      const roleDef = getRole(player.preAssignedRole);
+    for (const player of assigned) {
+      const roleDef = getRole(player.preAssignedRole) || player.role;
       if (!roleDef) continue;
       if (!roleCounts[roleDef.id]) {
         roleCounts[roleDef.id] = {
@@ -2359,7 +2357,7 @@ export class Game {
       else if (roleDef.team === Team.WEREWOLF) teamCounts.werewolf++;
     }
 
-    const unassigned = players.length - preAssigned.length;
+    const unassigned = players.length - assigned.length;
 
     this.pushSlide({
       type: SlideType.COMPOSITION,
@@ -2375,10 +2373,6 @@ export class Game {
   }
 
   pushRoleTipSlide(roleId) {
-    if (this.phase !== GamePhase.LOBBY) {
-      return { success: false, error: 'Only available in lobby' };
-    }
-
     const roleDef = getRole(roleId);
     if (!roleDef) {
       return { success: false, error: 'Unknown role' };
@@ -2401,6 +2395,28 @@ export class Game {
     });
 
     this.addLog(`Role tip slide pushed: ${roleDef.name}`);
+    return { success: true };
+  }
+
+  pushItemTipSlide(itemId) {
+    const itemDef = getItem(itemId);
+    if (!itemDef) {
+      return { success: false, error: 'Unknown item' };
+    }
+
+    const display = ITEM_DISPLAY[itemId] || {};
+    this.pushSlide({
+      type: SlideType.ITEM_TIP,
+      title: 'ITEM',
+      itemId: itemDef.id,
+      itemName: itemDef.name,
+      itemEmoji: display.emoji || '📦',
+      itemDescription: itemDef.description,
+      maxUses: itemDef.maxUses,
+      style: SlideStyle.WARNING,
+    });
+
+    this.addLog(`Item tip slide pushed: ${itemDef.name}`);
     return { success: true };
   }
 

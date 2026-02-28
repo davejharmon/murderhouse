@@ -37,6 +37,8 @@ export default function Host() {
   const [loadedPresetId, setLoadedPresetId] = useState(null);
   const hostSettingsApplied = useRef(false);
   const autoAdvanceTimerRef = useRef(null);
+  const autoAdvancePausedRef = useRef(false);
+  const prevQueueLengthRef = useRef(0);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
@@ -106,9 +108,16 @@ export default function Host() {
     if (!autoAdvanceEnabled || !slideQueue) return;
 
     const { currentIndex = -1, queue = [] } = slideQueue;
+
+    // Unpause when a new slide is pushed (queue grew)
+    if (queue.length > prevQueueLengthRef.current) {
+      autoAdvancePausedRef.current = false;
+    }
+    prevQueueLengthRef.current = queue.length;
+
     const canAdvance = currentIndex < queue.length - 1;
 
-    if (canAdvance) {
+    if (canAdvance && !autoAdvancePausedRef.current) {
       autoAdvanceTimerRef.current = setTimeout(() => {
         send(ClientMsg.NEXT_SLIDE);
       }, AUTO_ADVANCE_DELAY);
@@ -186,7 +195,10 @@ export default function Host() {
   };
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
-  const handlePrevSlide = () => send(ClientMsg.PREV_SLIDE);
+  const handlePrevSlide = () => {
+    autoAdvancePausedRef.current = true;
+    send(ClientMsg.PREV_SLIDE);
+  };
   const handleClearSlides = () => send(ClientMsg.CLEAR_SLIDES);
 
   const handleKillPlayer = (playerId) =>
@@ -239,6 +251,8 @@ export default function Host() {
   const handlePushCompSlide = () => send(ClientMsg.PUSH_COMP_SLIDE);
   const handlePushRoleTipSlide = (roleId) =>
     send(ClientMsg.PUSH_ROLE_TIP_SLIDE, { roleId });
+  const handlePushItemTipSlide = (itemId) =>
+    send(ClientMsg.PUSH_ITEM_TIP_SLIDE, { itemId });
 
   const handlePushHeartbeatSlide = (playerId) =>
     send(ClientMsg.PUSH_HEARTBEAT_SLIDE, { playerId });
@@ -330,11 +344,9 @@ export default function Host() {
         </section>
       )}
 
-      {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (
-        <section className={styles.section}>
-          <button onClick={() => setShowTutorialSlides(true)}>Tutorial Slides...</button>
-        </section>
-      )}
+      <section className={styles.section}>
+        <button onClick={() => setShowTutorialSlides(true)}>Tutorial Slides...</button>
+      </section>
 
       {!isLobby && !isGameOver && (
         <EventPanel
@@ -407,6 +419,7 @@ export default function Host() {
         players={gameState?.players || []}
         onPushCompSlide={handlePushCompSlide}
         onPushRoleTipSlide={handlePushRoleTipSlide}
+        onPushItemTipSlide={handlePushItemTipSlide}
       />
 
       {/* Connection indicator */}

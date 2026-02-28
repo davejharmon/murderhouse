@@ -8,7 +8,8 @@ import { Team, RoleId } from '../../shared/constants.js';
  * Role Definition Schema:
  * {
  *   id: string,           // Unique identifier
- *   name: string,         // Display name
+ *   name: string,         // Full display name
+ *   shortName?: string,   // Optional compact name for space-constrained displays
  *   team: Team,           // Which team this role belongs to
  *   description: string,  // Flavor text for reveal
  *   color: string,        // UI color for this role
@@ -54,6 +55,7 @@ const roles = {
   alpha: {
     id: 'alpha',
     name: 'Alpha Werewolf',
+    shortName: 'Alpha',
     team: Team.WEREWOLF,
     description: 'The pack leader who makes the final kill.',
     color: '#f02121',

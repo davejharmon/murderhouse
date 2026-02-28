@@ -15,6 +15,14 @@ import {
   IconState,
 } from '../shared/constants.js';
 
+// Returns the best-fitting role name within maxChars: full name if it fits,
+// otherwise shortName (truncated to maxChars if necessary).
+function fitRoleName(role, maxChars) {
+  const full = role.name.toUpperCase();
+  if (full.length <= maxChars) return full;
+  return (role.shortName || role.name).toUpperCase().substring(0, maxChars);
+}
+
 // Action labels for each event type (confirm action / abstain action / select prompt)
 const EVENT_ACTIONS = {
   [EventId.VOTE]:         { confirm: 'VOTE',    abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
@@ -610,7 +618,7 @@ export class Player {
     if (idx === 0) {
       // Role slot - show role name and tip (use display override if set)
       const displayRole = this._displayRoleOverride || this.role;
-      line2Text = displayRole?.name?.toUpperCase() || 'READY';
+      line2Text = displayRole ? fitRoleName(displayRole, 23) : 'READY';
       line3 = { text: this.tutorialTip || '' };
     } else {
       // Item slots (1 or 2)
@@ -675,7 +683,8 @@ export class Player {
     let nameOrRole;
     if (this.role) {
       // Role assigned - show role name (use display override if set, e.g. drunk → seer)
-      nameOrRole = (this._displayRoleOverride || this.role).name.toUpperCase();
+      const displayRole = this._displayRoleOverride || this.role;
+      nameOrRole = fitRoleName(displayRole, 12);
     } else {
       // No role - show custom name if set, otherwise "PLAYER"
       const defaultName = `Player ${this.seatNumber}`;
