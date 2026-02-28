@@ -34,6 +34,9 @@ export const ServerMsg = {
   EVENT_RESULT: 'eventResult',
   PHASE_CHANGE: 'phaseChange',
   LOG: 'log',
+  GAME_PRESETS: 'gamePresets',
+  GAME_PRESET_LOADED: 'gamePresetLoaded',
+  HOST_SETTINGS: 'hostSettings',
 };
 
 // WebSocket message types - Client -> Server
@@ -90,9 +93,15 @@ export const ClientMsg = {
   PUSH_COMP_SLIDE: 'pushCompSlide',
   PUSH_ROLE_TIP_SLIDE: 'pushRoleTipSlide',
 
-  // Player presets
-  SAVE_PLAYER_PRESETS: 'savePlayerPresets',
-  LOAD_PLAYER_PRESETS: 'loadPlayerPresets',
+  // Game presets (named multi-slot)
+  SAVE_GAME_PRESET: 'saveGamePreset',
+  LOAD_GAME_PRESET: 'loadGamePreset',
+  DELETE_GAME_PRESET: 'deleteGamePreset',
+  LIST_GAME_PRESETS: 'listGamePresets',
+
+  // Host settings
+  SAVE_HOST_SETTINGS: 'saveHostSettings',
+  SET_DEFAULT_PRESET: 'setDefaultPreset',
 
   // Heartbeat
   HEARTBEAT: 'heartbeat',

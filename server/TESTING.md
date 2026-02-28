@@ -66,7 +66,7 @@ export function mockWs(source = 'web') {
  * @returns {{ game: Game, players: Player[], spies: Object }}
  */
 export function createTestGame(playerCount, options = {}) {
-  // Stub fs before importing Game (it reads player-presets.json in constructor)
+  // Stub fs before importing Game (it reads game-presets.json and host-settings.json in constructor)
   vi.mock('fs', () => ({
     default: {
       existsSync: vi.fn(() => false),

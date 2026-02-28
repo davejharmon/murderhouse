@@ -1,0 +1,118 @@
+{
+  "presets": [
+    {
+      "id": "1772244424990",
+      "name": "TEST",
+      "created": 1772244424990,
+      "players": {
+        "1": {
+          "name": "Player 1",
+          "portrait": "player1.png"
+        },
+        "2": {
+          "name": "Player 2",
+          "portrait": "player2.png"
+        },
+        "3": {
+          "name": "Player 3",
+          "portrait": "player3.png"
+        },
+        "4": {
+          "name": "Player 4",
+          "portrait": "player4.png"
+        },
+        "5": {
+          "name": "Player 5",
+          "portrait": "player5.png"
+        },
+        "6": {
+          "name": "Player 6",
+          "portrait": "player6.png"
+        },
+        "7": {
+          "name": "Player 7",
+          "portrait": "player7.png"
+        },
+        "8": {
+          "name": "Player 8",
+          "portrait": "player8.png"
+        },
+        "9": {
+          "name": "Player 9",
+          "portrait": "player9.png"
+        }
+      },
+      "rolePool": [
+        "alpha",
+        "werewolf",
+        "seer",
+        "doctor",
+        "villager",
+        "villager",
+        "villager",
+        "villager",
+        "villager"
+      ],
+      "timerDuration": 3,
+      "autoAdvanceEnabled": true
+    },
+    {
+      "id": "1772244697845",
+      "name": "TEST-EP1",
+      "created": 1772244697845,
+      "players": {
+        "1": {
+          "name": "DEMI",
+          "portrait": "player1.png"
+        },
+        "2": {
+          "name": "GREG",
+          "portrait": "player2.png"
+        },
+        "3": {
+          "name": "MARK",
+          "portrait": "player3.png"
+        },
+        "4": {
+          "name": "BEN",
+          "portrait": "player4.png"
+        },
+        "5": {
+          "name": "ALEX",
+          "portrait": "player5.png"
+        },
+        "6": {
+          "name": "SIMON",
+          "portrait": "player6.png"
+        },
+        "7": {
+          "name": "MICHELE",
+          "portrait": "player7.png"
+        },
+        "8": {
+          "name": "TOM",
+          "portrait": "player8.png"
+        },
+        "9": {
+          "name": "GUY",
+          "portrait": "player9.png"
+        }
+      },
+      "rolePool": null,
+      "timerDuration": 3,
+      "autoAdvanceEnabled": true,
+      "roleMode": "assigned",
+      "roleAssignments": {
+        "1": "alpha",
+        "2": "werewolf",
+        "3": "doctor",
+        "4": "seer",
+        "5": "villager",
+        "6": "villager",
+        "7": "villager",
+        "8": "villager",
+        "9": "villager"
+      }
+    }
+  ]
+}

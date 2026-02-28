@@ -77,3 +77,117 @@
 .toggle label:hover span {
   color: var(--color-accent-blue);
 }
+
+/* Game Presets */
+
+.presetList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-height: 2rem;
+}
+
+.presetEmpty {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: var(--space-xs) 0;
+}
+
+.presetItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.presetInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.presetName {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presetMeta {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presetBtnStar {
+  font-size: 0.85rem;
+  padding: 0 2px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+}
+
+.presetBtnStar:hover:not(:disabled) {
+  opacity: 1;
+  background: none;
+  border-color: transparent;
+}
+
+.presetActions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.presetBtn {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.presetBtnDelete {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.presetBtnDelete:hover {
+  color: #ef4444;
+}
+
+.presetSaveRow {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.presetNameInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
+.presetNameInput::placeholder {
+  color: var(--color-text-muted);
+}

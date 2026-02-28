@@ -21,6 +21,9 @@ export function GameProvider({ children }) {
   const [eventResult, setEventResult] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [eventTimers, setEventTimers] = useState({});
+  const [gamePresets, setGamePresets] = useState([]);
+  const [presetSettings, setPresetSettings] = useState(null);
+  const [hostSettings, setHostSettings] = useState(null);
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -129,6 +132,18 @@ export function GameProvider({ children }) {
         addNotification(`Phase changed to ${payload.phase}`, 'info');
         break;
 
+      case ServerMsg.GAME_PRESETS:
+        setGamePresets(payload.presets);
+        break;
+
+      case ServerMsg.GAME_PRESET_LOADED:
+        setPresetSettings(payload);
+        break;
+
+      case ServerMsg.HOST_SETTINGS:
+        setHostSettings(payload);
+        break;
+
       default:
         console.log('[WS] Unknown message:', type, payload);
     }
@@ -194,6 +209,10 @@ export function GameProvider({ children }) {
     eventResult,
     eventTimers,
     notifications,
+    gamePresets,
+    presetSettings,
+    setPresetSettings,
+    hostSettings,
 
     // Actions
     send,

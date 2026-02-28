@@ -1,5 +1,5 @@
 // client/src/pages/Host.jsx
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
@@ -26,15 +26,16 @@ export default function Host() {
     notifications,
     send,
     connectAsHost,
+    gamePresets,
+    presetSettings,
+    setPresetSettings,
+    hostSettings,
   } = useGame();
 
-  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(() => {
-    const saved = localStorage.getItem('autoAdvanceEnabled');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [timerDuration, setTimerDuration] = useState(() => {
-    return parseInt(localStorage.getItem('timerDuration')) || 30;
-  });
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
+  const [timerDuration, setTimerDuration] = useState(30);
+  const [loadedPresetId, setLoadedPresetId] = useState(null);
+  const hostSettingsApplied = useRef(false);
   const autoAdvanceTimerRef = useRef(null);
 
   const [showSettings, setShowSettings] = useState(false);
@@ -56,10 +57,44 @@ export default function Host() {
     }
   }, [connected, connectAsHost]);
 
-  // Persist auto-advance preference to localStorage
+  // Apply host settings from server on first connect
   useEffect(() => {
-    localStorage.setItem('autoAdvanceEnabled', JSON.stringify(autoAdvanceEnabled));
-  }, [autoAdvanceEnabled]);
+    if (!hostSettings || hostSettingsApplied.current) return;
+    hostSettingsApplied.current = true;
+    setTimerDuration(hostSettings.timerDuration ?? 30);
+    setAutoAdvanceEnabled(hostSettings.autoAdvanceEnabled ?? false);
+    if (hostSettings.lastLoadedPresetId) setLoadedPresetId(hostSettings.lastLoadedPresetId);
+  }, [hostSettings]);
+
+  // Derive the loaded preset object and dirty state
+  const loadedPreset = useMemo(
+    () => gamePresets.find(p => p.id === loadedPresetId) ?? null,
+    [gamePresets, loadedPresetId]
+  );
+
+  const isDirty = useMemo(() => {
+    if (!loadedPreset) return false;
+    if (timerDuration !== loadedPreset.timerDuration) return true;
+    if (autoAdvanceEnabled !== loadedPreset.autoAdvanceEnabled) return true;
+    const players = gameState?.players ?? [];
+    for (const [seatId, saved] of Object.entries(loadedPreset.players ?? {})) {
+      const current = players.find(p => p.id === seatId);
+      if (!current) continue;
+      if (current.name !== saved.name) return true;
+      if ((current.portrait ?? null) !== (saved.portrait ?? null)) return true;
+    }
+    if (loadedPreset.roleMode === 'assigned' && loadedPreset.roleAssignments) {
+      // Compare every connected player's preAssignedRole against the saved assignment (or null if absent)
+      for (const player of players) {
+        const saved = loadedPreset.roleAssignments[player.id] ?? null;
+        if ((player.preAssignedRole ?? null) !== saved) return true;
+      }
+    } else {
+      // Random-pool preset: any pre-assignment is a deviation
+      if (players.some(p => p.preAssignedRole)) return true;
+    }
+    return false;
+  }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.players]);
 
   // Auto-advance logic
   useEffect(() => {
@@ -142,7 +177,12 @@ export default function Host() {
     send(ClientMsg.START_EVENT_TIMER, { duration: timerDuration * 1000 });
   const handleTimerDurationChange = (seconds) => {
     setTimerDuration(seconds);
-    localStorage.setItem('timerDuration', String(seconds));
+    send(ClientMsg.SAVE_HOST_SETTINGS, { timerDuration: seconds, autoAdvanceEnabled });
+  };
+
+  const handleToggleAutoAdvance = (val) => {
+    setAutoAdvanceEnabled(val);
+    send(ClientMsg.SAVE_HOST_SETTINGS, { timerDuration, autoAdvanceEnabled: val });
   };
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
@@ -166,8 +206,30 @@ export default function Host() {
     send(ClientMsg.GIVE_ITEM, { playerId, itemId });
   const handleRemoveItem = (playerId, itemId) =>
     send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
-  const handleSavePresets = () => send(ClientMsg.SAVE_PLAYER_PRESETS);
-  const handleLoadPresets = () => send(ClientMsg.LOAD_PLAYER_PRESETS);
+  // Apply settings when a game preset is loaded (server already persisted them)
+  useEffect(() => {
+    if (!presetSettings) return;
+    if (presetSettings.timerDuration != null) setTimerDuration(presetSettings.timerDuration);
+    if (presetSettings.autoAdvanceEnabled != null) setAutoAdvanceEnabled(presetSettings.autoAdvanceEnabled);
+    setPresetSettings(null);
+  }, [presetSettings, setPresetSettings]);
+
+  const handleSaveGamePreset = (name, overwriteId) =>
+    send(ClientMsg.SAVE_GAME_PRESET, { name, timerDuration, autoAdvanceEnabled, overwriteId });
+  const handleLoadGamePreset = (id) => {
+    setLoadedPresetId(id);
+    send(ClientMsg.LOAD_GAME_PRESET, { id });
+  };
+  const handleDeleteGamePreset = (id) => {
+    if (id === loadedPresetId) setLoadedPresetId(null);
+    send(ClientMsg.DELETE_GAME_PRESET, { id });
+  };
+  const handleQuickSavePreset = () => {
+    if (!loadedPreset) return;
+    handleSaveGamePreset(loadedPreset.name, loadedPreset.id);
+  };
+  const handleSetDefaultPreset = (id) =>
+    send(ClientMsg.SET_DEFAULT_PRESET, { id });
 
   const handleChangeRole = (playerId, roleId) =>
     send(ClientMsg.CHANGE_ROLE, { playerId, roleId });
@@ -190,7 +252,26 @@ export default function Host() {
   const controlsPanel = (
     <>
       <header className={styles.header}>
-        <h1>HOST</h1>
+        <div className={styles.titleRow}>
+          <h1>HOST</h1>
+          {loadedPreset && (
+            <div className={styles.presetStatus}>
+              <span className={styles.presetStatusName}>{loadedPreset.name}</span>
+              {isDirty ? (
+                <>
+                  <span className={styles.presetStatusChanged}>changed</span>
+                  <button
+                    className={styles.presetSaveBtn}
+                    onClick={handleQuickSavePreset}
+                    title="Update preset"
+                  >💾</button>
+                </>
+              ) : (
+                <span className={styles.presetStatusUnchanged}>unchanged</span>
+              )}
+            </div>
+          )}
+        </div>
         <div className={styles.navLinks}>
           <Link to='/screen'>Screen</Link>
           <Link to='/debug'>Debug</Link>
@@ -308,12 +389,16 @@ export default function Host() {
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
-        onSavePresets={handleSavePresets}
-        onLoadPresets={handleLoadPresets}
+        presets={gamePresets}
+        onSavePreset={handleSaveGamePreset}
+        onLoadPreset={handleLoadGamePreset}
+        onDeletePreset={handleDeleteGamePreset}
+        defaultPresetId={hostSettings?.defaultPresetId ?? null}
+        onSetDefault={handleSetDefaultPreset}
         timerDuration={timerDuration}
         onTimerDurationChange={handleTimerDurationChange}
         autoAdvanceEnabled={autoAdvanceEnabled}
-        onToggleAutoAdvance={setAutoAdvanceEnabled}
+        onToggleAutoAdvance={handleToggleAutoAdvance}
       />
 
       <TutorialSlidesModal

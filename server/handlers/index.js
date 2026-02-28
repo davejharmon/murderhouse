@@ -97,6 +97,8 @@ export function createHandlers(game) {
         current: game.getCurrentSlide(),
       });
       send(ws, ServerMsg.LOG, game.log.slice(-50));
+      send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
+      send(ws, ServerMsg.HOST_SETTINGS, game.getHostSettings());
       return { success: true };
     },
 
@@ -552,22 +554,65 @@ export function createHandlers(game) {
       return game.pushRoleTipSlide(payload.roleId);
     },
 
-    // === Player Presets ===
+    // === Game Presets ===
 
-    [ClientMsg.SAVE_PLAYER_PRESETS]: (ws) => {
+    [ClientMsg.LIST_GAME_PRESETS]: (ws) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
-      const count = game.savePlayerPresets();
-      return { success: true, count };
+      send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
+      return { success: true };
     },
 
-    [ClientMsg.LOAD_PLAYER_PRESETS]: (ws) => {
+    [ClientMsg.SAVE_GAME_PRESET]: (ws, payload) => {
       if (ws.clientType !== 'host') {
         return { success: false, error: 'Not host' };
       }
-      const count = game.loadPlayerPresets();
-      return { success: true, count };
+      const { name, timerDuration, autoAdvanceEnabled, overwriteId } = payload;
+      game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, overwriteId);
+      send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
+      return { success: true };
+    },
+
+    [ClientMsg.LOAD_GAME_PRESET]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      const result = game.loadGamePreset(payload.id);
+      if (!result) {
+        return { success: false, error: 'Preset not found' };
+      }
+      send(ws, ServerMsg.GAME_PRESET_LOADED, result);
+      game.broadcastGameState();
+      return { success: true };
+    },
+
+    [ClientMsg.DELETE_GAME_PRESET]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      game.deleteGamePreset(payload.id);
+      send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
+      return { success: true };
+    },
+
+    // === Host Settings ===
+
+    [ClientMsg.SAVE_HOST_SETTINGS]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      game.saveHostSettings(payload);
+      return { success: true };
+    },
+
+    [ClientMsg.SET_DEFAULT_PRESET]: (ws, payload) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      game.setDefaultPreset(payload.id);
+      send(ws, ServerMsg.HOST_SETTINGS, game.getHostSettings());
+      return { success: true };
     },
 
     // === Heartbeat ===

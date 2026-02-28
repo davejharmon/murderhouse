@@ -27,7 +27,8 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PRESETS_PATH = path.join(__dirname, 'player-presets.json');
+const GAME_PRESETS_PATH = path.join(__dirname, 'game-presets.json');
+const HOST_SETTINGS_PATH = path.join(__dirname, 'host-settings.json');
 
 export class Game {
   constructor(broadcast, sendToHostFn, sendToScreenFn) {
@@ -52,8 +53,16 @@ export class Game {
     // Debounced broadcast for rapid dial input (selection changes)
     this._broadcastDebounceTimer = null;
 
+    this.presetRolePool = null;
+
     this.reset();
-    this.loadPlayerPresets();
+    this._loadGamePresetsFromDisk();
+    this._loadHostSettingsFromDisk();
+
+    // Auto-load default preset if one is set
+    if (this._hostSettings.defaultPresetId) {
+      this.loadGamePreset(this._hostSettings.defaultPresetId);
+    }
   }
 
   reset() {
@@ -160,51 +169,186 @@ export class Game {
     });
   }
 
-  savePlayerPresets() {
-    const presets = {};
-    for (const player of this.players.values()) {
-      presets[player.id] = { name: player.name, portrait: player.portrait, preAssignedRole: player.preAssignedRole || null };
+  // === Host Settings ===
+
+  _loadHostSettingsFromDisk() {
+    const defaults = { timerDuration: 30, autoAdvanceEnabled: false };
+    if (!fs.existsSync(HOST_SETTINGS_PATH)) {
+      this._hostSettings = defaults;
+      return;
     }
-    fs.writeFileSync(PRESETS_PATH, JSON.stringify(presets, null, 2));
-    const count = Object.keys(presets).length;
-    this.addLog(`Saved ${count} player presets`);
-    console.log(`[Server] Saved ${count} player presets`);
-    return count;
+    try {
+      this._hostSettings = { ...defaults, ...JSON.parse(fs.readFileSync(HOST_SETTINGS_PATH, 'utf-8')) };
+    } catch (e) {
+      console.error('[Server] Failed to load host settings:', e.message);
+      this._hostSettings = defaults;
+    }
   }
 
-  loadPlayerPresets() {
-    if (!fs.existsSync(PRESETS_PATH)) return 0;
-    try {
-      const presets = JSON.parse(fs.readFileSync(PRESETS_PATH, 'utf-8'));
-      let count = 0;
-      for (const [id, data] of Object.entries(presets)) {
-        this.playerCustomizations.set(id, {
-          name: data.name,
-          portrait: data.portrait,
-          preAssignedRole: data.preAssignedRole || null,
-        });
-        // Update any currently connected player
-        const player = this.players.get(id);
-        if (player) {
-          player.name = data.name;
-          player.portrait = data.portrait;
-          if (this.phase === GamePhase.LOBBY) {
-            player.preAssignedRole = data.preAssignedRole || null;
-          }
-        }
-        count++;
-      }
-      if (this.players.size > 0) {
-        this.addLog(`Loaded ${count} player presets`);
-        this.broadcastPlayerList();
-        this.broadcastGameState();
-      }
-      console.log(`[Server] Loaded ${count} player presets`);
-      return count;
-    } catch (e) {
-      console.error('[Server] Failed to load player presets:', e.message);
-      return 0;
+  getHostSettings() {
+    return { ...this._hostSettings };
+  }
+
+  saveHostSettings(settings) {
+    this._hostSettings = { ...this._hostSettings, ...settings };
+    fs.writeFileSync(HOST_SETTINGS_PATH, JSON.stringify(this._hostSettings, null, 2));
+  }
+
+  setDefaultPreset(id) {
+    // Toggle off if already the default
+    const defaultPresetId = this._hostSettings.defaultPresetId === id ? null : id;
+    this.saveHostSettings({ defaultPresetId });
+  }
+
+  // === Game Presets ===
+
+  _loadGamePresetsFromDisk() {
+    if (!fs.existsSync(GAME_PRESETS_PATH)) {
+      this._gamePresets = [];
+      return;
     }
+    try {
+      const data = JSON.parse(fs.readFileSync(GAME_PRESETS_PATH, 'utf-8'));
+      this._gamePresets = data.presets || [];
+    } catch (e) {
+      console.error('[Server] Failed to load game presets:', e.message);
+      this._gamePresets = [];
+    }
+  }
+
+  _saveGamePresetsToDisk() {
+    fs.writeFileSync(GAME_PRESETS_PATH, JSON.stringify({ presets: this._gamePresets }, null, 2));
+  }
+
+  getGamePresets() {
+    return { presets: this._gamePresets };
+  }
+
+  saveGamePreset(name, timerDuration, autoAdvanceEnabled, overwriteId = null) {
+    // Capture current player customizations (names + portraits)
+    const players = {};
+    for (const [id, cust] of this.playerCustomizations) {
+      if (cust.name || cust.portrait) {
+        players[id] = { name: cust.name, portrait: cust.portrait };
+      }
+    }
+    for (const player of this.players.values()) {
+      players[player.id] = { name: player.name, portrait: player.portrait };
+    }
+
+    // Capture role configuration
+    const playerCount = this.players.size;
+    const hasPreAssigned = [...this.players.values()].some(p => p.preAssignedRole);
+    let roleMode, rolePool, roleAssignments;
+    if (hasPreAssigned) {
+      roleMode = 'assigned';
+      roleAssignments = {};
+      for (const player of this.getPlayersBySeat()) {
+        if (player.preAssignedRole) roleAssignments[player.id] = player.preAssignedRole;
+      }
+      rolePool = null;
+    } else if (playerCount >= 4 && GAME_COMPOSITION[playerCount]) {
+      roleMode = 'random';
+      rolePool = buildRolePool(playerCount);
+      roleAssignments = null;
+    } else {
+      roleMode = 'random';
+      rolePool = null;
+      roleAssignments = null;
+    }
+
+    if (overwriteId) {
+      const index = this._gamePresets.findIndex(p => p.id === overwriteId);
+      if (index !== -1) {
+        this._gamePresets[index] = { ...this._gamePresets[index], name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled };
+        this._saveGamePresetsToDisk();
+        this.addLog(`Updated game preset: ${name}`);
+        return this._gamePresets[index];
+      }
+    }
+
+    const preset = {
+      id: String(Date.now()),
+      name: name.trim() || 'Unnamed Preset',
+      created: Date.now(),
+      players,
+      roleMode,
+      rolePool,
+      roleAssignments,
+      timerDuration,
+      autoAdvanceEnabled,
+    };
+
+    this._gamePresets.push(preset);
+    this._saveGamePresetsToDisk();
+    this.addLog(`Saved game preset: ${preset.name}`);
+    return preset;
+  }
+
+  loadGamePreset(id) {
+    const preset = this._gamePresets.find(p => p.id === id);
+    if (!preset) return null;
+
+    // Apply player customizations (names + portraits)
+    for (const [playerId, data] of Object.entries(preset.players)) {
+      const existing = this.playerCustomizations.get(playerId) || {};
+      this.playerCustomizations.set(playerId, {
+        ...existing,
+        name: data.name,
+        portrait: data.portrait,
+      });
+      const player = this.players.get(playerId);
+      if (player) {
+        player.name = data.name;
+        player.portrait = data.portrait;
+      }
+    }
+
+    // Clear all existing pre-assignments
+    for (const [id, cust] of this.playerCustomizations) {
+      this.playerCustomizations.set(id, { ...cust, preAssignedRole: null });
+    }
+    for (const player of this.players.values()) {
+      player.preAssignedRole = null;
+    }
+
+    // Apply role configuration
+    const roleMode = preset.roleMode || 'random'; // backward-compat: old presets had only rolePool
+    if (roleMode === 'assigned' && preset.roleAssignments) {
+      for (const [seatId, roleId] of Object.entries(preset.roleAssignments)) {
+        const cust = this.playerCustomizations.get(seatId) || {};
+        this.playerCustomizations.set(seatId, { ...cust, preAssignedRole: roleId });
+        const player = this.players.get(seatId);
+        if (player) player.preAssignedRole = roleId;
+      }
+      this.presetRolePool = null;
+    } else {
+      this.presetRolePool = preset.rolePool || null;
+    }
+
+    // Persist timer/auto-advance and which preset is loaded
+    this.saveHostSettings({
+      timerDuration: preset.timerDuration,
+      autoAdvanceEnabled: preset.autoAdvanceEnabled,
+      lastLoadedPresetId: preset.id,
+    });
+
+    if (this.players.size > 0) {
+      this.broadcastPlayerList();
+      this.broadcastGameState();
+    }
+    this.addLog(`Loaded game preset: ${preset.name}`);
+    return { timerDuration: preset.timerDuration, autoAdvanceEnabled: preset.autoAdvanceEnabled };
+  }
+
+  deleteGamePreset(id) {
+    const index = this._gamePresets.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    const name = this._gamePresets[index].name;
+    this._gamePresets.splice(index, 1);
+    this._saveGamePresetsToDisk();
+    this.addLog(`Deleted game preset: ${name}`);
+    return true;
   }
 
   removePlayer(id) {
@@ -358,7 +502,22 @@ export class Game {
 
   assignRoles() {
     const playerCount = this.players.size;
-    const pool = buildRolePool(playerCount);
+
+    // Use preset role pool if one was loaded, otherwise build from GAME_COMPOSITION
+    let pool;
+    if (this.presetRolePool && this.presetRolePool.length === playerCount) {
+      pool = [...this.presetRolePool];
+      this.presetRolePool = null;
+      // With a preset pool, shuffle and assign directly (no per-seat pre-assignments)
+      const shuffled = pool.sort(() => Math.random() - 0.5);
+      const playerList = this.getPlayersBySeat();
+      for (let i = 0; i < playerList.length; i++) {
+        playerList[i].assignRole(getRole(shuffled[i]));
+      }
+      return;
+    }
+    this.presetRolePool = null;
+    pool = buildRolePool(playerCount);
 
     const playerList = this.getPlayersBySeat();
     const preAssigned = playerList.filter((p) => p.preAssignedRole);
