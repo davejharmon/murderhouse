@@ -21,6 +21,7 @@ const EVENT_ACTIONS = {
   [EventId.HUNT]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
   [EventId.KILL]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'TARGET SOMEONE' },
   [EventId.INVESTIGATE]:  { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
+  [EventId.STUMBLE]:      { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
   [EventId.PROTECT]:      { confirm: 'PROTECT', abstain: 'ABSTAIN', prompt: 'PROTECT SOMEONE' },
   [EventId.SHOOT]:        { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
@@ -289,15 +290,18 @@ export class Player {
   }
 
   // Get private state (only for this player)
-  getPrivateState(game) {
+  // forSelf: true when sending to the player themselves — applies role disguise if present
+  getPrivateState(game, { forSelf = false } = {}) {
+    const role = this.role;
+    const dr = (forSelf && role?.disguiseAs) ? role.disguiseAs : role;
     const activeResult = this.getActiveResult(game);
     return {
       ...this.getPublicState(),
-      role: this.role?.id,
-      roleName: this.role?.name,
-      roleColor: this.role?.color,
-      roleDescription: this.role?.description,
-      team: this.role?.team,
+      role: dr?.id,
+      roleName: dr?.name,
+      roleColor: dr?.color,
+      roleDescription: dr?.description,
+      team: role?.team,
       preAssignedRole: this.preAssignedRole,
       currentSelection: this.currentSelection,
       confirmedSelection: (activeResult && !activeResult.abstained) ? activeResult.targetId : null,
@@ -308,7 +312,7 @@ export class Player {
       vigilanteUsed: this.vigilanteUsed,
       inventory: this.inventory,
       packInfo: game ? this.getPackInfo(game) : null,
-      display: game ? this.getDisplayState(game) : null,
+      display: game ? this.getDisplayState(game, null, dr) : null,
     };
   }
 
@@ -350,7 +354,7 @@ export class Player {
    * @param {Object} eventContext - Optional event context { eventId, eventName, description, allowAbstain }
    * @returns {Object} Display state with line1, line2, line3, leds
    */
-  getDisplayState(game, eventContext = null) {
+  getDisplayState(game, eventContext = null, displayRole = null) {
     const phase = game?.phase;
     const dayCount = game?.dayCount || 0;
     const hasActiveEvent = this.pendingEvents.size > 0;
@@ -358,17 +362,27 @@ export class Player {
     // Get current event info
     const activeEventId = hasActiveEvent ? [...this.pendingEvents][0] : null;
     const activeEvent = activeEventId ? game?.activeEvents?.get(activeEventId) : null;
-    const eventName = activeEvent?.event?.name || eventContext?.eventName || null;
+    // Use displayName when rendering for the player themselves (e.g. drunk's stumble → "Investigate")
+    const eventName = (displayRole && activeEvent?.event?.displayName)
+      || activeEvent?.event?.name
+      || eventContext?.eventName
+      || null;
 
-    // Build display based on state priority
-    return this._buildDisplay(game, {
-      phase,
-      dayCount,
-      hasActiveEvent,
-      activeEventId,
-      eventName,
-      eventContext,
-    });
+    // Set display role override for this render pass (used by _getLine1, _buildIcons, _displayIdleScroll)
+    const prevDisplayRole = this._displayRoleOverride;
+    this._displayRoleOverride = displayRole;
+    try {
+      return this._buildDisplay(game, {
+        phase,
+        dayCount,
+        hasActiveEvent,
+        activeEventId,
+        eventName,
+        eventContext,
+      });
+    } finally {
+      this._displayRoleOverride = prevDisplayRole;
+    }
   }
 
   /**
@@ -592,8 +606,9 @@ export class Player {
     let leds = { yes: LedState.OFF, no: LedState.OFF };
 
     if (idx === 0) {
-      // Role slot - show role name and tip
-      line2Text = this.role?.name?.toUpperCase() || 'READY';
+      // Role slot - show role name and tip (use display override if set)
+      const displayRole = this._displayRoleOverride || this.role;
+      line2Text = displayRole?.name?.toUpperCase() || 'READY';
       line3 = { text: this.tutorialTip || '' };
     } else {
       // Item slots (1 or 2)
@@ -657,8 +672,8 @@ export class Player {
     // Determine what to show: role (if assigned) or player name (in lobby)
     let nameOrRole;
     if (this.role) {
-      // Role assigned - show role name
-      nameOrRole = this.role.name.toUpperCase();
+      // Role assigned - show role name (use display override if set, e.g. drunk → seer)
+      nameOrRole = (this._displayRoleOverride || this.role).name.toUpperCase();
     } else {
       // No role - show custom name if set, otherwise "PLAYER"
       const defaultName = `Player ${this.seatNumber}`;
@@ -715,12 +730,13 @@ export class Player {
   _buildIcons() {
     const idx = this.idleScrollIndex;
 
-    // Slot 0: role icon
+    // Slot 0: role icon (use display override if set, e.g. drunk → seer glyph)
     let slot0;
     if (!this.isAlive) {
       slot0 = { id: 'skull', state: IconState.INACTIVE };
     } else if (this.role) {
-      slot0 = { id: this.role.id, state: idx === 0 ? IconState.ACTIVE : IconState.INACTIVE };
+      const displayRole = this._displayRoleOverride || this.role;
+      slot0 = { id: displayRole.id, state: idx === 0 ? IconState.ACTIVE : IconState.INACTIVE };
     } else {
       slot0 = { id: 'empty', state: IconState.EMPTY };
     }
@@ -884,7 +900,7 @@ export class Player {
 
   // Helper: Send updated private state to this player
   syncState(game) {
-    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game));
+    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game, { forSelf: true }));
   }
 
   // Add a new connection (supports multiple simultaneous connections)

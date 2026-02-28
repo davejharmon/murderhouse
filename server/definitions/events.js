@@ -676,6 +676,93 @@ const events = {
     },
   },
 
+  stumble: {
+    id: 'stumble',
+    name: 'Stumble',
+    displayName: 'Investigate', // What the drunk player's terminal shows (they think they're a seer)
+    description: 'Choose someone to investigate.',
+    verb: 'investigate',
+    verbPastTense: 'investigated',
+    phase: [GamePhase.NIGHT],
+    priority: 30,
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DRUNK);
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const investigations = [];
+      const DRUNK_ACTIONS = ['investigate', 'kill', 'protect', 'block'];
+
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+        const actor = game.getPlayer(actorId);
+        const target = game.getPlayer(targetId);
+
+        // Pick a random action and execute it covertly
+        const action = DRUNK_ACTIONS[Math.floor(Math.random() * DRUNK_ACTIONS.length)];
+
+        if (action === 'kill') {
+          if (target.isProtected) {
+            target.isProtected = false;
+          } else if (target.isAlive) {
+            game.killPlayer(target.id, 'drunk');
+            game.queueDeathSlide({
+              type: 'death',
+              playerId: target.id,
+              title: `${getTeamDisplayName(target.role)} KILLED`,
+              subtitle: target.name,
+              revealRole: true,
+              style: SlideStyle.HOSTILE,
+            }, true);
+          }
+        } else if (action === 'protect') {
+          target.isProtected = true;
+        } else if (action === 'block') {
+          target.isRoleblocked = true;
+        }
+        // 'investigate' → no side effect
+
+        game.addLog(`🥴 ${actor.name} (Drunk) rolled: ${action} → ${target.name}`);
+
+        // Drunk always receives "not a werewolf" result
+        if (!actor.investigations) actor.investigations = [];
+        actor.investigations.push({
+          day: game.dayCount,
+          targetId,
+          targetName: target.name,
+          isEvil: false,
+        });
+
+        investigations.push({
+          seerId: actorId,
+          seer: actor,
+          targetId,
+          target,
+          isEvil: false,
+          privateMessage: `${target.name} is INNOCENT`,
+        });
+      }
+
+      if (investigations.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      return {
+        success: true,
+        message: 'Stumble investigation completed',
+        investigations,
+      };
+    },
+  },
+
   block: {
     id: 'block',
     name: 'Block',

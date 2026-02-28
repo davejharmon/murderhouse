@@ -342,6 +342,34 @@ const roles = {
     },
     passives: {},
   },
+
+  drunk: {
+    id: 'drunk',
+    name: 'Drunk',
+    team: Team.VILLAGE,
+    description: 'You think you can see the truth — but you are just drunk.',
+    color: '#9b7ed9',
+    emoji: '🥴',
+    tip: 'Investigate each night', // Shown on player terminal — they think they're a seer
+    detailedTip:
+      'Each night the Drunk picks a target, believing they are investigating. In reality their action is randomly one of: Investigate (no effect), Kill, Protect, or Roleblock. Their terminal always shows NOT A WEREWOLF regardless of outcome.',
+    // What the drunk player sees on their own terminal — identical to the Seer
+    disguiseAs: {
+      id: 'seer',
+      name: 'Seer',
+      color: '#9b7ed9',
+      emoji: '🔮',
+      description: 'Blessed with visions, you can peer into souls.',
+    },
+    events: {
+      vote: {},
+      stumble: {
+        priority: 30,
+        canTarget: (player, target, game) => target.id !== player.id,
+      },
+    },
+    passives: {},
+  },
 };
 
 // Explicit role composition keyed by player count
