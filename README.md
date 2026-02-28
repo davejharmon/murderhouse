@@ -87,7 +87,7 @@ Role composition is defined per player count in `GAME_COMPOSITION` (see `server/
 | ---------------- | ---- | -------------------------------------------------------------------- |
 | **Pistol**       | 1    | Shoot a player during the day (player-initiated, instant resolution) |
 | **Phone**        | 1    | Grants pardon ability (same as Governor, consumed on use)            |
-| **Crystal Ball** | 1    | Investigate a player (same as Seer)                                  |
+| **Clue**         | 1    | Investigate a player (same as Seer)                                  |
 
 Items are given by the host. Items with `startsEvent` (pistol, crystal ball) appear in the player's ability selector when idle. Items stack if the same type is given twice.
 
@@ -164,7 +164,7 @@ murderhouse/
 │   ├── definitions/              # Declarative game rules
 │   │   ├── roles.js              # 13 roles with events, passives, win conditions
 │   │   ├── events.js             # 13 events with resolution logic
-│   │   └── items.js              # 3 items (pistol, phone, crystalBall)
+│   │   └── items.js              # 3 items (pistol, phone, clue)
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
 │   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill

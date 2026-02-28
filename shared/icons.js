@@ -355,7 +355,7 @@ export const Icons = {
   poisoner: ICON_POISONER,
   pistol: ICON_PISTOL,
   phone: ICON_PHONE,
-  crystalBall: ICON_CRYSTAL_BALL,
+  clue: ICON_CRYSTAL_BALL,
   empty: ICON_EMPTY,
   skull: ICON_SKULL,
 };

@@ -176,7 +176,7 @@ Inline glyph tokens are rendered as characters:
 | ----------- | ------- | ------------------ |
 | `:pistol:`  | `*`     | Pistol item        |
 | `:phone:`   | `$`     | Phone item         |
-| `:crystal:` | `@`     | Crystal Ball       |
+| `:crystal:` | `@`     | Clue               |
 | `:wolf:`    | `W`     | Werewolf indicator |
 | `:lock:`    | `!`     | Selection locked   |
 | `:x:`       | `-`     | Abstained          |

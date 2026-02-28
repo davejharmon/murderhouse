@@ -46,10 +46,10 @@ const items = {
     grantsAbility: 'pardon', // Situational: GovernorPardonFlow checks for this
   },
 
-  crystalBall: {
-    id: 'crystalBall',
-    name: 'Crystal Ball',
-    description: 'Peer into a soul to learn their true nature.',
+  clue: {
+    id: 'clue',
+    name: 'Clue',
+    description: 'A mysterious lead. Investigate one player to learn their alignment.',
     maxUses: 1,
     startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
   },

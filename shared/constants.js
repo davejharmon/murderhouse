@@ -176,7 +176,7 @@ export const EventId = {
 export const ItemId = {
   PISTOL: 'pistol',
   PHONE: 'phone',
-  CRYSTAL_BALL: 'crystalBall',
+  CLUE: 'clue',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -209,13 +209,13 @@ export const DEBUG_MODE = true;
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CRYSTAL_BALL];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
   [ItemId.PISTOL]:       { name: 'Pistol',       emoji: '🔫' },
   [ItemId.PHONE]:        { name: 'Phone',        emoji: '📱' },
-  [ItemId.CRYSTAL_BALL]: { name: 'Crystal Ball',  emoji: '🔮' },
+  [ItemId.CLUE]:         { name: 'Clue',          emoji: '🔎' },
 };
 
 // Available roles (for host pre-assignment UI)

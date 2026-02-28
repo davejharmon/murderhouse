@@ -378,7 +378,7 @@ inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "poisoner") return ICON_POISONER;
     if (id == "pistol") return ICON_PISTOL;
     if (id == "phone") return ICON_PHONE;
-    if (id == "crystalBall") return ICON_CRYSTAL_BALL;
+    if (id == "clue") return ICON_CRYSTAL_BALL;
     if (id == "skull") return ICON_SKULL;
     if (id == "empty") return ICON_EMPTY;
     return ICON_EMPTY;  // Fallback

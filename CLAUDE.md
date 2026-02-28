@@ -26,7 +26,7 @@ server/
   definitions/
     roles.js                 # Declarative role definitions (villager, werewolf, seer, etc.)
     events.js                # Declarative event definitions (vote, kill, protect, etc.)
-    items.js                 # Item definitions (pistol, phone, crystalBall)
+    items.js                 # Item definitions (pistol, phone, clue)
   flows/                     # Interrupt flows for complex multi-step mechanics
     InterruptFlow.js         # Base class
     HunterRevengeFlow.js     # Hunter death → revenge pick
