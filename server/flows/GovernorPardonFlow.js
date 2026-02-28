@@ -59,8 +59,9 @@ export class GovernorPardonFlow extends InterruptFlow {
       return false;
     }
 
-    // Check for governors or phone holders
+    // Check for governors or phone holders (excluding cowards — they lose all actions)
     const governors = this.game.getAlivePlayers().filter((p) => {
+      if (p.hasItem(ItemId.COWARD)) return false;
       return (
         p.role.id === RoleId.GOVERNOR ||
         (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))
@@ -80,6 +81,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const condemned = resolution.victim;
 
     const governors = this.game.getAlivePlayers().filter((p) => {
+      if (p.hasItem(ItemId.COWARD)) return false;
       return (
         p.role.id === RoleId.GOVERNOR ||
         (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))

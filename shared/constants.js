@@ -177,6 +177,7 @@ export const ItemId = {
   PISTOL: 'pistol',
   PHONE: 'phone',
   CLUE: 'clue',
+  COWARD: 'coward',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -209,13 +210,14 @@ export const DEBUG_MODE = true;
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
-  [ItemId.PISTOL]:       { name: 'Pistol',       emoji: '🔫' },
-  [ItemId.PHONE]:        { name: 'Phone',        emoji: '📱' },
-  [ItemId.CLUE]:         { name: 'Clue',          emoji: '🔎' },
+  [ItemId.PISTOL]:       { name: 'Pistol',              emoji: '🔫' },
+  [ItemId.PHONE]:        { name: 'Phone',               emoji: '📱' },
+  [ItemId.CLUE]:         { name: 'Clue',                emoji: '🔎' },
+  [ItemId.COWARD]:       { name: "The Coward's Way Out", emoji: '🏳️' },
 };
 
 // Available roles (for host pre-assignment UI)

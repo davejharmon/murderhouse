@@ -342,16 +342,18 @@ export default function Screen() {
             : `NIGHT ${gameState.dayCount}`}
         </h1>
         <div className={styles.gallery}>
-          {gameState?.players?.map((p) => (
-            <div
-              key={p.id}
-              className={`${styles.playerThumb} ${
-                p.status !== PlayerStatus.ALIVE ? styles.dead : ''
-              }`}
-            >
-              <img src={`/images/players/${p.portrait}`} alt={p.name} />
-            </div>
-          ))}
+          {gameState?.players?.map((p) => {
+            const isDead = p.status !== PlayerStatus.ALIVE;
+            return (
+              <div
+                key={p.id}
+                className={`${styles.playerThumb} ${isDead ? styles.dead : ''} ${p.isCowering && !isDead ? styles.cowering : ''}`}
+              >
+                <img src={`/images/players/${p.portrait}`} alt={p.name} />
+                {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -516,13 +518,17 @@ export default function Screen() {
             {players.map((p) => (
               <div
                 key={p.id}
-                className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}
+                className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''} ${p.isCowering ? styles.cowering : ''}`}
               >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
+                {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
             ))}
           </div>
+          {slide.itemDescription && (
+            <p className={styles.itemFlavorText}>{slide.itemDescription}</p>
+          )}
         </div>
       );
     }
@@ -547,9 +553,10 @@ export default function Screen() {
             return (
               <div
                 key={p.id}
-                className={`${styles.playerThumb} ${isDead ? styles.dead : ''}`}
+                className={`${styles.playerThumb} ${isDead ? styles.dead : ''} ${p.isCowering && !isDead ? styles.cowering : ''}`}
               >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
+                {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
             );
@@ -617,6 +624,35 @@ export default function Screen() {
     if (!player) {
       // Player data not yet synced - show fallback
       return renderFallback();
+    }
+
+    if (slide.coward) {
+      return (
+        <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
+          <h1
+            className={styles.title}
+            style={{ color: getSlideColor(slide, SlideStyle.WARNING) }}
+          >
+            {slide.title}
+          </h1>
+          <div className={styles.deathReveal}>
+            <div className={styles.cowardPortraitWrap}>
+              <img
+                src={`/images/players/${player.portrait}`}
+                alt={player.name}
+                className={`${styles.largePortrait} ${styles.cowardPortrait}`}
+              />
+              <div className={styles.cowardBadgeLarge}>COWARD</div>
+            </div>
+            <h2 className={styles.deathName}>{slide.subtitle}</h2>
+            {slide.revealText && (
+              <p className={styles.roleReveal} style={{ color: '#888' }}>
+                {slide.revealText}
+              </p>
+            )}
+          </div>
+        </div>
+      );
     }
 
     return (
@@ -888,9 +924,10 @@ export default function Screen() {
           {players.map((p) => (
             <div
               key={p.id}
-              className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''}`}
+              className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''} ${p.isCowering ? styles.cowering : ''}`}
             >
               <img src={`/images/players/${p.portrait}`} alt={p.name} />
+              {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
               <span className={styles.thumbName}>{p.name}</span>
             </div>
           ))}

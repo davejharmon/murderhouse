@@ -769,7 +769,8 @@ export class Game {
       }
     }
 
-    return allParticipants;
+    // Coward's Way Out: holder loses all actions — never a participant
+    return allParticipants.filter((p) => !p.hasItem('coward'));
   }
 
   startEvent(eventId) {
@@ -1070,11 +1071,13 @@ export class Game {
       config.rewardType === 'resurrection'
         ? [...this.players.values()].filter((p) => !p.isAlive)
         : this.getAlivePlayers();
+    const rewardItemDef = config.rewardType === 'item' ? getItem(config.rewardParam) : null;
     this.pushSlide(
       {
         type: 'gallery',
         title: 'CUSTOM VOTE',
         subtitle: config.description,
+        itemDescription: rewardItemDef?.description || null,
         playerIds: customTargets.map((p) => p.id),
         targetsOnly: true,
         activeEventId: EventId.CUSTOM_EVENT,
@@ -1731,7 +1734,10 @@ export class Game {
   checkWinCondition() {
     const alive = this.getAlivePlayers();
     const werewolves = alive.filter((p) => p.role.team === Team.WEREWOLF);
-    const villagers = alive.filter((p) => p.role.team === Team.VILLAGE);
+    // Cowards can't vote, so they provide no effective voting power to the village.
+    // Exclude them from the majority calculation so werewolves aren't artificially
+    // blocked by unvotable village members.
+    const villagers = alive.filter((p) => p.role.team === Team.VILLAGE && !p.hasItem('coward'));
 
     if (werewolves.length === 0) {
       return Team.VILLAGE;
@@ -1971,6 +1977,20 @@ export class Game {
 
     player.addItem(itemDef);
     this.addLog(`${player.getNameWithEmoji()} received ${itemDef.name}`);
+
+    if (itemId === 'coward') {
+      this.pushSlide({
+        type: SlideType.DEATH,
+        coward: true,
+        playerId: player.id,
+        title: player.name.toUpperCase(),
+        subtitle: "HAS TAKEN THE COWARD'S WAY OUT",
+        revealRole: true,
+        revealText: itemDef.description,
+        style: SlideStyle.WARNING,
+      }, true);
+    }
+
     return { success: true };
   }
 

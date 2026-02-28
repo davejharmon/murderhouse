@@ -341,6 +341,28 @@ const uint8_t PROGMEM ICON_POISONER[] = {
   0x00, 0x00, 0x00,
 };
 
+// Coward's Way Out - white flag on pole
+const uint8_t PROGMEM ICON_COWARD[] = {
+  0x00, 0x00, 0x00,  // row 0: blank
+  0xFC, 0x1F, 0x00,  // row 1: pole (col 2) + flag (cols 3-12)
+  0xFC, 0x1F, 0x00,  // row 2: flag
+  0xFC, 0x1F, 0x00,  // row 3: flag
+  0xFC, 0x1F, 0x00,  // row 4: flag
+  0xFC, 0x1F, 0x00,  // row 5: flag
+  0xFC, 0x1F, 0x00,  // row 6: flag bottom
+  0x04, 0x00, 0x00,  // row 7: pole only
+  0x04, 0x00, 0x00,  // row 8: pole only
+  0x04, 0x00, 0x00,  // row 9: pole only
+  0x04, 0x00, 0x00,  // row 10: pole only
+  0x04, 0x00, 0x00,  // row 11: pole only
+  0x04, 0x00, 0x00,  // row 12: pole only
+  0x04, 0x00, 0x00,  // row 13: pole only
+  0x1C, 0x00, 0x00,  // row 14: base (cols 2,3,4)
+  0x1C, 0x00, 0x00,  // row 15: base
+  0x00, 0x00, 0x00,  // row 16: blank
+  0x00, 0x00, 0x00,  // row 17: blank
+};
+
 // Skull - death indicator
 const uint8_t PROGMEM ICON_SKULL[] = {
   0x00, 0x00, 0x00,
@@ -379,6 +401,7 @@ inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "pistol") return ICON_PISTOL;
     if (id == "phone") return ICON_PHONE;
     if (id == "clue") return ICON_CRYSTAL_BALL;
+    if (id == "coward") return ICON_COWARD;
     if (id == "skull") return ICON_SKULL;
     if (id == "empty") return ICON_EMPTY;
     return ICON_EMPTY;  // Fallback

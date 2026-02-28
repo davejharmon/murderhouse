@@ -53,6 +53,14 @@ const items = {
     maxUses: 1,
     startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
   },
+
+  coward: {
+    id: 'coward',
+    name: "The Coward's Way Out",
+    description: 'You hide from danger. No attacks can reach you — but you cannot act.',
+    maxUses: -1, // Passive: always active while held
+    grantsAbility: 'coward', // Checked by Game.getEventParticipants and event validTargets
+  },
 };
 
 /**

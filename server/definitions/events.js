@@ -124,10 +124,10 @@ const events = {
       if (runoffTargets) {
         return runoffTargets
           .map((id) => game.getPlayer(id))
-          .filter((p) => p && p.id !== actor.id);
+          .filter((p) => p && p.id !== actor.id && !p.hasItem(ItemId.COWARD));
       }
 
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'majority',
@@ -222,7 +222,7 @@ const events = {
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'individual',
@@ -458,7 +458,7 @@ const events = {
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.WEREWOLF);
+        .filter((p) => p.role.team !== Team.WEREWOLF && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'majority', // Werewolves vote together
@@ -575,7 +575,7 @@ const events = {
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.WEREWOLF);
+        .filter((p) => p.role.team !== Team.WEREWOLF && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'individual', // Each werewolf suggests independently
@@ -691,7 +691,7 @@ const events = {
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'individual',
@@ -888,7 +888,7 @@ const events = {
     },
 
     validTargets: (actor, game) => {
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'individual',

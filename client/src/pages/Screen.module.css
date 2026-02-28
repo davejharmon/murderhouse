@@ -97,6 +97,7 @@
 }
 
 .playerThumb {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,6 +126,74 @@
 
 .playerThumb.dead img {
   filter: grayscale(1);
+}
+
+.playerThumb.cowering img {
+  filter: sepia(0.5) saturate(2) hue-rotate(-8deg) brightness(0.85);
+  border-color: #8b5e1a;
+}
+
+/* Coward reveal — large portrait with badge */
+.cowardPortraitWrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 3vh;
+}
+
+.cowardPortrait {
+  filter: sepia(0.5) saturate(2) hue-rotate(-8deg) brightness(0.85);
+  border-color: #8b5e1a;
+  margin-bottom: 0;
+}
+
+.cowardBadgeLarge {
+  position: absolute;
+  top: 50%;
+  left: -1.5vw;
+  right: -1.5vw;
+  text-align: center;
+  background: rgba(180, 30, 30, 0.92);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 2.8vw;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  padding: 0.2em 0;
+  transform: translateY(-50%) rotate(-12deg);
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.itemFlavorText {
+  font-family: var(--font-mono);
+  font-size: 1.6vw;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  font-style: italic;
+  margin-top: 0;
+}
+
+.cowardBadge {
+  position: absolute;
+  top: 3.2vw;
+  left: -0.8vw;
+  right: -0.8vw;
+  text-align: center;
+  background: rgba(180, 30, 30, 0.92);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 1.1vw;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding: 0.25em 0;
+  transform: rotate(-12deg);
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .playerThumb.deadWerewolf {

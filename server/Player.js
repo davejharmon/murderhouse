@@ -8,6 +8,7 @@ import {
   GamePhase,
   RoleId,
   EventId,
+  ItemId,
   LedState,
   DisplayStyle,
   StatusLed,
@@ -286,6 +287,7 @@ export class Player {
       roleTeam: showRole ? this.role?.team : null,
       deathTimestamp: isDead ? this.deathTimestamp : null,
       isPoisoned: this.isPoisoned,
+      isCowering: this.hasItem(ItemId.COWARD),
     };
   }
 

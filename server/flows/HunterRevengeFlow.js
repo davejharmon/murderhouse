@@ -126,7 +126,7 @@ export class HunterRevengeFlow extends InterruptFlow {
     if (!this.state || playerId !== this.state.hunterId) return [];
     return this.game
       .getAlivePlayers()
-      .filter((p) => p.id !== this.state.hunterId);
+      .filter((p) => p.id !== this.state.hunterId && !p.hasItem('coward'));
   }
 
   /**
