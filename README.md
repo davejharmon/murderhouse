@@ -72,7 +72,8 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Vigilante**   | Village  | Kill (once)  | One-shot night kill, then becomes villager                                               |
 | **Governor**    | Village  | —            | Can pardon a condemned player once per game                                              |
 | **Cupid**       | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both                                    |
-| **Drunk**       | Village  | Stumble      | Disguised as Seer; random action (investigate/kill/protect/block), always shows INNOCENT |
+| **Tanner**      | Village  | Suspect      | Sees themselves as Villager; appears EVIL to the Seer (and Clue); wins with village     |
+| **Drunk**       | Village  | Stumble      | Disguised as Seer; random action — investigate (accurate), kill/protect/block (shows INNOCENT) |
 | **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death                                         |
 | **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live                                     |
 | **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                                                        |
@@ -162,7 +163,7 @@ murderhouse/
 │   ├── handlers/
 │   │   └── index.js              # WebSocket message routing (~660 lines)
 │   ├── definitions/              # Declarative game rules
-│   │   ├── roles.js              # 13 roles with events, passives, win conditions
+│   │   ├── roles.js              # 14 roles with events, passives, win conditions
 │   │   ├── events.js             # 13 events with resolution logic
 │   │   └── items.js              # 3 items (pistol, phone, clue)
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
@@ -288,8 +289,6 @@ _(none currently)_
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
 - Add item: prospect
-- Add item: tanner
-- Add role: tanner
 - Add item: barricade
 - Add bar terminal mode
 - Improve pulse test

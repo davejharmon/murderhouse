@@ -324,6 +324,7 @@ const events = {
         .filter(
           (p) =>
             p.role.id === RoleId.VILLAGER ||
+            p.role.id === RoleId.TANNER ||
             p.role.id === RoleId.HUNTER ||
             p.role.id === RoleId.GOVERNOR,
         );
@@ -636,7 +637,7 @@ const events = {
         if (targetId === null) continue;
         const seer = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
-        const isEvil = target.role.team === Team.WEREWOLF;
+        const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty;
 
         if (!seer.investigations) seer.investigations = [];
         seer.investigations.push({
@@ -732,13 +733,17 @@ const events = {
 
         game.addLog(`🥴 ${actor.name} (Drunk) rolled: ${action} → ${target.name}`);
 
-        // Drunk always receives "not a werewolf" result
+        // Real investigate (25%) returns accurate result; other actions always show INNOCENT
+        const isEvil = action === 'investigate'
+          ? (target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty)
+          : false;
+
         if (!actor.investigations) actor.investigations = [];
         actor.investigations.push({
           day: game.dayCount,
           targetId,
           targetName: target.name,
-          isEvil: false,
+          isEvil,
         });
 
         investigations.push({
@@ -746,8 +751,8 @@ const events = {
           seer: actor,
           targetId,
           target,
-          isEvil: false,
-          privateMessage: `${target.name} is INNOCENT`,
+          isEvil,
+          privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}`,
         });
       }
 

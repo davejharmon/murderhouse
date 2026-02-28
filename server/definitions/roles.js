@@ -138,7 +138,7 @@ const roles = {
           return target.id !== player.id;
         },
         onResolve: (player, target, game) => {
-          const isEvil = target.role.team === Team.WEREWOLF;
+          const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty;
           return {
             success: true,
             privateMessage: `${target.name} is ${
@@ -345,6 +345,32 @@ const roles = {
     passives: {},
   },
 
+  tanner: {
+    id: 'tanner',
+    name: 'Tanner',
+    team: Team.VILLAGE,
+    description: 'A simple villager... or so you think.',
+    color: '#7eb8da',
+    emoji: '🪡',
+    tip: 'Good luck!',
+    detailedTip:
+      'You appear as a Villager to everyone — even yourself. But the Seer sees you as evil. Win with the village anyway.',
+    appearsGuilty: true, // Seer (and Clue) report this player as EVIL
+    // What the Tanner sees on their own terminal — identical to the Villager
+    disguiseAs: {
+      id: 'villager',
+      name: 'Villager',
+      color: '#7eb8da',
+      emoji: '👨‍🌾',
+      description: 'A simple villager trying to survive.',
+    },
+    events: {
+      vote: {},
+      suspect: {},
+    },
+    passives: {},
+  },
+
   drunk: {
     id: 'drunk',
     name: 'Drunk',
@@ -354,7 +380,7 @@ const roles = {
     emoji: '🥴',
     tip: 'Investigate each night', // Shown on player terminal — they think they're a seer
     detailedTip:
-      'Each night the Drunk picks a target, believing they are investigating. In reality their action is randomly one of: Investigate (no effect), Kill, Protect, or Roleblock. Their terminal always shows NOT A WEREWOLF regardless of outcome.',
+      'Each night the Drunk picks a target, believing they are investigating. In reality their action is randomly one of: Investigate (accurate result), Kill, Protect, or Roleblock. The three non-investigate actions always show INNOCENT regardless of the target.',
     // What the drunk player sees on their own terminal — identical to the Seer
     disguiseAs: {
       id: 'seer',
