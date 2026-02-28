@@ -49,6 +49,10 @@ For production/remote deployment, `server/web.js` serves the built client over H
    - **Hunter**: Normal villager, but gets revenge kill when dying
    - **Governor**: Can pardon condemned players after a day vote
    - **Cupid**: Link two lovers at game start (if one dies, both die)
+   - **Roleblocker**: Block one player's night ability
+   - **Janitor**: Hide the victim's role when the pack kills
+   - **Poisoner**: Replace the pack's kill with a delayed poison
+   - **Drunk**: Believes they are a Seer; night action is randomly chosen
 2. Host resolves events in priority order
 3. Deaths revealed on big screen
 
@@ -59,18 +63,21 @@ For production/remote deployment, `server/web.js` serves the built client over H
 
 ## Roles
 
-| Role            | Team     | Night Action | Special                                               |
-| --------------- | -------- | ------------ | ----------------------------------------------------- |
-| **Villager**    | Village  | Suspect      | —                                                     |
-| **Seer**        | Village  | Investigate  | Learns if target is werewolf                          |
-| **Doctor**      | Village  | Protect      | Prevents one kill per night                           |
-| **Hunter**      | Village  | —            | Revenge kill on death (interrupt flow)                |
-| **Vigilante**   | Village  | Kill (once)  | One-shot night kill, then becomes villager            |
-| **Governor**    | Village  | —            | Can pardon a condemned player once per game           |
-| **Cupid**       | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both |
-| **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death      |
-| **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live  |
-| **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                     |
+| Role            | Team     | Night Action  | Special                                                              |
+| --------------- | -------- | ------------- | -------------------------------------------------------------------- |
+| **Villager**    | Village  | Suspect       | —                                                                    |
+| **Seer**        | Village  | Investigate   | Learns if target is EVIL or INNOCENT                                 |
+| **Doctor**      | Village  | Protect       | Prevents one kill per night                                          |
+| **Hunter**      | Village  | —             | Revenge kill on death (interrupt flow)                               |
+| **Vigilante**   | Village  | Kill (once)   | One-shot night kill, then becomes villager                           |
+| **Governor**    | Village  | —             | Can pardon a condemned player once per game                          |
+| **Cupid**       | Village  | Link (setup)  | Links two lovers at game start; heartbreak kills both                |
+| **Drunk**       | Village  | Stumble       | Disguised as Seer; random action (investigate/kill/protect/block), always shows INNOCENT |
+| **Alpha**       | Werewolf | Kill          | Final kill decision; promotes successor on death                     |
+| **Werewolf**    | Werewolf | Hunt          | Suggests targets to alpha; sees pack selections live                 |
+| **Roleblocker** | Werewolf | Block         | Blocks one player's night ability                                    |
+| **Janitor**     | Werewolf | Clean         | Hides victim's role reveal when the pack kills                       |
+| **Poisoner**    | Werewolf | Poison        | Replaces pack kill with delayed poison (victim dies next night)      |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
@@ -155,14 +162,15 @@ murderhouse/
 │   ├── handlers/
 │   │   └── index.js              # WebSocket message routing (~660 lines)
 │   ├── definitions/              # Declarative game rules
-│   │   ├── roles.js              # 10 roles with events, passives, win conditions
-│   │   ├── events.js             # 11 events with resolution logic
+│   │   ├── roles.js              # 13 roles with events, passives, win conditions
+│   │   ├── events.js             # 13 events with resolution logic
 │   │   └── items.js              # 3 items (pistol, phone, crystalBall)
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
 │   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill
 │   │   └── GovernorPardonFlow.js # Vote condemn → pardon/execute decision
-│   └── player-presets.json       # Saved player name/portrait presets
+│   ├── player-presets.json       # Saved player name/portrait presets (legacy single slot)
+│   └── game-presets.json         # Named multi-slot game presets (names, portraits, role pool, settings)
 ├── client/
 │   ├── vite.config.js            # Path aliases: @ → src/, @shared → shared/
 │   └── src/
@@ -187,6 +195,7 @@ murderhouse/
 │       │   ├── SlideControls.jsx # Slide navigation for host
 │       │   ├── GameLog.jsx       # Game event log display
 │       │   ├── CustomEventModal.jsx    # Custom event configuration
+│       │   ├── SettingsModal.jsx  # Game settings, presets, timers
 │       │   ├── PortraitSelectorModal.jsx # Player portrait picker
 │       │   └── Modal.jsx         # Reusable modal component
 │       └── styles/
@@ -225,7 +234,7 @@ murderhouse/
 
 ### Event Priority Order
 
-Events resolve by priority (lower = earlier): block (5) → protect (10) → investigate (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → kill (60) → suspect (80).
+Events resolve by priority (lower = earlier): block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
 
 ## Adding a Role
 
@@ -278,7 +287,6 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
-- Add drunk
 - Add prospect
 - Add tanner
 - Add halo (priest collar)
