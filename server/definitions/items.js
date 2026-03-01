@@ -81,6 +81,14 @@ const items = {
     maxUses: -1, // Passive: always active while held
     grantsAbility: 'coward', // Checked by Game.getEventParticipants and event validTargets
   },
+
+  barricade: {
+    id: 'barricade',
+    name: 'Barricade',
+    description: 'A sturdy defense. The next time you would die, the barricade breaks instead.',
+    maxUses: 1, // Passive: consumed on first death absorption
+    grantsAbility: 'barricade', // Checked by killPlayer in Game.js
+  },
 };
 
 /**

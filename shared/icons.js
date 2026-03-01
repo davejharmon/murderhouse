@@ -404,6 +404,28 @@ export const ICON_PROSPECT = [
   0x00, 0x00, 0x00,  // row 17: blank
 ];
 
+// Barricade — heraldic shield silhouette (filled, tapers to a point)
+export const ICON_BARRICADE = [
+  0x00, 0x00, 0x00,  // row  0: blank
+  0xFC, 0x3F, 0x00,  // row  1: cols 2-13 (12px, top cap)
+  0xFE, 0x7F, 0x00,  // row  2: cols 1-14 (14px)
+  0xFF, 0xFF, 0x00,  // row  3: cols 0-15 (16px, max width)
+  0xFF, 0xFF, 0x00,  // row  4: cols 0-15
+  0xFF, 0xFF, 0x00,  // row  5: cols 0-15
+  0xFF, 0xFF, 0x00,  // row  6: cols 0-15
+  0xFF, 0xFF, 0x00,  // row  7: cols 0-15
+  0xFF, 0xFF, 0x00,  // row  8: cols 0-15
+  0xFF, 0xFF, 0x00,  // row  9: cols 0-15
+  0xFF, 0xFF, 0x00,  // row 10: cols 0-15
+  0xFE, 0x7F, 0x00,  // row 11: cols 1-14 (14px)
+  0xFC, 0x3F, 0x00,  // row 12: cols 2-13 (12px)
+  0xF8, 0x1F, 0x00,  // row 13: cols 3-12 (10px)
+  0xF0, 0x0F, 0x00,  // row 14: cols 4-11 (8px)
+  0xE0, 0x07, 0x00,  // row 15: cols 5-10 (6px)
+  0xC0, 0x03, 0x00,  // row 16: cols 6-9 (4px)
+  0x80, 0x01, 0x00,  // row 17: cols 7-8 (2px, point)
+];
+
 // Map icon IDs to their data
 export const Icons = {
   villager: ICON_VILLAGER,
@@ -424,6 +446,7 @@ export const Icons = {
   phone: ICON_PHONE,
   clue: ICON_CRYSTAL_BALL,
   coward: ICON_COWARD,
+  barricade: ICON_BARRICADE,
   empty: ICON_EMPTY,
   skull: ICON_SKULL,
 };

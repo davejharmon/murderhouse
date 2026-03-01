@@ -513,7 +513,12 @@ const events = {
         };
       }
 
-      game.killPlayer(victim.id, 'werewolf');
+      const killResult = game.killPlayer(victim.id, 'werewolf');
+
+      // BARRICADE: attack was absorbed — victim survives silently
+      if (killResult === 'barricaded') {
+        return { success: true, outcome: 'barricaded', silent: true };
+      }
 
       // PROSPECT: victim was recruited instead of killed
       if (victim.isAlive) {

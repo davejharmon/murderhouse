@@ -183,6 +183,7 @@ export const ItemId = {
   COWARD: 'coward',
   TANNED: 'tanned',
   PROSPECT: 'prospect',
+  BARRICADE: 'barricade',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -216,7 +217,7 @@ export const DEBUG_MODE = true;
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT, ItemId.BARRICADE];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
@@ -225,7 +226,8 @@ export const ITEM_DISPLAY = {
   [ItemId.CLUE]:    { name: 'Clue',    emoji: '🔎', description: 'A mysterious lead. Investigate one player to learn their alignment.' },
   [ItemId.COWARD]:  { name: 'Coward',  emoji: '🏳️', description: 'You hide from danger. No attacks can reach you — but you cannot act or be voted for.' },
   [ItemId.TANNED]:   { name: 'Tanned',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seer or Clue.' },
-  [ItemId.PROSPECT]: { name: 'Prospect', emoji: '🐾', description: 'Hidden mark. If killed by werewolves, join their pack instead of dying.' },
+  [ItemId.PROSPECT]:  { name: 'Prospect',  emoji: '🐾', description: 'Hidden mark. If killed by werewolves, join their pack instead of dying.' },
+  [ItemId.BARRICADE]: { name: 'Barricade', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, the barricade breaks instead.' },
 };
 
 // Available roles (for host pre-assignment UI)

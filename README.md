@@ -291,6 +291,7 @@ _(none currently)_
 - Add item: barricade
 - Add role: Jester
 - Add glyph for Jester
+  Add new role: Jailer
 - Add bar terminal mode
 - Improve pulse test
 - Add pulse test debug pulse
@@ -298,6 +299,7 @@ _(none currently)_
 - Add library of night and day fallback phrases
 - Separate elimination slides from role reveal slides
 - Add a go button
+- export all slides for string review
 
 ## Bugs
 

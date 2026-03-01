@@ -1934,6 +1934,12 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return false;
 
+    // BARRICADE: absorbs any kill on first trigger
+    if (player.hasItem(ItemId.BARRICADE)) {
+      this._barricadeAbsorb(player);
+      return 'barricaded';
+    }
+
     // PROSPECT: werewolf kill on a prospect → recruit instead of kill
     if (cause === 'werewolf' && player.hasItem(ItemId.PROSPECT)) {
       this._recruitProspect(player);
@@ -1953,6 +1959,12 @@ export class Game {
     }
     this._processingDeaths = false;
     return true;
+  }
+
+  _barricadeAbsorb(player) {
+    player.removeItem(ItemId.BARRICADE);
+    player.lastEventResult = { message: 'BARRICADE BROKEN', detail: 'You are on your own now', critical: true };
+    this.addLog(`${player.getNameWithEmoji()}'s barricade absorbed the attack`);
   }
 
   _recruitProspect(player) {
