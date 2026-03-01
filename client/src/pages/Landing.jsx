@@ -49,6 +49,9 @@ export default function Landing() {
               <Link to='/debug' className={styles.controlLink}>
                 Debug Grid
               </Link>
+              <Link to='/operator' className={styles.controlLink}>
+                Operator
+              </Link>
             </div>
           </div>
         </section>

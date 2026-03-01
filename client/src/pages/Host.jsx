@@ -290,6 +290,7 @@ export default function Host() {
         <div className={styles.navLinks}>
           <Link to='/screen'>Screen</Link>
           <Link to='/debug'>Debug</Link>
+          <Link to='/operator'>Operator</Link>
           <button className={styles.navButton} onClick={() => setShowSettings(true)}>Settings</button>
         </div>
         <div className={styles.phaseIndicator}>

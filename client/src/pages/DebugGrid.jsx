@@ -142,6 +142,9 @@ export default function DebugGrid() {
         <Link to='/screen' className={styles.controlLink}>
           Screen
         </Link>
+        <Link to='/operator' className={styles.controlLink}>
+          Operator
+        </Link>
         <div className={styles.info}>
           Connected: {Object.values(connections).filter(Boolean).length}/
           {PLAYER_COUNT}
