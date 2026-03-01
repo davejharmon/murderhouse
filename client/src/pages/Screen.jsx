@@ -224,6 +224,90 @@ function HeartbeatSlide({ slide, gameState }) {
   );
 }
 
+// Glitch characters — box-drawing + punctuation noise
+const GLITCH_CHARS = '#@$!?%/\\|=~░▒▓╬╪';
+
+function OperatorReveal({ words, slideId }) {
+  const WORD_INTERVAL  = 1100;  // ms between word reveals
+  const GLITCH_DURATION = 480;  // ms of glitch before each word settles
+  const FLICKER_MS     = 65;    // ms between glitch text redraws
+  const START_DELAY    = 1600;  // wait for eyebrow to appear
+
+  const [phases, setPhases]           = useState(() => words.map(() => 'hidden'));
+  const [glitchTexts, setGlitchTexts] = useState(() => words.map(() => ''));
+  const [glitchStyles, setGlitchStyles] = useState(() => words.map(() => ({})));
+
+  useEffect(() => {
+    // Reset on new slide
+    setPhases(words.map(() => 'hidden'));
+    setGlitchTexts(words.map(() => ''));
+    setGlitchStyles(words.map(() => ({})));
+
+    const clearFns = [];
+
+    words.forEach((word, i) => {
+      // Slight per-word jitter so it doesn't feel metronomic
+      const jitter = Math.floor(Math.random() * 180);
+      const glitchAt = START_DELAY + i * WORD_INTERVAL + jitter - GLITCH_DURATION;
+      const revealAt = START_DELAY + i * WORD_INTERVAL + jitter;
+
+      // Begin glitch phase
+      const glitchTimer = setTimeout(() => {
+        setPhases(prev => { const n = [...prev]; n[i] = 'glitch'; return n; });
+
+        const iid = setInterval(() => {
+          // Random-length noise string
+          const len = Math.max(1, word.length + Math.floor(Math.random() * 5) - 2);
+          let g = '';
+          for (let j = 0; j < len; j++) {
+            g += GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+          }
+          // Chromatic aberration shift — RGB split, randomised direction each frame
+          const dx = Math.floor(Math.random() * 5 - 2);
+          const rgbShadow = Math.random() > 0.35
+            ? `${dx}px 0 rgba(255,30,80,0.85), ${-dx}px 0 rgba(0,255,190,0.85)`
+            : `0 0 10px rgba(120,255,150,0.9)`;
+          const ty = (Math.random() * 6 - 3).toFixed(1);
+
+          setGlitchTexts(prev  => { const n = [...prev]; n[i] = g; return n; });
+          setGlitchStyles(prev => {
+            const n = [...prev];
+            n[i] = { textShadow: rgbShadow, transform: `translateY(${ty}px)` };
+            return n;
+          });
+        }, FLICKER_MS);
+        clearFns.push(() => clearInterval(iid));
+      }, glitchAt);
+      clearFns.push(() => clearTimeout(glitchTimer));
+
+      // Settle to real word
+      const revealTimer = setTimeout(() => {
+        setPhases(prev => { const n = [...prev]; n[i] = 'revealed'; return n; });
+      }, revealAt);
+      clearFns.push(() => clearTimeout(revealTimer));
+    });
+
+    return () => clearFns.forEach(fn => fn());
+  }, [slideId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className={styles.operatorMessage}>
+      {words.map((word, i) => {
+        const phase = phases[i];
+        return (
+          <span
+            key={i}
+            className={`${styles.operatorWord} ${phase === 'glitch' ? styles.operatorWordGlitch : ''} ${phase === 'revealed' ? styles.operatorWordRevealed : ''}`}
+            style={phase === 'glitch' ? glitchStyles[i] : undefined}
+          >
+            {phase === 'glitch' ? glitchTexts[i] : word}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Screen() {
   const {
     connected,
@@ -418,7 +502,8 @@ export default function Screen() {
               alt={player.name}
               className={styles.largePortrait}
             />
-            {player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
+            {slide.jesterWon && <div className={styles.winnerBadgeLarge}>WINNER</div>}
+            {!slide.jesterWon && player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
           </div>
           {slide.subtitle ? (
             <h2 className={styles.deathName}>{slide.subtitle}</h2>
@@ -733,17 +818,7 @@ export default function Screen() {
     return (
       <div key={slide.id} className={`${styles.slide} ${styles.operatorSlide}`}>
         <p className={styles.operatorEyebrow}>{slide.title}</p>
-        <div className={styles.operatorMessage}>
-          {words.map((word, i) => (
-            <span
-              key={i}
-              className={styles.operatorWord}
-              style={{ animationDelay: `${i * 0.18}s` }}
-            >
-              {word}
-            </span>
-          ))}
-        </div>
+        <OperatorReveal words={words} slideId={slide.id} />
       </div>
     );
   };
@@ -813,7 +888,9 @@ export default function Screen() {
 
   const renderRoleTip = (slide) => {
     const isWerewolf = slide.team === 'werewolf';
-    const teamColor = isWerewolf ? '#c94c4c' : '#7eb8da';
+    const isNeutral = slide.team === 'neutral';
+    const teamColor = isWerewolf ? '#c94c4c' : isNeutral ? '#e8a020' : '#7eb8da';
+    const teamLabel = isWerewolf ? 'WEREWOLF' : isNeutral ? 'INDEPENDENT' : 'VILLAGE';
 
     return (
       <div
@@ -836,7 +913,7 @@ export default function Screen() {
             className={styles.teamBadge}
             style={{ borderColor: teamColor, color: teamColor }}
           >
-            {isWerewolf ? 'WEREWOLF' : 'VILLAGE'}
+            {teamLabel}
           </div>
           {[...(slide.abilities || [])]
             .sort((a, b) => {

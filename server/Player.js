@@ -427,6 +427,11 @@ export class Player {
     if (hasActiveEvent)
       return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
 
+    // Vote is active but player is excluded (novote, coward, or any other reason)
+    if (this.isAlive && game.activeEvents?.has(EventId.VOTE) && !this.pendingEvents.has(EventId.VOTE)) {
+      return this._displayVoteLocked(getLine1);
+    }
+
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
 
     if (this.isPoisoned && !hasActiveEvent) return this._displayPoisoned(getLine1, phaseLed);
@@ -587,6 +592,16 @@ export class Player {
         : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
       { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING
+    );
+  }
+
+  _displayVoteLocked(getLine1) {
+    return this._display(
+      { left: getLine1('Vote', EventId.VOTE), right: '' },
+      { text: 'VOTE LOCKED', style: DisplayStyle.CRITICAL },
+      { text: 'Better luck next time' },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.LOCKED
     );
   }
 

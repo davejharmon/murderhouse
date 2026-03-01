@@ -203,6 +203,26 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+.winnerBadgeLarge {
+  position: absolute;
+  top: 50%;
+  left: -1.5vw;
+  right: -1.5vw;
+  text-align: center;
+  background: rgba(212, 175, 55, 0.95);
+  color: #1a1000;
+  font-family: var(--font-mono);
+  font-size: 2.8vw;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  padding: 0.2em 0;
+  transform: translateY(-50%) rotate(-12deg);
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.5), 0 4px 16px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .playerThumb.deadWerewolf {
   opacity: 0.6;
 }
@@ -402,6 +422,7 @@
   align-items: center;
   justify-content: center;
   gap: 6vh;
+  animation: slideGlitch 4s infinite;
 }
 
 .operatorEyebrow {
@@ -419,22 +440,44 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: baseline;
-  gap: 0.5em;
+  gap: 1.4em;
   max-width: 80vw;
   text-align: center;
 }
 
+/* Base: hidden (opacity 0 preserves layout space) */
 .operatorWord {
   font-family: var(--font-mono);
   font-size: clamp(2rem, 5vw, 4.5rem);
   font-weight: 700;
   letter-spacing: 0.12em;
+  display: inline-block;
+  opacity: 0;
+}
+
+/* Glitch phase: noise chars, chromatic aberration applied via JS inline style */
+.operatorWordGlitch {
+  opacity: 1;
+  color: rgba(160, 230, 170, 0.75);
+}
+
+/* Revealed: word settles in with slow blur-fade */
+.operatorWordRevealed {
   color: #dde8dd;
   text-shadow:
     0 0 30px rgba(180, 220, 180, 0.35),
     0 0 80px rgba(180, 220, 180, 0.1);
-  opacity: 0;
-  animation: operatorWordReveal 0.6s ease forwards;
+  animation: operatorWordReveal 1.1s ease forwards;
+}
+
+/* Whole-slide horizontal jitter — fires at ~3s, ~7s in each 8s loop */
+@keyframes slideGlitch {
+  0%, 34%, 40%, 87%, 92%, 100% { transform: none; filter: none; }
+  35%   { transform: translateX(3px) skewX(0.4deg); filter: hue-rotate(15deg); }
+  37%   { transform: translateX(-2px); filter: hue-rotate(0deg); }
+  39%   { transform: translateX(1px); }
+  88%   { transform: translateX(-3px) skewX(-0.3deg); filter: hue-rotate(8deg); }
+  90%   { transform: translateX(2px); filter: none; }
 }
 
 @keyframes operatorFadeIn {
@@ -443,9 +486,10 @@
 }
 
 @keyframes operatorWordReveal {
-  0%   { opacity: 0; filter: blur(8px); transform: translateY(6px); }
-  60%  { opacity: 1; filter: blur(0); }
-  100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+  0%   { opacity: 0; filter: blur(14px) brightness(2.5); transform: scale(1.06); }
+  25%  { opacity: 0.9; filter: blur(4px) brightness(1.6); }
+  55%  { opacity: 1; filter: blur(1px) brightness(1.1); }
+  100% { opacity: 1; filter: blur(0) brightness(1); transform: scale(1); }
 }
 
 /* Remaining Composition Gallery (on role reveal death slides) */

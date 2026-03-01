@@ -15,6 +15,7 @@ import { getRole } from './roles.js';
 
 /** Map team to display name for slides/messages */
 function getTeamDisplayName(role) {
+  if (role?.id === RoleId.JESTER) return 'JESTER';
   const names = {
     village: 'VILLAGER',
     werewolf: 'WEREWOLF',
@@ -117,7 +118,7 @@ const events = {
     priority: 50,
     anonymousVoting: false, // If true, show vote counts; if false, show voter portraits
 
-    participants: (game) => game.getAlivePlayers(),
+    participants: (game) => game.getAlivePlayers().filter((p) => !p.hasItem(ItemId.NOVOTE)),
 
     validTargets: (actor, game) => {
       const runoffTargets = getRunoffTargets(EventId.VOTE, game);

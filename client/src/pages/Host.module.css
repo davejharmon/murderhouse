@@ -3,8 +3,8 @@
 /* Operator message feed panel */
 .operatorPanel {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.4rem;
   padding: 0.6rem 1rem;
   border-radius: var(--border-radius-md);
   background: rgba(140, 210, 140, 0.04);
@@ -19,22 +19,32 @@
   box-shadow: 0 0 12px rgba(140, 210, 140, 0.1);
 }
 
+.operatorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .operatorLabel {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   color: rgba(140, 210, 140, 0.45);
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.operatorReadyDot {
+  color: rgba(140, 210, 140, 0.8);
 }
 
 .operatorMessage {
-  flex: 1;
   font-family: var(--font-mono);
   font-size: 0.8rem;
   letter-spacing: 0.12em;
   color: rgba(140, 210, 140, 0.75);
   word-break: break-word;
+  line-height: 1.5;
 }
 
 .operatorEmpty {
@@ -46,7 +56,7 @@
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 3px;
   cursor: pointer;
   border: 1px solid rgba(140, 210, 140, 0.3);
@@ -58,7 +68,7 @@
 }
 
 .operatorSendBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: default;
 }
 

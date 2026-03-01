@@ -167,6 +167,7 @@ export const RoleId = {
   POISONER: 'poisoner',
   DRUNK: 'drunk',
   TANNER: 'tanner',
+  JESTER: 'jester',
 };
 
 export const EventId = {
@@ -194,6 +195,7 @@ export const ItemId = {
   TANNED: 'tanned',
   PROSPECT: 'prospect',
   BARRICADE: 'barricade',
+  NOVOTE: 'novote',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -212,6 +214,7 @@ export const ROLE_DISPLAY = {
   [RoleId.POISONER]:    { name: 'Poisoner',     emoji: '🧪' },
   [RoleId.DRUNK]:       { name: 'Drunk',        emoji: '🥴' },
   [RoleId.TANNER]:      { name: 'Tanner',       emoji: '🪡' },
+  [RoleId.JESTER]:      { name: 'Jester',       emoji: '🃏' },
 };
 
 export const MIN_PLAYERS = 4;
@@ -227,7 +230,7 @@ export const DEBUG_MODE = true;
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT, ItemId.BARRICADE];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT, ItemId.BARRICADE, ItemId.NOVOTE];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
@@ -238,6 +241,7 @@ export const ITEM_DISPLAY = {
   [ItemId.TANNED]:   { name: 'Tanned',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seer or Clue.' },
   [ItemId.PROSPECT]:  { name: 'Prospect',  emoji: '🐾', description: 'Hidden mark. If killed by werewolves, join their pack instead of dying.' },
   [ItemId.BARRICADE]: { name: 'Barricade', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, the barricade breaks instead.' },
+  [ItemId.NOVOTE]: { name: 'No Vote', emoji: '🚷', description: 'Hidden restraint. This player cannot vote in the next elimination vote.' },
 };
 
 // Available roles (for host pre-assignment UI)
@@ -256,6 +260,7 @@ export const AVAILABLE_ROLES = [
   RoleId.POISONER,
   RoleId.DRUNK,
   RoleId.TANNER,
+  RoleId.JESTER,
 ];
 
 // LED states for physical buttons

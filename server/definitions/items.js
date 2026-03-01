@@ -89,6 +89,16 @@ const items = {
     maxUses: 1, // Passive: consumed on first death absorption
     grantsAbility: 'barricade', // Checked by killPlayer in Game.js
   },
+
+  novote: {
+    id: 'novote',
+    name: 'No Vote',
+    shortName: 'NoVote',
+    description: 'A silent restraint. You may not participate in the next elimination vote.',
+    maxUses: 1, // Passive: consumed when vote resolves
+    hidden: true, // Not shown on player console or icon slots
+    grantsAbility: 'novote', // Checked by vote.participants in events.js
+  },
 };
 
 /**

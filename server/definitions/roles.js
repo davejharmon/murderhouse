@@ -371,6 +371,28 @@ const roles = {
     passives: {},
   },
 
+  jester: {
+    id: 'jester',
+    name: 'Jester',
+    team: Team.NEUTRAL,
+    description: 'Make them vote you out. Win by being eliminated.',
+    color: '#e8a020',
+    emoji: '🃏',
+    tip: 'Get voted out to win',
+    detailedTip:
+      'You win if the village eliminates you by vote. Death by any other means is a loss. If you win, the game continues without you.',
+    events: {
+      vote: {},
+    },
+    passives: {
+      onDeath: (player, cause, game) => {
+        if (cause !== 'eliminated') return null;
+        player.jesterWon = true;
+        return { message: `${player.name} was the Jester — they win!` };
+      },
+    },
+  },
+
   drunk: {
     id: 'drunk',
     name: 'Drunk',

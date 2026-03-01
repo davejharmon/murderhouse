@@ -66,13 +66,14 @@ export default function Host() {
     hostSettingsApplied.current = true;
     setTimerDuration(hostSettings.timerDuration ?? 30);
     setAutoAdvanceEnabled(hostSettings.autoAdvanceEnabled ?? false);
-    if (hostSettings.lastLoadedPresetId) setLoadedPresetId(hostSettings.lastLoadedPresetId);
+    if (hostSettings.lastLoadedPresetId)
+      setLoadedPresetId(hostSettings.lastLoadedPresetId);
   }, [hostSettings]);
 
   // Derive the loaded preset object and dirty state
   const loadedPreset = useMemo(
-    () => gamePresets.find(p => p.id === loadedPresetId) ?? null,
-    [gamePresets, loadedPresetId]
+    () => gamePresets.find((p) => p.id === loadedPresetId) ?? null,
+    [gamePresets, loadedPresetId],
   );
 
   const isDirty = useMemo(() => {
@@ -81,7 +82,7 @@ export default function Host() {
     if (autoAdvanceEnabled !== loadedPreset.autoAdvanceEnabled) return true;
     const players = gameState?.players ?? [];
     for (const [seatId, saved] of Object.entries(loadedPreset.players ?? {})) {
-      const current = players.find(p => p.id === seatId);
+      const current = players.find((p) => p.id === seatId);
       if (!current) continue;
       if (current.name !== saved.name) return true;
       if ((current.portrait ?? null) !== (saved.portrait ?? null)) return true;
@@ -94,7 +95,7 @@ export default function Host() {
       }
     } else {
       // Random-pool preset: any pre-assignment is a deviation
-      if (players.some(p => p.preAssignedRole)) return true;
+      if (players.some((p) => p.preAssignedRole)) return true;
     }
     return false;
   }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.players]);
@@ -134,7 +135,11 @@ export default function Host() {
   // Touch handlers for swipe
   const handleTouchStart = useCallback((e) => {
     const touch = e.touches[0];
-    touchRef.current = { startX: touch.clientX, startY: touch.clientY, swiping: false };
+    touchRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      swiping: false,
+    };
   }, []);
 
   const handleTouchMove = useCallback((e) => {
@@ -154,7 +159,7 @@ export default function Host() {
     if (Math.abs(dx) >= SWIPE_THRESHOLD) {
       setMobileTab((prev) => {
         if (dx < 0) return Math.min(prev + 1, 2); // swipe left → next
-        return Math.max(prev - 1, 0);               // swipe right → prev
+        return Math.max(prev - 1, 0); // swipe right → prev
       });
     }
   }, []);
@@ -179,20 +184,25 @@ export default function Host() {
   const handleResolveEvent = (eventId) =>
     send(ClientMsg.RESOLVE_EVENT, { eventId });
   const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
-  const handleSkipEvent = (eventId) =>
-    send(ClientMsg.SKIP_EVENT, { eventId });
+  const handleSkipEvent = (eventId) => send(ClientMsg.SKIP_EVENT, { eventId });
   const handleResetEvent = (eventId) =>
     send(ClientMsg.RESET_EVENT, { eventId });
   const handleStartEventTimer = () =>
     send(ClientMsg.START_EVENT_TIMER, { duration: timerDuration * 1000 });
   const handleTimerDurationChange = (seconds) => {
     setTimerDuration(seconds);
-    send(ClientMsg.SAVE_HOST_SETTINGS, { timerDuration: seconds, autoAdvanceEnabled });
+    send(ClientMsg.SAVE_HOST_SETTINGS, {
+      timerDuration: seconds,
+      autoAdvanceEnabled,
+    });
   };
 
   const handleToggleAutoAdvance = (val) => {
     setAutoAdvanceEnabled(val);
-    send(ClientMsg.SAVE_HOST_SETTINGS, { timerDuration, autoAdvanceEnabled: val });
+    send(ClientMsg.SAVE_HOST_SETTINGS, {
+      timerDuration,
+      autoAdvanceEnabled: val,
+    });
   };
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
@@ -222,13 +232,20 @@ export default function Host() {
   // Apply settings when a game preset is loaded (server already persisted them)
   useEffect(() => {
     if (!presetSettings) return;
-    if (presetSettings.timerDuration != null) setTimerDuration(presetSettings.timerDuration);
-    if (presetSettings.autoAdvanceEnabled != null) setAutoAdvanceEnabled(presetSettings.autoAdvanceEnabled);
+    if (presetSettings.timerDuration != null)
+      setTimerDuration(presetSettings.timerDuration);
+    if (presetSettings.autoAdvanceEnabled != null)
+      setAutoAdvanceEnabled(presetSettings.autoAdvanceEnabled);
     setPresetSettings(null);
   }, [presetSettings, setPresetSettings]);
 
   const handleSaveGamePreset = (name, overwriteId) =>
-    send(ClientMsg.SAVE_GAME_PRESET, { name, timerDuration, autoAdvanceEnabled, overwriteId });
+    send(ClientMsg.SAVE_GAME_PRESET, {
+      name,
+      timerDuration,
+      autoAdvanceEnabled,
+      overwriteId,
+    });
   const handleLoadGamePreset = (id) => {
     setLoadedPresetId(id);
     send(ClientMsg.LOAD_GAME_PRESET, { id });
@@ -271,15 +288,19 @@ export default function Host() {
           <h1>HOST</h1>
           {loadedPreset && (
             <div className={styles.presetStatus}>
-              <span className={styles.presetStatusName}>{loadedPreset.name}</span>
+              <span className={styles.presetStatusName}>
+                {loadedPreset.name}
+              </span>
               {isDirty ? (
                 <>
                   <span className={styles.presetStatusChanged}>changed</span>
                   <button
                     className={styles.presetSaveBtn}
                     onClick={handleQuickSavePreset}
-                    title="Update preset"
-                  >💾</button>
+                    title='Update preset'
+                  >
+                    💾
+                  </button>
                 </>
               ) : (
                 <span className={styles.presetStatusUnchanged}>unchanged</span>
@@ -291,7 +312,12 @@ export default function Host() {
           <Link to='/screen'>Screen</Link>
           <Link to='/debug'>Debug</Link>
           <Link to='/operator'>Operator</Link>
-          <button className={styles.navButton} onClick={() => setShowSettings(true)}>Settings</button>
+          <button
+            className={styles.navButton}
+            onClick={() => setShowSettings(true)}
+          >
+            Settings
+          </button>
         </div>
         <div className={styles.phaseIndicator}>
           {isLobby && 'LOBBY'}
@@ -314,10 +340,8 @@ export default function Host() {
             </button>
           )}
 
-          {isLobby && gameState?.players?.some(p => p.preAssignedRole) && (
-            <button onClick={handleRandomizeRoles}>
-              Shuffle Roles
-            </button>
+          {isLobby && gameState?.players?.some((p) => p.preAssignedRole) && (
+            <button onClick={handleRandomizeRoles}>Shuffle Roles</button>
           )}
 
           {!isLobby && !isGameOver && (
@@ -330,24 +354,28 @@ export default function Host() {
         </div>
       </section>
 
-      {gameState?.players?.some(p => p.heartbeat?.active) && (
+      {gameState?.players?.some((p) => p.heartbeat?.active) && (
         <section className={styles.section}>
           <h2>Heartbeat</h2>
           <div className={styles.buttonGroup}>
             {gameState.players
-              .filter(p => p.heartbeat?.active)
-              .map(p => (
-                <button key={p.id} onClick={() => handlePushHeartbeatSlide(p.id)}>
+              .filter((p) => p.heartbeat?.active)
+              .map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handlePushHeartbeatSlide(p.id)}
+                >
                   ❤️ {p.name} ({p.heartbeat.bpm})
                 </button>
-              ))
-            }
+              ))}
           </div>
         </section>
       )}
 
       <section className={styles.section}>
-        <button onClick={() => setShowTutorialSlides(true)}>Tutorial Slides...</button>
+        <button onClick={() => setShowTutorialSlides(true)}>
+          Tutorial Slides...
+        </button>
       </section>
 
       {!isLobby && !isGameOver && (
@@ -371,20 +399,31 @@ export default function Host() {
       )}
 
       {/* Operator message feed */}
-      <div className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}>
-        <div className={styles.operatorLabel}>OPERATOR</div>
-        <div className={styles.operatorMessage}>
-          {operatorState?.words?.length > 0
-            ? operatorState.words.join(' ')
-            : <span className={styles.operatorEmpty}>no message</span>}
+      <div
+        className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}
+      >
+        <div className={styles.operatorHeader}>
+          <div className={styles.operatorLabel}>
+            OPERATOR
+            {operatorState?.ready ? (
+              <span className={styles.operatorReadyDot}> ● READY</span>
+            ) : null}
+          </div>
+          <button
+            className={styles.operatorSendBtn}
+            disabled={!(operatorState?.words?.length > 0)}
+            onClick={() => send(ClientMsg.OPERATOR_SEND)}
+          >
+            👻
+          </button>
         </div>
-        <button
-          className={styles.operatorSendBtn}
-          disabled={!operatorState?.ready}
-          onClick={() => send(ClientMsg.OPERATOR_SEND)}
-        >
-          {operatorState?.ready ? 'SEND TO SCREEN' : 'COMPOSING...'}
-        </button>
+        <div className={styles.operatorMessage}>
+          {operatorState?.words?.length > 0 ? (
+            operatorState.words.join(' ')
+          ) : (
+            <span className={styles.operatorEmpty}>no message</span>
+          )}
+        </div>
       </div>
 
       <SlideControls
@@ -463,7 +502,9 @@ export default function Host() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>{controlsPanel}</aside>
         <main className={styles.main}>{playersPanel}</main>
-        <aside className={styles.logPanel}><GameLog entries={log} /></aside>
+        <aside className={styles.logPanel}>
+          <GameLog entries={log} />
+        </aside>
       </div>
 
       {/* Mobile layout (swipeable panels + bottom nav) */}

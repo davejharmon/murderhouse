@@ -1581,6 +1581,13 @@ export class Game {
         }
       }
 
+      // Consume novote items — vote has resolved
+      if (eventId === EventId.VOTE) {
+        for (const p of this.getAlivePlayers()) {
+          if (p.hasItem('novote')) this.consumeItem(p.id, 'novote');
+        }
+      }
+
       this.broadcastGameState();
 
       // Trigger the intercepting flow
@@ -1601,6 +1608,13 @@ export class Game {
 
     // Remove from active events
     this.activeEvents.delete(eventId);
+
+    // Consume novote items — vote has resolved
+    if (eventId === EventId.VOTE) {
+      for (const p of this.getAlivePlayers()) {
+        if (p.hasItem('novote')) this.consumeItem(p.id, 'novote');
+      }
+    }
 
     // Log and record result
     if (!resolution.silent) {
@@ -2073,10 +2087,12 @@ export class Game {
     const victimName = victim?.name ?? 'PLAYER';
     const action = slide.title.split(' ').pop(); // "KILLED", "ELIMINATED", etc.
     const isRoleCleaned = victim?.isRoleCleaned ?? false;
+    const jesterWon = !!victim?.jesterWon;
 
     // Slide 1: identity — shows who died, no role info
     const identitySlide = {
       ...slide,
+      jesterWon,
       title: slide.identityTitle ?? `${victimName.toUpperCase()} ${action}`,
       subtitle: slide.identityTitle ? victimName : slide.subtitle,
       revealRole: false,
@@ -2098,6 +2114,7 @@ export class Game {
     }
     const roleSlide = {
       ...slide,
+      jesterWon,
       title: isRoleCleaned ? `??? ${action}` : slide.title,
       identityTitle: undefined,
       remainingComposition,
