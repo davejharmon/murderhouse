@@ -696,13 +696,18 @@ export default function Screen() {
           )}
           {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
             const teamOrder = { village: 0, werewolf: 1, neutral: 2, unknown: 3 };
-            const sorted = [...slide.remainingComposition].sort(
-              (a, b) => teamOrder[a.team] - teamOrder[b.team],
-            );
+            const sorted = [...slide.remainingComposition].sort((a, b) => {
+              if (a.dim !== b.dim) return a.dim ? 1 : -1;
+              return teamOrder[a.team] - teamOrder[b.team];
+            });
             return (
               <div className={styles.compGallery}>
                 {sorted.map((entry, i) => (
-                  <div key={i} className={`${styles.compPortrait} ${styles[`compTeam_${entry.team}`]}`}>
+                  <div
+                    key={i}
+                    className={`${styles.compPortrait} ${styles[`compTeam_${entry.team}`]}`}
+                    style={entry.dim ? { opacity: 0.25 } : undefined}
+                  >
                     <img src="/images/players/anon.png" alt="" />
                     {entry.team === 'unknown' && <div className={styles.compUnknownMark}>?</div>}
                   </div>
