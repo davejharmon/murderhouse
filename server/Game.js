@@ -31,6 +31,7 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const GAME_PRESETS_PATH = path.join(__dirname, 'game-presets.json');
 const HOST_SETTINGS_PATH = path.join(__dirname, 'host-settings.json');
+const SCORES_PATH = path.join(__dirname, 'scores.json');
 
 export class Game {
   constructor(broadcast, sendToHostFn, sendToScreenFn) {
@@ -60,6 +61,7 @@ export class Game {
     this.reset();
     this._loadGamePresetsFromDisk();
     this._loadHostSettingsFromDisk();
+    this._loadScoresFromDisk();
 
     // Auto-load default preset if one is set
     if (this._hostSettings.defaultPresetId) {
@@ -207,6 +209,57 @@ export class Game {
     // Toggle off if already the default
     const defaultPresetId = this._hostSettings.defaultPresetId === id ? null : id;
     this.saveHostSettings({ defaultPresetId });
+  }
+
+  // === Scores ===
+
+  _loadScoresFromDisk() {
+    if (!fs.existsSync(SCORES_PATH)) {
+      this._scores = new Map();
+      return;
+    }
+    try {
+      const data = JSON.parse(fs.readFileSync(SCORES_PATH, 'utf-8'));
+      this._scores = new Map(Object.entries(data).map(([k, v]) => [k, Number(v) || 0]));
+    } catch (e) {
+      console.error('[Server] Failed to load scores:', e.message);
+      this._scores = new Map();
+    }
+  }
+
+  _saveScoresToDisk() {
+    const obj = Object.fromEntries(this._scores);
+    fs.writeFileSync(SCORES_PATH, JSON.stringify(obj, null, 2));
+  }
+
+  setScore(name, score) {
+    this._scores.set(name, score);
+    this._saveScoresToDisk();
+    this.sendScoresToHost();
+  }
+
+  getScoresForConnectedPlayers() {
+    return [...this.players.values()]
+      .filter(p => p.name)
+      .map(p => ({ name: p.name, portrait: p.portrait, score: this._scores.get(p.name) ?? 0 }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  getScoresObject() {
+    return Object.fromEntries(this._scores);
+  }
+
+  sendScoresToHost() {
+    this._sendToHost(ServerMsg.SCORES, { scores: this.getScoresObject() });
+  }
+
+  pushScoreSlide() {
+    const entries = this.getScoresForConnectedPlayers();
+    this.pushSlide({
+      type: SlideType.SCORES,
+      title: 'SCOREBOARD',
+      entries,
+    });
   }
 
   // === Game Presets ===

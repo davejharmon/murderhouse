@@ -32,6 +32,9 @@ export default function SettingsModal({
   onTimerDurationChange,
   autoAdvanceEnabled,
   onToggleAutoAdvance,
+  connectedPlayers = [],
+  scores = {},
+  onSetScore,
 }) {
   const [newPresetName, setNewPresetName] = useState('');
 
@@ -135,6 +138,35 @@ export default function SettingsModal({
               <span>AUTO-ADVANCE</span>
             </label>
           </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Scores</h3>
+          {connectedPlayers.length === 0 ? (
+            <div className={styles.presetEmpty}>No players connected</div>
+          ) : (
+            <div className={styles.scoreList}>
+              {connectedPlayers.map(p => {
+                const score = scores[p.name] ?? 0;
+                return (
+                  <div key={p.id} className={styles.scoreRow}>
+                    <span className={styles.scoreName}>{p.name || `P${p.id}`}</span>
+                    <button
+                      className={styles.scoreBtn}
+                      onClick={() => onSetScore(p.name, score - 1)}
+                      disabled={!p.name}
+                    >−</button>
+                    <span className={styles.scoreValue}>{score}</span>
+                    <button
+                      className={styles.scoreBtn}
+                      onClick={() => onSetScore(p.name, score + 1)}
+                      disabled={!p.name}
+                    >+</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
       </div>

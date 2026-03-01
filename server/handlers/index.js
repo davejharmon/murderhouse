@@ -99,6 +99,7 @@ export function createHandlers(game) {
       send(ws, ServerMsg.LOG, game.log.slice(-50));
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
       send(ws, ServerMsg.HOST_SETTINGS, game.getHostSettings());
+      send(ws, ServerMsg.SCORES, { scores: game.getScoresObject() });
       return { success: true };
     },
 
@@ -693,6 +694,23 @@ export function createHandlers(game) {
         return { success: false, error: 'Not host' };
       }
       game.operatorSend();
+      return { success: true };
+    },
+
+    // === Scores ===
+
+    [ClientMsg.SET_SCORE]: (ws, payload) => {
+      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
+      if (typeof payload.name !== 'string' || typeof payload.score !== 'number') {
+        return { success: false, error: 'Invalid payload' };
+      }
+      game.setScore(payload.name, payload.score);
+      return { success: true };
+    },
+
+    [ClientMsg.PUSH_SCORE_SLIDE]: (ws) => {
+      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
+      game.pushScoreSlide();
       return { success: true };
     },
 

@@ -413,6 +413,9 @@ export default function Screen() {
       case SlideType.OPERATOR:
         return renderOperator(effectiveSlide);
 
+      case SlideType.SCORES:
+        return renderScores(effectiveSlide);
+
       default:
         return renderTitle(effectiveSlide);
     }
@@ -958,6 +961,34 @@ export default function Screen() {
           </div>
         </div>
         <p className={styles.roleTipText}>{slide.itemDescription}</p>
+      </div>
+    );
+  };
+
+  const renderScores = (slide) => {
+    const entries = slide.entries || [];
+    return (
+      <div key={slide.id} className={`${styles.slide} ${styles.scoreSlide}`}>
+        <h1 className={styles.scoreTitle}>{slide.title || 'SCOREBOARD'}</h1>
+        <div className={styles.scoreTable}>
+          {entries.map((entry, i) => (
+            <div key={entry.name} className={styles.scoreEntry}>
+              <span className={styles.scoreRank}>#{i + 1}</span>
+              {entry.portrait && (
+                <img
+                  src={`/images/players/${entry.portrait}`}
+                  alt={entry.name}
+                  className={styles.scorePortrait}
+                />
+              )}
+              <span className={styles.scoreEntryName}>{entry.name}</span>
+              <span className={styles.scoreEntryValue}>{entry.score}</span>
+            </div>
+          ))}
+          {entries.length === 0 && (
+            <div className={styles.scoreEmpty}>No scores yet</div>
+          )}
+        </div>
       </div>
     );
   };

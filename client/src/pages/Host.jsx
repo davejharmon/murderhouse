@@ -31,6 +31,7 @@ export default function Host() {
     setPresetSettings,
     hostSettings,
     operatorState,
+    scores,
   } = useGame();
 
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
@@ -275,6 +276,11 @@ export default function Host() {
   const handlePushHeartbeatSlide = (playerId) =>
     send(ClientMsg.PUSH_HEARTBEAT_SLIDE, { playerId });
 
+  const handleSetScore = (name, score) =>
+    send(ClientMsg.SET_SCORE, { name, score });
+
+  const handlePushScoreSlide = () => send(ClientMsg.PUSH_SCORE_SLIDE);
+
   const handleDebugAutoSelect = (playerId) =>
     send(ClientMsg.DEBUG_AUTO_SELECT, { playerId });
   const handleDebugAutoSelectAll = (eventId) =>
@@ -376,6 +382,9 @@ export default function Host() {
         <button onClick={() => setShowTutorialSlides(true)}>
           Tutorial Slides...
         </button>
+        <button onClick={handlePushScoreSlide}>
+          Scoreboard
+        </button>
       </section>
 
       {!isLobby && !isGameOver && (
@@ -469,6 +478,9 @@ export default function Host() {
         onTimerDurationChange={handleTimerDurationChange}
         autoAdvanceEnabled={autoAdvanceEnabled}
         onToggleAutoAdvance={handleToggleAutoAdvance}
+        connectedPlayers={gameState?.players ?? []}
+        scores={scores}
+        onSetScore={handleSetScore}
       />
 
       <TutorialSlidesModal

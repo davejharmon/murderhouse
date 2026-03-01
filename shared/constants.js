@@ -38,6 +38,7 @@ export const ServerMsg = {
   GAME_PRESET_LOADED: 'gamePresetLoaded',
   HOST_SETTINGS: 'hostSettings',
   OPERATOR_STATE: 'operatorState',
+  SCORES: 'scores',
 };
 
 // WebSocket message types - Client -> Server
@@ -117,6 +118,10 @@ export const ClientMsg = {
   OPERATOR_UNREADY: 'operatorUnready',
   OPERATOR_SEND: 'operatorSend',
 
+  // Scores
+  SET_SCORE: 'setScore',
+  PUSH_SCORE_SLIDE: 'pushScoreSlide',
+
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',
   DEBUG_AUTO_SELECT_ALL: 'debugAutoSelectAll',
@@ -135,6 +140,7 @@ export const SlideType = {
   ITEM_TIP: 'itemTip',
   HEARTBEAT: 'heartbeat',
   OPERATOR: 'operator',
+  SCORES: 'scores',
 };
 
 export const SlideStyle = {

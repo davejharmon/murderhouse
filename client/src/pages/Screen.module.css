@@ -804,3 +804,83 @@
     text-shadow: 0 0 60px rgba(201, 76, 76, 0.8), 0 0 90px rgba(201, 76, 76, 0.4);
   }
 }
+
+/* Scoreboard Slide */
+
+.scoreSlide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3vw;
+}
+
+.scoreTitle {
+  font-family: var(--font-mono);
+  font-size: 5vw;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #d4af37;
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  margin: 0;
+}
+
+.scoreTable {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vw;
+  width: 60%;
+  max-width: 900px;
+}
+
+.scoreEntry {
+  display: flex;
+  align-items: baseline;
+  gap: 2vw;
+  padding: 0.8vw 1.5vw;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 0.3vw;
+}
+
+.scoreRank {
+  font-family: var(--font-mono);
+  font-size: 2vw;
+  color: rgba(212, 175, 55, 0.5);
+  min-width: 3vw;
+  flex-shrink: 0;
+}
+
+.scorePortrait {
+  width: 3.5vw;
+  height: 3.5vw;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.scoreEntryName {
+  font-family: var(--font-mono);
+  font-size: 2.8vw;
+  color: var(--color-text);
+  flex: 1;
+  letter-spacing: 0.05em;
+}
+
+.scoreEntryValue {
+  font-family: var(--font-mono);
+  font-size: 3.5vw;
+  font-weight: 700;
+  color: #d4af37;
+  min-width: 4vw;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.scoreEmpty {
+  font-family: var(--font-mono);
+  font-size: 2vw;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2vw;
+}

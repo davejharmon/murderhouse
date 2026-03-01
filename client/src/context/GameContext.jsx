@@ -25,6 +25,7 @@ export function GameProvider({ children }) {
   const [presetSettings, setPresetSettings] = useState(null);
   const [hostSettings, setHostSettings] = useState(null);
   const [operatorState, setOperatorState] = useState({ words: [], ready: false });
+  const [scores, setScores] = useState({});
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -149,6 +150,10 @@ export function GameProvider({ children }) {
         setOperatorState(payload);
         break;
 
+      case ServerMsg.SCORES:
+        setScores(payload.scores ?? {});
+        break;
+
       default:
         console.log('[WS] Unknown message:', type, payload);
     }
@@ -219,6 +224,7 @@ export function GameProvider({ children }) {
     setPresetSettings,
     hostSettings,
     operatorState,
+    scores,
 
     // Actions
     send,
