@@ -711,7 +711,7 @@ export default function Screen() {
                   <div
                     key={i}
                     className={`${styles.compPortrait} ${styles[`compTeam_${entry.team}`]}`}
-                    style={entry.dim ? { opacity: 0.25 } : undefined}
+                    style={entry.dim ? { opacity: 0.12 } : undefined}
                   >
                     <img src="/images/players/anon.png" alt="" />
                     {entry.team === 'unknown' && <div className={styles.compUnknownMark}>?</div>}
