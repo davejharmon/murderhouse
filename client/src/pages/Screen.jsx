@@ -695,11 +695,16 @@ export default function Screen() {
             </p>
           )}
           {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
-            const teamOrder = { village: 0, werewolf: 1, neutral: 2, unknown: 3 };
-            const sorted = [...slide.remainingComposition].sort((a, b) => {
-              if (a.dim !== b.dim) return a.dim ? 1 : -1;
-              return teamOrder[a.team] - teamOrder[b.team];
-            });
+            const sortKey = (e) => {
+              if (e.team === 'village')  return e.dim ? 0 : 1;
+              if (e.team === 'neutral')  return e.dim ? 2 : 3;
+              if (e.team === 'unknown')  return 4;
+              if (e.team === 'werewolf') return e.dim ? 6 : 5;
+              return 4;
+            };
+            const sorted = [...slide.remainingComposition].sort(
+              (a, b) => sortKey(a) - sortKey(b),
+            );
             return (
               <div className={styles.compGallery}>
                 {sorted.map((entry, i) => (
