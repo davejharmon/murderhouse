@@ -41,10 +41,10 @@ export default function Landing() {
             <h2>Controls</h2>
             <div className={styles.controlLinks}>
               <Link to='/host' className={styles.controlLink}>
-                Host Dashboard
+                Host
               </Link>
               <Link to='/screen' className={styles.controlLink}>
-                Big Screen
+                Screen
               </Link>
               <Link to='/debug' className={styles.controlLink}>
                 Debug Grid

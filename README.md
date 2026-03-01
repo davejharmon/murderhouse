@@ -288,10 +288,8 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
-- Add role: Jester
 - Add glyph for Jester
   Add new role: Jailer
-- Add bar terminal mode
 - Improve pulse test
 - Add pulse test debug pulse
 - Add detonator
