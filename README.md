@@ -288,7 +288,6 @@ _(none currently)_
 
 - Add suspect functionality
 - Add slide to game end that shows score including suspect tracking
-- Add item: barricade
 - Add role: Jester
 - Add glyph for Jester
   Add new role: Jailer

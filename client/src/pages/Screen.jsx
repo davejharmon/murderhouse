@@ -686,7 +686,6 @@ export default function Screen() {
             alt={player.name}
             className={`${styles.largePortrait} ${styles.deathPortrait}`}
           />
-          <h2 className={styles.deathName}>{slide.subtitle || player.name}</h2>
           {slide.revealRole && (player.role || slide.revealText) && (
             <p
               className={styles.roleReveal}

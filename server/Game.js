@@ -1634,21 +1634,24 @@ export class Game {
     );
     this.pushSlide(tallySlide, false);
 
+    let resultSlideCount = 0;
     if (resolution.slide) {
       // Use queueDeathSlide for death slides (handles hunter revenge automatically)
       if (resolution.slide.type === 'death') {
         // Add voter IDs to death slide for vote results (shows who voted for elimination)
         const victimId = resolution.victim?.id;
         const voterIds = victimId ? tallySlide.voters[victimId] || [] : [];
-        this.queueDeathSlide({ ...resolution.slide, voterIds, skipDaySplit: true }, false);
+        const slidesBefore = this.slideQueue.length;
+        this.queueDeathSlide({ ...resolution.slide, voterIds }, false);
+        resultSlideCount = this.slideQueue.length - slidesBefore;
       } else {
         this.pushSlide(resolution.slide, false);
+        resultSlideCount = 1;
       }
     }
 
-    // Jump to tally (host advances to see result)
-    this.currentSlideIndex =
-      this.slideQueue.length - (resolution.slide ? 2 : 1);
+    // Jump to tally (host advances through result slides)
+    this.currentSlideIndex = this.slideQueue.length - resultSlideCount - 1;
     this.broadcastSlides();
 
     // Check win condition
@@ -2055,32 +2058,36 @@ export class Game {
 
   // === Slide Management ===
 
-  // Centralized death slide queuing - handles flow follow-up slides automatically
-  // During DAY phase (non-host kills), splits into two slides:
-  //   1. "PLAYER KILLED" (no role reveal) for suspense
-  //   2. Role reveal slide with team affiliation
+  // Centralized death slide queuing - always splits into two slides:
+  //   1. Identity slide: victim name in title (e.g. "MARK KILLED"), no role shown
+  //      If slide.identityTitle is set, uses that as title (e.g. pistol: "MARK shot JANE!")
+  //      and sets subtitle to victim name.
+  //   2. Role reveal slide: team name in title (e.g. "VILLAGER KILLED"), shows role.
+  //      If victim.isRoleCleaned, title becomes "??? {ACTION}" and shows revealText instead.
   queueDeathSlide(slide, jumpTo = true) {
-    const isDayDeath = this.phase === GamePhase.DAY && !slide.hostKill && !slide.skipDaySplit;
+    const victim = this.players.get(slide.playerId);
+    const victimName = victim?.name ?? 'PLAYER';
+    const action = slide.title.split(' ').pop(); // "KILLED", "ELIMINATED", etc.
+    const isRoleCleaned = victim?.isRoleCleaned ?? false;
 
-    if (isDayDeath && slide.revealRole) {
-      // Slide 1: anonymous death (no role info)
-      const anonymousSlide = {
-        ...slide,
-        title: 'PLAYER KILLED',
-        revealRole: false,
-        revealText: undefined,
-      };
-      this.pushSlide(anonymousSlide, jumpTo);
+    // Slide 1: identity — shows who died, no role info
+    const identitySlide = {
+      ...slide,
+      title: slide.identityTitle ?? `${victimName.toUpperCase()} ${action}`,
+      subtitle: slide.identityTitle ? victimName : slide.subtitle,
+      revealRole: false,
+      revealText: undefined,
+      identityTitle: undefined,
+    };
+    this.pushSlide(identitySlide, jumpTo);
 
-      // Slide 2: role reveal
-      const revealSlide = {
-        ...slide,
-        jumpTo: false,
-      };
-      this.pushSlide(revealSlide, false);
-    } else {
-      this.pushSlide(slide, jumpTo);
-    }
+    // Slide 2: role reveal — team name in title, shows role (or cleaned indicator)
+    const roleSlide = {
+      ...slide,
+      title: isRoleCleaned ? `??? ${action}` : slide.title,
+      identityTitle: undefined,
+    };
+    this.pushSlide(roleSlide, false);
 
     // Check all flows for pending slides to queue after the death slide
     for (const flow of this.flows.values()) {

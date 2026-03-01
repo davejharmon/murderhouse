@@ -932,6 +932,7 @@ const events = {
           playerId: victim.id,
           shooterId: shooter.id,
           title: `${teamName} KILLED`,
+          identityTitle: `${shooter.name} shot ${victim.name}!`,
           subtitle: `${shooter.name} shot ${victim.name}!`,
           revealRole: true,
           style: SlideStyle.HOSTILE,
