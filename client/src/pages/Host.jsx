@@ -30,6 +30,7 @@ export default function Host() {
     presetSettings,
     setPresetSettings,
     hostSettings,
+    operatorState,
   } = useGame();
 
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
@@ -367,6 +368,23 @@ export default function Host() {
           timerDuration={timerDuration}
         />
       )}
+
+      {/* Operator message feed */}
+      <div className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}>
+        <div className={styles.operatorLabel}>OPERATOR</div>
+        <div className={styles.operatorMessage}>
+          {operatorState?.words?.length > 0
+            ? operatorState.words.join(' ')
+            : <span className={styles.operatorEmpty}>no message</span>}
+        </div>
+        <button
+          className={styles.operatorSendBtn}
+          disabled={!operatorState?.ready}
+          onClick={() => send(ClientMsg.OPERATOR_SEND)}
+        >
+          {operatorState?.ready ? 'SEND TO SCREEN' : 'COMPOSING...'}
+        </button>
+      </div>
 
       <SlideControls
         slideQueue={slideQueue}

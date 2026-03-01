@@ -296,7 +296,6 @@ _(none currently)_
 - Add pulse test debug pulse
 - Add detonator
 - Add library of night and day fallback phrases
-- Separate elimination slides from role reveal slides
 - Add a go button
 - export all slides for string review
 

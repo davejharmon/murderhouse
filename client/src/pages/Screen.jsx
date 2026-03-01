@@ -326,6 +326,9 @@ export default function Screen() {
       case SlideType.HEARTBEAT:
         return <HeartbeatSlide slide={effectiveSlide} gameState={gameState} />;
 
+      case SlideType.OPERATOR:
+        return renderOperator(effectiveSlide);
+
       default:
         return renderTitle(effectiveSlide);
     }
@@ -720,6 +723,26 @@ export default function Screen() {
               </div>
             );
           })()}
+        </div>
+      </div>
+    );
+  };
+
+  const renderOperator = (slide) => {
+    const words = slide.words || [];
+    return (
+      <div key={slide.id} className={`${styles.slide} ${styles.operatorSlide}`}>
+        <p className={styles.operatorEyebrow}>{slide.title}</p>
+        <div className={styles.operatorMessage}>
+          {words.map((word, i) => (
+            <span
+              key={i}
+              className={styles.operatorWord}
+              style={{ animationDelay: `${i * 0.18}s` }}
+            >
+              {word}
+            </span>
+          ))}
         </div>
       </div>
     );

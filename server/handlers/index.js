@@ -657,6 +657,45 @@ export function createHandlers(game) {
       return { success: true };
     },
 
+    // === Operator Terminal ===
+
+    [ClientMsg.OPERATOR_JOIN]: (ws) => {
+      ws.clientType = 'operator';
+      send(ws, ServerMsg.OPERATOR_STATE, game.getOperatorState());
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_ADD]: (ws, payload) => {
+      if (!payload.word || typeof payload.word !== 'string') {
+        return { success: false, error: 'Invalid word' };
+      }
+      game.operatorAdd(payload.word);
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_DELETE]: () => {
+      game.operatorDelete();
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_READY]: () => {
+      game.operatorSetReady(true);
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_UNREADY]: () => {
+      game.operatorSetReady(false);
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_SEND]: (ws) => {
+      if (ws.clientType !== 'host') {
+        return { success: false, error: 'Not host' };
+      }
+      game.operatorSend();
+      return { success: true };
+    },
+
     // === Debug Actions ===
 
     [ClientMsg.DEBUG_AUTO_SELECT]: (ws, payload) => {

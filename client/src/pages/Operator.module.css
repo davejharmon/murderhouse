@@ -1,0 +1,192 @@
+/* client/src/pages/Operator.module.css */
+/* Dead-player cryptic message terminal — CRT / Severance aesthetic */
+
+.terminal {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #050608;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vh;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Subtle scanline overlay */
+.terminal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Connection status dot */
+.connDot {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.connOnline  { background: #3a5a3a; box-shadow: 0 0 6px #3a5a3a; }
+.connOffline { background: #5a2020; box-shadow: 0 0 6px #5a2020; }
+
+/* Message accumulator — top strip showing words so far */
+.messageArea {
+  width: 80vw;
+  min-height: 3vh;
+  border-bottom: 1px solid rgba(120, 200, 120, 0.12);
+  padding-bottom: 1.5vh;
+  text-align: center;
+}
+
+.messageText {
+  font-size: clamp(0.7rem, 1.4vw, 1.1rem);
+  letter-spacing: 0.25em;
+  color: rgba(140, 210, 140, 0.55);
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.messagePlaceholder {
+  color: rgba(140, 210, 140, 0.18);
+  font-style: italic;
+}
+
+/* Main selection focus area */
+.selectionArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+  transition: opacity 0.3s;
+}
+
+.selectionMain {
+  font-size: clamp(1.6rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #a8d8a8;
+  text-shadow: 0 0 20px rgba(140, 210, 140, 0.4);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.selectionSub {
+  font-size: clamp(0.65rem, 1.2vw, 0.9rem);
+  letter-spacing: 0.3em;
+  color: rgba(140, 210, 140, 0.35);
+  text-transform: uppercase;
+}
+
+/* Ready state — amber glow */
+.readyGlow .selectionMain {
+  color: #d4af37;
+  text-shadow: 0 0 24px rgba(212, 175, 55, 0.5);
+  animation: readyPulse 2.5s ease-in-out infinite;
+}
+
+.readyGlow .selectionSub {
+  color: rgba(212, 175, 55, 0.5);
+  animation: readyPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes readyPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* Message sent flash */
+.sentFlash .selectionMain {
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+  animation: sentFade 2s ease-out forwards;
+}
+
+@keyframes sentFade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Dial up/down buttons */
+.dialIndicators {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vh;
+}
+
+.dialBtn {
+  background: none;
+  border: 1px solid rgba(140, 210, 140, 0.2);
+  color: rgba(140, 210, 140, 0.4);
+  font-size: 1.1rem;
+  padding: 0.3rem 1.2rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.dialBtn:hover {
+  color: rgba(140, 210, 140, 0.8);
+  border-color: rgba(140, 210, 140, 0.5);
+}
+
+/* YES / NO buttons */
+.buttonRow {
+  display: flex;
+  gap: 3vw;
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.8rem 2.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  min-width: 9rem;
+}
+
+.btnYes {
+  background: rgba(140, 210, 140, 0.08);
+  border-color: rgba(140, 210, 140, 0.4);
+  color: #a8d8a8;
+}
+.btnYes:hover:not(:disabled) {
+  background: rgba(140, 210, 140, 0.18);
+  border-color: rgba(140, 210, 140, 0.7);
+  box-shadow: 0 0 12px rgba(140, 210, 140, 0.2);
+}
+
+.btnNo {
+  background: rgba(201, 76, 76, 0.06);
+  border-color: rgba(201, 76, 76, 0.3);
+  color: rgba(201, 76, 76, 0.7);
+}
+.btnNo:hover:not(:disabled) {
+  background: rgba(201, 76, 76, 0.14);
+  border-color: rgba(201, 76, 76, 0.55);
+}
+
+.btnDisabled {
+  opacity: 0.2;
+  cursor: default;
+}

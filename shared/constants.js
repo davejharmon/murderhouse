@@ -37,6 +37,7 @@ export const ServerMsg = {
   GAME_PRESETS: 'gamePresets',
   GAME_PRESET_LOADED: 'gamePresetLoaded',
   HOST_SETTINGS: 'hostSettings',
+  OPERATOR_STATE: 'operatorState',
 };
 
 // WebSocket message types - Client -> Server
@@ -108,6 +109,14 @@ export const ClientMsg = {
   HEARTBEAT: 'heartbeat',
   PUSH_HEARTBEAT_SLIDE: 'pushHeartbeatSlide',
 
+  // Operator terminal
+  OPERATOR_JOIN: 'operatorJoin',
+  OPERATOR_ADD: 'operatorAdd',
+  OPERATOR_DELETE: 'operatorDelete',
+  OPERATOR_READY: 'operatorReady',
+  OPERATOR_UNREADY: 'operatorUnready',
+  OPERATOR_SEND: 'operatorSend',
+
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',
   DEBUG_AUTO_SELECT_ALL: 'debugAutoSelectAll',
@@ -125,6 +134,7 @@ export const SlideType = {
   ROLE_TIP: 'roleTip',
   ITEM_TIP: 'itemTip',
   HEARTBEAT: 'heartbeat',
+  OPERATOR: 'operator',
 };
 
 export const SlideStyle = {
@@ -282,3 +292,19 @@ export const DisplayStyle = {
   WAITING: 'waiting',
   CRITICAL: 'critical',
 };
+
+// Operator terminal word library
+export const OPERATOR_WORDS = {
+  WARNINGS: ['BEWARE', 'TRUST', 'IGNORE', 'WATCH', 'LISTEN', 'REMEMBER', 'FORGET', 'SUSPECT'],
+  SUBJECTS: ['THE', 'LOUD', 'QUIET', 'KIND', 'SCARED', 'ANGRY', 'CLEVER', 'COWARDLY', 'BRAVE',
+             'BLESSED', 'LUCKY', 'UNLUCKY', 'LEFT', 'RIGHT', 'MEAN', 'SHOUTY', 'STRANGE',
+             'ONE', 'THEM', 'ALL', 'NONE', 'FIRST', 'LAST'],
+  STATE:    ['LIES', 'KNOWS', 'HIDES', 'PROTECTS', 'HUNTS', 'IS', 'NOT', 'SOON', 'LATE', 'TOO',
+             'SAFE', 'LOST', 'WRONG', 'STUPID', 'LYING', 'CRAZY', 'WILL', 'DIE', 'LIVE',
+             'WIN', 'LOSE', 'NEXT', 'WANTS', 'HATES', 'THIS', 'THAT', 'CHANGES', 'STARTS', 'ENDS'],
+  CHAOS:    ['YIKES', 'SORRY', 'BYE', 'HELLO', 'HELP', 'NO', 'YES', 'MAYBE', 'RED', 'DARK',
+             'SOON', 'ALWAYS', 'NEVER', 'DAVE'],
+};
+
+// Category order for dial cycling (READY is special — not a word list)
+export const OPERATOR_CATEGORIES = ['WARNINGS', 'SUBJECTS', 'STATE', 'CHAOS', 'READY'];

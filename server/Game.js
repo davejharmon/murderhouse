@@ -131,6 +131,10 @@ export class Game {
 
     // Log
     this.log = [];
+
+    // Operator terminal
+    this.operatorWords = [];
+    this.operatorReady = false;
   }
 
   // === Player Management ===
@@ -2227,6 +2231,44 @@ export class Game {
       return this.slideQueue[this.currentSlideIndex];
     }
     return null;
+  }
+
+  // === Operator Terminal ===
+
+  getOperatorState() {
+    return { words: this.operatorWords, ready: this.operatorReady };
+  }
+
+  operatorAdd(word) {
+    this.operatorWords.push(word);
+    this.broadcastOperatorState();
+  }
+
+  operatorDelete() {
+    this.operatorWords.pop();
+    this.operatorReady = false;
+    this.broadcastOperatorState();
+  }
+
+  operatorSetReady(ready) {
+    this.operatorReady = ready;
+    this.broadcastOperatorState();
+  }
+
+  operatorSend() {
+    if (this.operatorWords.length === 0) return;
+    this.pushSlide({
+      type: SlideType.OPERATOR,
+      title: 'A MESSAGE FROM BEYOND...',
+      words: [...this.operatorWords],
+    }, true);
+    this.operatorWords = [];
+    this.operatorReady = false;
+    this.broadcastOperatorState();
+  }
+
+  broadcastOperatorState() {
+    this.broadcast(ServerMsg.OPERATOR_STATE, this.getOperatorState());
   }
 
   // === Broadcasting ===
