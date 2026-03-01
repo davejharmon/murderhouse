@@ -394,6 +394,49 @@
   filter: sepia(0.3) saturate(2) hue-rotate(-30deg);
 }
 
+/* Remaining Composition Gallery (on role reveal death slides) */
+.compGallery {
+  display: flex;
+  gap: 0.6vw;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2vh;
+}
+
+.compPortrait {
+  position: relative;
+  width: 3.5vw;
+  height: 3.5vw;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.compPortrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.compTeam_village img    { filter: sepia(1) saturate(3) hue-rotate(175deg) brightness(1.1); }
+.compTeam_werewolf img   { filter: sepia(1) saturate(4) hue-rotate(330deg); }
+.compTeam_neutral img    { filter: sepia(1) saturate(2) brightness(1.1); }
+.compTeam_unknown img    { filter: grayscale(1) brightness(0.6); }
+
+.compUnknownMark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.8vw;
+  font-weight: 700;
+  color: #aaa;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
 /* Victory Slide */
 .victorySlide {
   animation: victoryPulse 2s ease-in-out infinite;

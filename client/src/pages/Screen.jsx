@@ -694,6 +694,22 @@ export default function Screen() {
               {slide.revealText || player.roleName}
             </p>
           )}
+          {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
+            const teamOrder = { village: 0, werewolf: 1, neutral: 2, unknown: 3 };
+            const sorted = [...slide.remainingComposition].sort(
+              (a, b) => teamOrder[a.team] - teamOrder[b.team],
+            );
+            return (
+              <div className={styles.compGallery}>
+                {sorted.map((entry, i) => (
+                  <div key={i} className={`${styles.compPortrait} ${styles[`compTeam_${entry.team}`]}`}>
+                    <img src="/images/players/anon.png" alt="" />
+                    {entry.team === 'unknown' && <div className={styles.compUnknownMark}>?</div>}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
     );

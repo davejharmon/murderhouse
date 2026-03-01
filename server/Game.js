@@ -2082,10 +2082,14 @@ export class Game {
     this.pushSlide(identitySlide, jumpTo);
 
     // Slide 2: role reveal — team name in title, shows role (or cleaned indicator)
+    const remainingComposition = this.getAlivePlayers().map((p) => ({
+      team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'village'),
+    }));
     const roleSlide = {
       ...slide,
       title: isRoleCleaned ? `??? ${action}` : slide.title,
       identityTitle: undefined,
+      remainingComposition,
     };
     this.pushSlide(roleSlide, false);
 
