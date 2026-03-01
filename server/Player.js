@@ -82,6 +82,7 @@ export class Player {
     this.currentSelection = null; // Currently highlighted target
     this.pendingEvents = new Set(); // Events waiting for this player
     this.lastEventResult = null; // { message } shown on TinyScreen after event resolves
+    this.roleRevealPending = false; // True after game start until first phase transition
 
     // Tutorial
     this.tutorialTip = null; // Role tip shown on TinyScreen line 3 during idle
@@ -100,7 +101,8 @@ export class Player {
     this.poisonedAt = null; // dayCount value of the night poison was applied
 
     // Inventory
-    this.inventory = []; // Array of { id, uses, maxUses }
+    this.inventory = []; // Array of { id, uses, maxUses } — visible to player (max 3 slots)
+    this.hiddenInventory = []; // Hidden items (not shown on console or icon column)
 
     // Heartbeat (from ESP32 AD8232)
     this.heartbeat = { bpm: 0, active: false, lastUpdate: 0 };
@@ -149,6 +151,7 @@ export class Player {
     this.isPoisoned = false;
     this.poisonedAt = null;
     this.inventory = [];
+    this.hiddenInventory = [];
   }
 
   // Check if player is alive
@@ -272,6 +275,7 @@ export class Player {
     this.clearSelection();
     this.pendingEvents.clear();
     this.lastEventResult = null;
+    this.roleRevealPending = false;
     this.idleScrollIndex = 0;
   }
 
@@ -321,6 +325,7 @@ export class Player {
       linkedTo: this.linkedTo,
       vigilanteUsed: this.vigilanteUsed,
       inventory: this.inventory,
+      hiddenInventory: this.hiddenInventory,
       packInfo: game ? this.getPackInfo(game) : null,
       display: game ? this.getDisplayState(game, null, dr) : null,
     };
@@ -596,10 +601,11 @@ export class Player {
   }
 
   _displayEventResult(getLine1, phaseLed) {
+    const style = this.lastEventResult.critical ? DisplayStyle.CRITICAL : DisplayStyle.NORMAL;
     return this._display(
       { left: getLine1(), right: '' },
-      { text: this.lastEventResult.message, style: DisplayStyle.NORMAL },
-      { text: '' },
+      { text: this.lastEventResult.message, style },
+      { text: this.lastEventResult.detail || '' },
       { yes: LedState.OFF, no: LedState.OFF },
       phaseLed
     );
@@ -612,6 +618,7 @@ export class Player {
 
     // Determine line2/line3 content based on which slot is highlighted
     let line2Text = '';
+    let line2Style = DisplayStyle.NORMAL;
     let line3 = { text: '' };
     let leds = { yes: LedState.OFF, no: LedState.OFF };
 
@@ -620,6 +627,7 @@ export class Player {
       const displayRole = this._displayRoleOverride || this.role;
       line2Text = displayRole ? fitRoleName(displayRole, 23) : 'READY';
       line3 = { text: this.tutorialTip || '' };
+      if (this.roleRevealPending) line2Style = DisplayStyle.CRITICAL;
     } else {
       // Item slots (1 or 2)
       const itemIndex = idx - 1;
@@ -647,7 +655,7 @@ export class Player {
 
     return this._display(
       { left: getLine1(), right: '' },
-      { text: line2Text, style: DisplayStyle.NORMAL },
+      { text: line2Text, style: line2Style },
       line3,
       leds,
       phaseLed
@@ -827,8 +835,16 @@ export class Player {
 
   // Inventory management
   addItem(itemDef) {
+    if (itemDef.hidden) {
+      // Hidden items stored separately — not shown on console or icon slots
+      if (!this.hiddenInventory.some(i => i.id === itemDef.id)) {
+        this.hiddenInventory.push({ id: itemDef.id, uses: itemDef.maxUses, maxUses: itemDef.maxUses });
+      }
+      return this;
+    }
+
     // Check if player already has this item
-    const existingItem = this.getItem(itemDef.id);
+    const existingItem = this.inventory.find(i => i.id === itemDef.id);
 
     if (existingItem) {
       // Add uses to existing item instead of creating duplicate
@@ -839,7 +855,7 @@ export class Player {
         id: itemDef.id,
         uses: itemDef.maxUses,
         maxUses: itemDef.maxUses,
-        startsEvent: itemDef.startsEvent || null, // Event to start when activated (idle-activatable)
+        startsEvent: itemDef.startsEvent || null,
       });
     }
 
@@ -847,11 +863,14 @@ export class Player {
   }
 
   hasItem(itemId) {
-    return this.inventory.some((item) => item.id === itemId);
+    return this.inventory.some((item) => item.id === itemId)
+      || this.hiddenInventory.some((item) => item.id === itemId);
   }
 
   getItem(itemId) {
-    return this.inventory.find((item) => item.id === itemId) || null;
+    return this.inventory.find((item) => item.id === itemId)
+      || this.hiddenInventory.find((item) => item.id === itemId)
+      || null;
   }
 
   removeItem(itemId) {
@@ -859,10 +878,15 @@ export class Player {
     if (index !== -1) {
       this.inventory.splice(index, 1);
       // Clamp idle scroll index if it now points past available slots
-      const maxSlot = this.inventory.length; // slots 1..N map to inventory 0..N-1
+      const maxSlot = this.inventory.length;
       if (this.idleScrollIndex > maxSlot) {
         this.idleScrollIndex = 0;
       }
+      return true;
+    }
+    const hiddenIndex = this.hiddenInventory.findIndex((item) => item.id === itemId);
+    if (hiddenIndex !== -1) {
+      this.hiddenInventory.splice(hiddenIndex, 1);
       return true;
     }
     return false;

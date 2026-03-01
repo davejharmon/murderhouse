@@ -91,14 +91,14 @@ function drawText(ctx, text, x, baselineY, font) {
 }
 
 /**
- * Draw an 18x18 XBM icon at (x, y)
+ * Draw an 18x18 XBM icon at (x, y) with optional color override
  * XBM format: 3 bytes per row, LSB = leftmost pixel, only 18 bits used
  */
-function drawIcon(ctx, iconId, x, y) {
+function drawIcon(ctx, iconId, x, y, color = ICON_COLOR) {
   const bytes = Icons[iconId]
   if (!bytes) return
 
-  ctx.fillStyle = ICON_COLOR
+  ctx.fillStyle = color
   for (let row = 0; row < ICON_SIZE; row++) {
     const b0 = bytes[row * 3]
     const b1 = bytes[row * 3 + 1]
@@ -134,16 +134,22 @@ function drawSelectionBar(ctx, activeIndex, color) {
 /**
  * Render the full 3-line display with icon column onto a canvas context
  */
-function renderDisplay(ctx, display, color) {
+function renderDisplay(ctx, display, color, line2Color = null, iconColors = null) {
   const { line1, line2, line3, icons } = display
   const isLocked = line2.style === 'locked'
+
+  // Effective line 2 color: explicit override → locked bright → base color
+  const l2Color = line2Color !== null ? line2Color
+    : isLocked ? COLOR_BRIGHT
+    : color
 
   // === ICON COLUMN ===
   if (icons && icons.length === 3) {
     for (let i = 0; i < 3; i++) {
       const icon = icons[i]
       if (icon && icon.id) {
-        drawIcon(ctx, icon.id, ICON_COL_X, ICON_Y[i])
+        const slotColor = (iconColors && iconColors[i] != null) ? iconColors[i] : ICON_COLOR
+        drawIcon(ctx, icon.id, ICON_COL_X, ICON_Y[i], slotColor)
       }
     }
     // Draw selection bar next to the active icon slot (only if 2+ icons visible)
@@ -170,30 +176,23 @@ function renderDisplay(ctx, display, color) {
   const l2W = measureText(line2.text, FONT_10x20)
   const l2X = Math.floor((TEXT_AREA_W - l2W) / 2)
 
+  ctx.fillStyle = l2Color
   if (isLocked) {
-    // Brighter color for locked
-    ctx.fillStyle = COLOR_BRIGHT
     // Draw frame around text (matching ESP32 drawFrame)
     const frameX = l2X - 4
     const frameY = LINE2_Y - 18
     const frameW = l2W + 8
     const frameH = 22
-    // Top edge
     ctx.fillRect(frameX, frameY, frameW, 1)
-    // Bottom edge
     ctx.fillRect(frameX, frameY + frameH - 1, frameW, 1)
-    // Left edge
     ctx.fillRect(frameX, frameY, 1, frameH)
-    // Right edge
     ctx.fillRect(frameX + frameW - 1, frameY, 1, frameH)
   }
 
   drawText(ctx, line2.text, l2X, LINE2_Y, FONT_10x20)
 
-  // Reset color after locked
-  if (isLocked) {
-    ctx.fillStyle = color
-  }
+  // Reset to base color for line 3
+  ctx.fillStyle = color
 
   // === LINE 3: small font, centered or left/right within text area ===
   const hasLine3Split = line3.left || line3.right
@@ -224,6 +223,9 @@ function renderDisplay(ctx, display, color) {
 export default function TinyScreen({ display, compact = false }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
+  const criticalPlayedRef = useRef(false)
+  const prevIconsRef = useRef(null)   // previous icon state for change detection
+  const iconBlinkRef = useRef({})     // { slotIndex: startTimestamp } for active blinks
 
   const renderFrame = useCallback((canvas, style, time) => {
     if (!canvas || !display) return
@@ -253,6 +255,24 @@ export default function TinyScreen({ display, compact = false }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    // === Detect icon changes → queue per-slot blinks ===
+    if (display) {
+      const currentIcons = display.icons || []
+      if (prevIconsRef.current !== null) {
+        const now = performance.now()
+        for (let i = 0; i < 3; i++) {
+          const prevId = prevIconsRef.current[i]?.id || 'empty'
+          const currId = currentIcons[i]?.id || 'empty'
+          if (currId !== prevId && currId !== 'empty') {
+            iconBlinkRef.current[i] = now
+          }
+        }
+      }
+      prevIconsRef.current = currentIcons
+    } else {
+      prevIconsRef.current = null
+    }
+
     if (!display) {
       // No display data — show connecting message
       const ctx = canvas.getContext('2d')
@@ -270,21 +290,85 @@ export default function TinyScreen({ display, compact = false }) {
     const style = display.line2.style
 
     if (style === 'waiting') {
-      // Animate: pulse line2
+      // Continuous pulse for line 2 — icon blinks deferred until state changes
       let startTime = null
       const animate = (timestamp) => {
         if (startTime === null) startTime = timestamp
-        const elapsed = timestamp - startTime
-        renderFrame(canvas, style, elapsed)
+        renderFrame(canvas, style, timestamp - startTime)
         animRef.current = requestAnimationFrame(animate)
       }
       animRef.current = requestAnimationFrame(animate)
       return () => {
         if (animRef.current) cancelAnimationFrame(animRef.current)
       }
-    } else {
-      // Static render
-      renderFrame(canvas, style)
+    }
+
+    // Determine what needs animating
+    const needsLineBlink = style === 'critical' && !criticalPlayedRef.current
+    const hasIconBlinks = Object.keys(iconBlinkRef.current).length > 0
+
+    // Update critical tracking
+    if (style !== 'critical') {
+      criticalPlayedRef.current = false
+    } else if (needsLineBlink) {
+      criticalPlayedRef.current = true
+    }
+
+    if (!needsLineBlink && !hasIconBlinks) {
+      // Static render — no animation needed
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = COLOR_BG
+      ctx.fillRect(0, 0, W, H)
+      renderDisplay(ctx, display, COLOR_NORMAL, style === 'critical' ? COLOR_BRIGHT : null)
+      return
+    }
+
+    // Unified animation loop: line 2 blink and/or icon slot blinks
+    const HALF_CYCLE = 150
+    const TOTAL_BLINK_MS = HALF_CYCLE * 2 * 3 // 3 cycles
+
+    let animStartTime = null
+    const animate = (timestamp) => {
+      if (animStartTime === null) animStartTime = timestamp
+      const elapsed = timestamp - animStartTime
+
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = COLOR_BG
+      ctx.fillRect(0, 0, W, H)
+
+      // Line 2 color
+      let l2Color = null
+      if (style === 'critical') {
+        if (!needsLineBlink || elapsed >= TOTAL_BLINK_MS) {
+          l2Color = COLOR_BRIGHT // settled
+        } else {
+          l2Color = Math.floor(elapsed / HALF_CYCLE) % 2 === 0 ? COLOR_BRIGHT : COLOR_BG
+        }
+      }
+
+      // Per-slot icon colors (null = default ICON_COLOR)
+      const iconColors = [null, null, null]
+      let stillBlinking = false
+      for (const slotStr of Object.keys(iconBlinkRef.current)) {
+        const slot = parseInt(slotStr)
+        const slotElapsed = timestamp - iconBlinkRef.current[slot]
+        if (slotElapsed >= TOTAL_BLINK_MS) {
+          delete iconBlinkRef.current[slot]
+        } else {
+          stillBlinking = true
+          iconColors[slot] = Math.floor(slotElapsed / HALF_CYCLE) % 2 === 0 ? COLOR_BRIGHT : COLOR_BG
+        }
+      }
+
+      renderDisplay(ctx, display, COLOR_NORMAL, l2Color, iconColors)
+
+      const l2Done = !needsLineBlink || elapsed >= TOTAL_BLINK_MS
+      if (l2Done && !stillBlinking) return
+      animRef.current = requestAnimationFrame(animate)
+    }
+    animRef.current = requestAnimationFrame(animate)
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current)
     }
   }, [display, renderFrame])
 

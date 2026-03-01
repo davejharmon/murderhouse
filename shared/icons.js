@@ -340,6 +340,27 @@ export const ICON_COWARD = [
   0x00, 0x00, 0x00,  // row 17: blank
 ];
 
+export const ICON_TANNER = [
+  0x00, 0x00, 0x00,  // row  0: blank
+  0x10, 0x10, 0x00,  // row  1: stake pegs (cols 4, 12)
+  0x20, 0x08, 0x00,  // row  2: diagonal connectors (cols 5, 11)
+  0xC0, 0x07, 0x00,  // row  3: top of hide (cols 6-10)
+  0xE0, 0x0F, 0x00,  // row  4: (cols 5-11)
+  0xF0, 0x1F, 0x00,  // row  5: (cols 4-12)
+  0xF8, 0x3F, 0x00,  // row  6: (cols 3-13)
+  0xFC, 0x7F, 0x00,  // row  7: widest (cols 2-14)
+  0xFC, 0x7F, 0x00,  // row  8: widest
+  0xFC, 0x7F, 0x00,  // row  9: widest
+  0xF8, 0x3F, 0x00,  // row 10: (cols 3-13)
+  0xF0, 0x1F, 0x00,  // row 11: (cols 4-12)
+  0xE0, 0x0F, 0x00,  // row 12: (cols 5-11)
+  0xC0, 0x07, 0x00,  // row 13: bottom of hide (cols 6-10)
+  0x20, 0x08, 0x00,  // row 14: diagonal connectors (cols 5, 11)
+  0x10, 0x10, 0x00,  // row 15: stake pegs (cols 4, 12)
+  0x00, 0x00, 0x00,  // row 16: blank
+  0x00, 0x00, 0x00,  // row 17: blank
+];
+
 export const ICON_SKULL = [
   0x00, 0x00, 0x00,
   0xe0, 0x07, 0x00,
@@ -361,6 +382,28 @@ export const ICON_SKULL = [
   0x00, 0x00, 0x00,
 ];
 
+// Prospect - paw print (4 toe pads + large oval main pad)
+export const ICON_PROSPECT = [
+  0x00, 0x00, 0x00,  // row  0: blank
+  0xCC, 0xCC, 0x00,  // row  1: toes (cols 2-3, 6-7, 10-11, 14-15)
+  0xCC, 0xCC, 0x00,  // row  2: toes
+  0x00, 0x00, 0x00,  // row  3: gap
+  0x80, 0x07, 0x00,  // row  4: pad top (cols 7-10)
+  0xC0, 0x0F, 0x00,  // row  5: pad (cols 6-11)
+  0xE0, 0x1F, 0x00,  // row  6: pad (cols 5-12)
+  0xF0, 0x3F, 0x00,  // row  7: pad (cols 4-13)
+  0xF8, 0x7F, 0x00,  // row  8: pad widest (cols 3-14)
+  0xF8, 0x7F, 0x00,  // row  9: pad widest
+  0xF8, 0x7F, 0x00,  // row 10: pad widest
+  0xF0, 0x3F, 0x00,  // row 11: pad (cols 4-13)
+  0xE0, 0x1F, 0x00,  // row 12: pad (cols 5-12)
+  0xC0, 0x0F, 0x00,  // row 13: pad (cols 6-11)
+  0x80, 0x07, 0x00,  // row 14: pad bottom (cols 7-10)
+  0x00, 0x00, 0x00,  // row 15: blank
+  0x00, 0x00, 0x00,  // row 16: blank
+  0x00, 0x00, 0x00,  // row 17: blank
+];
+
 // Map icon IDs to their data
 export const Icons = {
   villager: ICON_VILLAGER,
@@ -373,6 +416,9 @@ export const Icons = {
   governor: ICON_GOVERNOR,
   cupid: ICON_CUPID,
   roleblocker: ICON_ROLEBLOCKER,
+  tanner: ICON_TANNER,
+  tanned: ICON_TANNER,
+  prospect: ICON_PROSPECT,
   poisoner: ICON_POISONER,
   pistol: ICON_PISTOL,
   phone: ICON_PHONE,

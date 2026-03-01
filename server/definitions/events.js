@@ -290,12 +290,6 @@ const events = {
           success: true,
           outcome: 'protected',
           message: `${kill.target.getNameWithEmoji()} was protected`,
-          slide: {
-            type: 'title',
-            title: 'PROTECTED',
-            subtitle: 'Someone survived an attack tonight.',
-            style: SlideStyle.POSITIVE,
-          },
         };
       }
 
@@ -488,11 +482,12 @@ const events = {
       if (game.poisonerActing) {
         game.poisonerActing = false;
 
-        // Doctor protection on the same night cancels the poison — no slide
+        // Doctor protection on the same night cancels the poison
         if (victim.isProtected) {
           victim.isProtected = false;
           return {
             success: true,
+            silent: true,
             message: `${victim.getNameWithEmoji()} was saved from poison`,
           };
         }
@@ -504,12 +499,6 @@ const events = {
           success: true,
           outcome: 'poisoned',
           message: `${victim.getNameWithEmoji()} was poisoned`,
-          slide: {
-            type: 'title',
-            title: 'PROTECTED',
-            subtitle: 'Someone was saved tonight.',
-            style: SlideStyle.POSITIVE,
-          },
         };
       }
 
@@ -521,16 +510,19 @@ const events = {
           outcome: 'protected',
           targetId: victimId,
           message: `${victim.getNameWithEmoji()} was protected`,
-          slide: {
-            type: 'title',
-            title: 'PROTECTED',
-            subtitle: 'Someone was saved tonight.',
-            style: SlideStyle.POSITIVE,
-          },
         };
       }
 
       game.killPlayer(victim.id, 'werewolf');
+
+      // PROSPECT: victim was recruited instead of killed
+      if (victim.isAlive) {
+        return {
+          success: true,
+          outcome: 'recruited',
+          message: `${victim.getNameWithEmoji()} was recruited by the werewolves`,
+        };
+      }
 
       // Check if janitor is cleaning
       const cleaned = game.janitorCleaning;
@@ -637,7 +629,7 @@ const events = {
         if (targetId === null) continue;
         const seer = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
-        const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty;
+        const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty || target.hasItem(ItemId.TANNED);
 
         if (!seer.investigations) seer.investigations = [];
         seer.investigations.push({
@@ -735,7 +727,7 @@ const events = {
 
         // Real investigate (25%) returns accurate result; other actions always show INNOCENT
         const isEvil = action === 'investigate'
-          ? (target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty)
+          ? (target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty || target.hasItem(ItemId.TANNED))
           : false;
 
         if (!actor.investigations) actor.investigations = [];

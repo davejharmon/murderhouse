@@ -59,6 +59,7 @@ void displayClear() {
 uint8_t getStyleColor(DisplayStyle style) {
     switch (style) {
         case DisplayStyle::LOCKED:
+        case DisplayStyle::CRITICAL:
             return 255;  // Bright
         case DisplayStyle::ABSTAINED:
             return 128;  // Dim
@@ -83,7 +84,8 @@ static void drawSelectionBar(int activeIndex) {
     u8g2.drawBox(BAR_X, SLOT_Y[activeIndex], BAR_W, ICON_SLOT_H);
 }
 
-void displayRender(const DisplayState& state) {
+// Internal: draw the full display state into u8g2 buffer and send it
+static void _renderBuffer(const DisplayState& state) {
     u8g2.clearBuffer();
 
     // === ICON COLUMN ===
@@ -118,13 +120,9 @@ void displayRender(const DisplayState& state) {
     int line2X = (TEXT_AREA_W - line2Width) / 2;
 
     // Draw based on style
-    if (state.line2.style == DisplayStyle::ABSTAINED) {
-        u8g2.setDrawColor(1);
-    } else if (state.line2.style == DisplayStyle::LOCKED) {
-        u8g2.setDrawColor(1);
+    u8g2.setDrawColor(1);
+    if (state.line2.style == DisplayStyle::LOCKED) {
         u8g2.drawFrame(line2X - 4, LINE2_Y - 18, line2Width + 8, 22);
-    } else if (state.line2.style == DisplayStyle::WAITING) {
-        u8g2.setDrawColor(1);
     }
 
     u8g2.drawStr(line2X, LINE2_Y, state.line2.text.c_str());
@@ -153,6 +151,21 @@ void displayRender(const DisplayState& state) {
 
     // Send buffer to display
     u8g2.sendBuffer();
+}
+
+void displayRender(const DisplayState& state) {
+    int blinkCycles = (state.line2.style == DisplayStyle::CRITICAL) ? 3 : 1;
+
+    for (int blink = 0; blink < blinkCycles; blink++) {
+        if (blink > 0) {
+            // Blank frame between blinks
+            delay(150);
+            u8g2.clearBuffer();
+            u8g2.sendBuffer();
+            delay(150);
+        }
+        _renderBuffer(state);
+    }
 }
 
 void displayMessage(const char* line1, const char* line2, const char* line3) {

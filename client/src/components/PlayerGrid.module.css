@@ -250,6 +250,14 @@
   cursor: default;
 }
 
+.itemBadgeHidden {
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: default;
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
 /* --- Actions (right-aligned) --- */
 
 .actions {

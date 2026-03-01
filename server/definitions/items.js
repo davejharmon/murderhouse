@@ -55,6 +55,24 @@ const items = {
     startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
   },
 
+  tanned: {
+    id: 'tanned',
+    name: 'Tanned',
+    description: 'A hidden curse. You appear guilty when investigated.',
+    maxUses: -1, // Passive: always active while held
+    hidden: true, // Not shown on player console or icon slots
+    grantsAbility: 'appearsGuilty', // Checked by investigate/stumble events
+  },
+
+  prospect: {
+    id: 'prospect',
+    name: 'Prospect',
+    description: 'A hidden mark. If killed by werewolves, join their pack instead of dying.',
+    maxUses: -1, // Passive: consumed on trigger
+    hidden: true, // Not shown on player console or icon slots
+    grantsAbility: 'prospect', // Checked by killPlayer in Game.js
+  },
+
   coward: {
     id: 'coward',
     name: "The Coward's Way Out",

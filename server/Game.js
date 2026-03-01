@@ -8,6 +8,7 @@ import {
   ServerMsg,
   EventId,
   RoleId,
+  ItemId,
   SlideStyle,
   SlideType,
   ITEM_DISPLAY,
@@ -124,6 +125,9 @@ export class Game {
     // Death processing queue
     this._deathQueue = [];
     this._processingDeaths = false;
+
+    // Slide count at start of night phase (for detecting silent nights)
+    this._nightStartSlideCount = 0;
 
     // Log
     this.log = [];
@@ -430,6 +434,11 @@ export class Game {
     // Build pending events for this phase
     this.buildPendingEvents();
 
+    // Flag role reveal so each player's first idle shows CRITICAL blink
+    for (const player of this.players.values()) {
+      if (player.isAlive) player.roleRevealPending = true;
+    }
+
     this.addLog('Game started — Day 1');
     this.pushSlide({
       type: 'gallery',
@@ -657,7 +666,7 @@ export class Game {
           for (const inv of resolution.investigations) {
             const player = this.getPlayer(inv.seerId);
             if (player?.isAlive) {
-              player.lastEventResult = { message: inv.privateMessage };
+              player.lastEventResult = { message: inv.privateMessage, critical: true };
               player.send(ServerMsg.EVENT_RESULT, {
                 eventId: EventId.INVESTIGATE,
                 message: inv.privateMessage,
@@ -699,6 +708,8 @@ export class Game {
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
+      // Snapshot slide count after the night gallery — used to detect silent nights
+      this._nightStartSlideCount = this.slideQueue.length;
     } else if (this.phase === GamePhase.NIGHT) {
       this.phase = GamePhase.DAY;
       this.dayCount++;
@@ -1374,7 +1385,7 @@ export class Game {
       for (const inv of resolution.investigations) {
         const seer = this.getPlayer(inv.seerId);
         if (seer) {
-          seer.lastEventResult = { message: inv.privateMessage };
+          seer.lastEventResult = { message: inv.privateMessage, critical: true };
           seer.send(ServerMsg.EVENT_RESULT, {
             eventId: EventId.INVESTIGATE,
             message: inv.privateMessage,
@@ -1405,6 +1416,16 @@ export class Game {
     for (const [eventId] of sorted) {
       const result = this.resolveEvent(eventId);
       results.push({ eventId, ...result });
+    }
+
+    // Night fallback: if no informative slides were pushed this night, show TIME PASSES
+    if (this.phase === GamePhase.NIGHT && this.slideQueue.length === this._nightStartSlideCount) {
+      this.pushSlide({
+        type: 'title',
+        title: '🌙 TIME PASSES',
+        subtitle: 'Tensions are rising',
+        style: SlideStyle.NEUTRAL,
+      });
     }
 
     return { success: true, results };
@@ -1913,6 +1934,12 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return false;
 
+    // PROSPECT: werewolf kill on a prospect → recruit instead of kill
+    if (cause === 'werewolf' && player.hasItem(ItemId.PROSPECT)) {
+      this._recruitProspect(player);
+      return true;
+    }
+
     player.kill(cause);
     this._deathQueue.push({ player, cause });
 
@@ -1926,6 +1953,14 @@ export class Game {
     }
     this._processingDeaths = false;
     return true;
+  }
+
+  _recruitProspect(player) {
+    player.removeItem(ItemId.PROSPECT);
+    player.assignRole(getRole(RoleId.WEREWOLF));
+    player.lastEventResult = { message: 'TEAM CHANGED', detail: 'You were recruited by the wolves', critical: true };
+    this.addLog(`${player.getNameWithEmoji()} was recruited by the werewolves`);
+    this.broadcastPackState(); // syncs all wolves including the new recruit
   }
 
   _processDeathEffects({ player, cause }) {

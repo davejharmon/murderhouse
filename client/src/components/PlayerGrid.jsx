@@ -26,9 +26,10 @@ function getCardStateKey(props) {
   } = props;
 
   // Build a string key from all data that affects rendering
-  const invKey = (player.inventory || [])
-    .map((i) => `${i.id}:${i.uses}`)
-    .join(',');
+  const invKey = [
+    ...(player.inventory || []).map((i) => `${i.id}:${i.uses}`),
+    ...(player.hiddenInventory || []).map((i) => `~${i.id}`),
+  ].join(',');
   const eventsKey = events.join(',');
   const targetersKey = targeters
     .map((t) => `${t.odId}:${t.confirmed}`)
@@ -187,6 +188,15 @@ const PlayerCard = memo(function PlayerCard({
             key={idx}
             className={styles.itemBadge}
             title={`${ITEM_DISPLAY[item.id]?.name || item.id} (x${item.uses})`}
+          >
+            {ITEM_DISPLAY[item.id]?.emoji || '?'}
+          </span>
+        ))}
+        {player.hiddenInventory && player.hiddenInventory.map((item, idx) => (
+          <span
+            key={`h${idx}`}
+            className={styles.itemBadgeHidden}
+            title={`${ITEM_DISPLAY[item.id]?.name || item.id} (hidden)`}
           >
             {ITEM_DISPLAY[item.id]?.emoji || '?'}
           </span>

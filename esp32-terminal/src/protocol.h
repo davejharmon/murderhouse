@@ -64,7 +64,8 @@ enum class DisplayStyle {
     NORMAL,
     LOCKED,
     ABSTAINED,
-    WAITING
+    WAITING,
+    CRITICAL
 };
 
 // Parse display style from string
@@ -72,6 +73,7 @@ inline DisplayStyle parseDisplayStyle(const String& style) {
     if (style == "locked") return DisplayStyle::LOCKED;
     if (style == "abstained") return DisplayStyle::ABSTAINED;
     if (style == "waiting") return DisplayStyle::WAITING;
+    if (style == "critical") return DisplayStyle::CRITICAL;
     return DisplayStyle::NORMAL;
 }
 

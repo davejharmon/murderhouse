@@ -181,6 +181,8 @@ export const ItemId = {
   PHONE: 'phone',
   CLUE: 'clue',
   COWARD: 'coward',
+  TANNED: 'tanned',
+  PROSPECT: 'prospect',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -214,14 +216,16 @@ export const DEBUG_MODE = true;
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
-  [ItemId.PISTOL]:       { name: 'Pistol',              emoji: '🔫' },
-  [ItemId.PHONE]:        { name: 'Phone',               emoji: '📱' },
-  [ItemId.CLUE]:         { name: 'Clue',                emoji: '🔎' },
-  [ItemId.COWARD]:       { name: 'Coward',               emoji: '🏳️' },
+  [ItemId.PISTOL]:  { name: 'Pistol',  emoji: '🔫', description: 'A deadly weapon. One shot during the day. Make it count.' },
+  [ItemId.PHONE]:   { name: 'Phone',   emoji: '📱', description: 'Call the Governor for a one-time pardon after a vote condemns someone.' },
+  [ItemId.CLUE]:    { name: 'Clue',    emoji: '🔎', description: 'A mysterious lead. Investigate one player to learn their alignment.' },
+  [ItemId.COWARD]:  { name: 'Coward',  emoji: '🏳️', description: 'You hide from danger. No attacks can reach you — but you cannot act or be voted for.' },
+  [ItemId.TANNED]:   { name: 'Tanned',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seer or Clue.' },
+  [ItemId.PROSPECT]: { name: 'Prospect', emoji: '🐾', description: 'Hidden mark. If killed by werewolves, join their pack instead of dying.' },
 };
 
 // Available roles (for host pre-assignment UI)
@@ -274,4 +278,5 @@ export const DisplayStyle = {
   LOCKED: 'locked',
   ABSTAINED: 'abstained',
   WAITING: 'waiting',
+  CRITICAL: 'critical',
 };
