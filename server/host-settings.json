@@ -1,6 +1,6 @@
 {
   "timerDuration": 3,
-  "autoAdvanceEnabled": true,
+  "autoAdvanceEnabled": false,
   "defaultPresetId": "1772244697845",
   "lastLoadedPresetId": "1772244697845"
 }
