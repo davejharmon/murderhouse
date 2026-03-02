@@ -426,6 +426,28 @@ export const ICON_BARRICADE = [
   0x80, 0x01, 0x00,  // row 17: cols 7-8 (2px, point)
 ];
 
+// Operator tick (checkmark) — confirms READY state
+export const ICON_OP_TICK = [
+  0x00, 0x00, 0x00,  // row 0
+  0x00, 0x00, 0x00,  // row 1
+  0x00, 0x00, 0x00,  // row 2
+  0x00, 0x80, 0x01,  // row 3: right arm tip (cols 15, 16)
+  0x00, 0xC0, 0x00,  // row 4: cols 14, 15
+  0x00, 0x60, 0x00,  // row 5: cols 13, 14
+  0x04, 0x30, 0x00,  // row 6: cols 2, 12, 13
+  0x0C, 0x18, 0x00,  // row 7: cols 2, 3, 11, 12
+  0x18, 0x0C, 0x00,  // row 8: cols 3, 4, 10, 11
+  0x30, 0x06, 0x00,  // row 9: cols 4, 5, 9, 10
+  0x60, 0x03, 0x00,  // row 10: cols 5, 6, 8, 9
+  0xC0, 0x01, 0x00,  // row 11: cols 6, 7, 8 (meeting point)
+  0x80, 0x00, 0x00,  // row 12: col 7 (left arm tip)
+  0x00, 0x00, 0x00,  // row 13
+  0x00, 0x00, 0x00,  // row 14
+  0x00, 0x00, 0x00,  // row 15
+  0x00, 0x00, 0x00,  // row 16
+  0x00, 0x00, 0x00,  // row 17
+]
+
 // Map icon IDs to their data
 export const Icons = {
   villager: ICON_VILLAGER,
@@ -449,4 +471,5 @@ export const Icons = {
   barricade: ICON_BARRICADE,
   empty: ICON_EMPTY,
   skull: ICON_SKULL,
+  op_tick: ICON_OP_TICK,
 };

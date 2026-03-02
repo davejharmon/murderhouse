@@ -12,6 +12,15 @@ typedef void (*DisplayStateCallback)(const DisplayState& state);
 // playerNum should be 1-9
 void networkSetPlayerId(uint8_t playerNum);
 
+// Set operator mode (connect as operator terminal instead of player)
+void networkSetOperatorMode();
+
+// Check if running as operator terminal
+bool networkIsOperatorMode();
+
+// Check if operator is in ready state
+bool networkIsOperatorReady();
+
 // Initialize network (WiFi credentials from config.h)
 void networkInit();
 
@@ -37,6 +46,15 @@ void networkSendUseItem(const char* itemId);
 void networkSendIdleScrollUp();
 void networkSendIdleScrollDown();
 void networkSendHeartbeat(uint8_t bpm);
+
+// Operator terminal messages
+void networkOperatorScrollUp();
+void networkOperatorScrollDown();
+void networkSendOperatorAdd();
+void networkSendOperatorReady();
+void networkSendOperatorUnready();
+void networkSendOperatorDelete();
+void networkSendOperatorClear();
 
 // Get last error message (if any)
 const char* networkGetLastError();

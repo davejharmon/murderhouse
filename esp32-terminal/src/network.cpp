@@ -18,6 +18,48 @@ static unsigned long lastDiscoveryBroadcast = 0;
 // Player ID (set before init)
 static char playerId[16] = "1";  // Default to player 1
 
+// Operator mode (set before init)
+static bool isOperatorMode = false;
+static bool operatorReady = false;
+
+// Operator flat word list: all words sorted A-Z (deduplicated across categories)
+struct OpWord { const char* word; };
+static const OpWord OP_FLAT[] = {
+    {"A"},{"AGAIN"},{"ALREADY"},{"ALL"},{"ALONE"},{"ALWAYS"},{"AN"},{"AND"},{"ANGRY"},{"ANYWAY"},
+    {"BEWARE"},{"BLESSED"},{"BRAVE"},{"BUT"},{"BYE"},
+    {"CHANGES"},{"CHOSE"},{"CLEVER"},{"COWARDLY"},{"CRAZY"},
+    {"DARK"},{"DAVE"},{"DAY"},{"DID"},{"DIE"},{"DOES"},
+    {"ENDS"},{"EVEN"},{"EVIL"},
+    {"FAKE"},{"FEARS"},{"FINALLY"},{"FIRST"},{"FORGET"},
+    {"GOOD"},{"GUILTY"},
+    {"HAS"},{"HATES"},{"HAVE"},{"HE"},{"HEARD"},{"HELLO"},{"HELP"},{"HER"},{"HIDES"},{"HIS"},{"HONESTLY"},{"HUNTS"},
+    {"I"},{"IGNORE"},{"INNOCENT"},{"IS"},{"IT"},
+    {"JUST"},
+    {"KILL"},{"KILLED"},{"KILLER"},{"KIND"},{"KNOWS"},
+    {"LAST"},{"LATE"},{"LEFT"},{"LIAR"},{"LIED"},{"LIES"},{"LISTEN"},{"LIVE"},{"LOSE"},{"LOST"},{"LOUD"},{"LUCKY"},{"LYING"},
+    {"MAYBE"},{"MEAN"},{"MY"},
+    {"NEVER"},{"NEXT"},{"NIGHT"},{"NO"},{"NONE"},{"NOT"},
+    {"OBVIOUS"},{"OBVIOUSLY"},{"ONE"},{"ONLY"},{"OOPS"},{"OR"},
+    {"PROTECTS"},
+    {"QUIET"},
+    {"REAL"},{"RED"},{"REMEMBER"},{"RIGHT"},{"RIP"},
+    {"SAFE"},{"SAVED"},{"SAW"},{"SCARED"},{"SHE"},{"SHOUTY"},{"SO"},{"SOON"},{"SORRY"},{"STARTS"},{"STILL"},{"STRANGE"},{"STUPID"},{"SUSPECT"},
+    {"TEAM"},{"THANKS"},{"THAT"},{"THE"},{"THEM"},{"THEY"},{"THIS"},{"TOLD"},{"TOO"},{"TOWN"},{"TRUE"},{"TRUST"},{"TRUSTS"},{"TRUTH"},
+    {"UNLUCKY"},{"US"},
+    {"VOTE"},{"VOTED"},
+    {"WANTS"},{"WARNED"},{"WATCH"},{"WAS"},{"WE"},{"WELP"},{"WERE"},{"WHOOPS"},{"WILL"},{"WIN"},{"WOLF"},{"WRONG"},
+    {"YES"},{"YIKES"},{"YOU"},{"YOUR"},
+};
+static const int OP_FLAT_SIZE = 142;
+
+// Operator selection state (single flat dial position)
+static int operatorFlatIdx = 0;
+
+// Operator built state (from server)
+static String operatorBuiltMsg  = "";
+static String operatorLastWord  = "";  // last committed word, for NO jump
+static int    operatorWordCount = 0;
+
 // Connection state
 static ConnectionState connState = ConnectionState::BOOT;
 static bool wsConnected = false;
@@ -34,13 +76,66 @@ static DisplayState currentDisplayState;
 // Forward declarations
 static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length);
 static void parsePlayerState(JsonObject& payload);
+static void parseOperatorState(JsonObject& payload);
 static void sendMessage(const char* type, JsonObject* payload = nullptr);
+static void updateOperatorDisplay();
+
+// Return the A-Z range label for the given word's first letter
+static const char* getRangeLabel(const char* word) {
+    char c = word[0];
+    if (c <= 'C') return "A-C";
+    if (c <= 'H') return "D-H";
+    if (c <= 'M') return "I-M";
+    if (c <= 'S') return "N-S";
+    return "T-Z";
+}
+
+static void updateOperatorDisplay() {
+    DisplayState state;
+    const OpWord& entry = OP_FLAT[operatorFlatIdx];
+
+    // line1.left = committed sentence, line1.right = alphabetical range label when not ready
+    state.line1.left  = operatorBuiltMsg;
+    state.line1.right = operatorReady ? "" : getRangeLabel(entry.word);
+
+    // line2 carries preview word and triggers operator rendering mode
+    state.line2.text  = operatorReady ? "" : entry.word;
+    state.line2.style = DisplayStyle::OPERATOR;
+
+    // Tick in icon slot 2 when ready
+    state.icons[2].id    = operatorReady ? "op_tick" : "empty";
+    state.icons[2].state = operatorReady ? IconState::ACTIVE : IconState::EMPTY;
+
+    // Button LEDs
+    state.leds.yes = operatorReady ? LedState::OFF : LedState::BRIGHT;
+    state.leds.no  = (operatorWordCount > 0 || operatorReady) ? LedState::BRIGHT : LedState::OFF;
+    state.statusLed = GameLedState::NONE;
+
+    if (displayCallback != nullptr) {
+        displayCallback(state);
+    }
+}
 
 void networkSetPlayerId(uint8_t playerNum) {
     // Use just the number to match the web client format
     snprintf(playerId, sizeof(playerId), "%d", playerNum);
+    isOperatorMode = false;
     Serial.print("Player ID set to: ");
     Serial.println(playerId);
+}
+
+void networkSetOperatorMode() {
+    isOperatorMode = true;
+    playerId[0] = '\0';
+    Serial.println("Operator mode set");
+}
+
+bool networkIsOperatorMode() {
+    return isOperatorMode;
+}
+
+bool networkIsOperatorReady() {
+    return operatorReady;
 }
 
 void networkInit() {
@@ -138,12 +233,15 @@ ConnectionState networkUpdate() {
         case ConnectionState::WS_CONNECTING:
             webSocket.loop();
             if (wsConnected && !gameJoined) {
-                // Send join message
-                StaticJsonDocument<128> doc;
-                doc["playerId"] = playerId;
-                doc["source"] = "terminal";
-                JsonObject payload = doc.as<JsonObject>();
-                sendMessage(ClientMsg::JOIN, &payload);
+                if (isOperatorMode) {
+                    sendMessage(ClientMsg::OPERATOR_JOIN);
+                } else {
+                    StaticJsonDocument<128> doc;
+                    doc["playerId"] = playerId;
+                    doc["source"] = "terminal";
+                    JsonObject payload = doc.as<JsonObject>();
+                    sendMessage(ClientMsg::JOIN, &payload);
+                }
                 connState = ConnectionState::JOINING;
             }
             break;
@@ -172,12 +270,15 @@ ConnectionState networkUpdate() {
                 WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
                 connState = ConnectionState::WIFI_CONNECTING;
             } else if (wsConnected) {
-                // WebSocket reconnected, rejoin game
-                StaticJsonDocument<128> doc;
-                doc["playerId"] = playerId;
-                doc["source"] = "terminal";
-                JsonObject payload = doc.as<JsonObject>();
-                sendMessage(ClientMsg::REJOIN, &payload);
+                if (isOperatorMode) {
+                    sendMessage(ClientMsg::OPERATOR_JOIN);
+                } else {
+                    StaticJsonDocument<128> doc;
+                    doc["playerId"] = playerId;
+                    doc["source"] = "terminal";
+                    JsonObject payload = doc.as<JsonObject>();
+                    sendMessage(ClientMsg::REJOIN, &payload);
+                }
                 connState = ConnectionState::JOINING;
             }
             break;
@@ -197,14 +298,16 @@ void networkRetryJoin() {
         lastError[0] = '\0';  // Clear error message
 
         if (wsConnected) {
-            // WebSocket still connected, just resend join
-            StaticJsonDocument<128> doc;
-            doc["playerId"] = playerId;
-            JsonObject payload = doc.as<JsonObject>();
-            sendMessage(ClientMsg::JOIN, &payload);
+            if (isOperatorMode) {
+                sendMessage(ClientMsg::OPERATOR_JOIN);
+            } else {
+                StaticJsonDocument<128> doc;
+                doc["playerId"] = playerId;
+                JsonObject payload = doc.as<JsonObject>();
+                sendMessage(ClientMsg::JOIN, &payload);
+            }
             connState = ConnectionState::JOINING;
         } else {
-            // Need to reconnect WebSocket
             connState = ConnectionState::RECONNECTING;
         }
     }
@@ -347,6 +450,9 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             else if (strcmp(msgType, ServerMsg::PLAYER_STATE) == 0) {
                 parsePlayerState(msgPayload);
             }
+            else if (strcmp(msgType, ServerMsg::OPERATOR_STATE) == 0) {
+                parseOperatorState(msgPayload);
+            }
             else if (strcmp(msgType, ServerMsg::GAME_STATE) == 0) {
                 // Game state updates - we mainly care about playerState
                 Serial.println("Received game state update");
@@ -423,5 +529,88 @@ static void parsePlayerState(JsonObject& payload) {
     // Notify callback
     if (displayCallback != nullptr) {
         displayCallback(currentDisplayState);
+    }
+}
+
+static void parseOperatorState(JsonObject& payload) {
+    bool wasReady = operatorReady;
+    operatorReady = payload["ready"] | false;
+
+    // Update built message from server state
+    operatorBuiltMsg  = "";
+    operatorLastWord  = "";
+    operatorWordCount = 0;
+    JsonArray words = payload["words"];
+    if (!words.isNull()) {
+        for (JsonVariant word : words) {
+            if (operatorWordCount > 0) operatorBuiltMsg += " ";
+            String w = word.as<String>();
+            operatorBuiltMsg += w;
+            operatorLastWord  = w;   // keep overwriting to capture last
+            operatorWordCount++;
+        }
+    }
+
+    // Reset dial to start only when a slide was sent (was ready → now empty)
+    if (wasReady && operatorWordCount == 0 && !operatorReady) {
+        operatorFlatIdx = 0;
+    }
+
+    updateOperatorDisplay();
+}
+
+void networkOperatorScrollDown() {
+    operatorFlatIdx = (operatorFlatIdx + 1) % OP_FLAT_SIZE;
+    updateOperatorDisplay();
+}
+
+void networkOperatorScrollUp() {
+    operatorFlatIdx = (operatorFlatIdx - 1 + OP_FLAT_SIZE) % OP_FLAT_SIZE;
+    updateOperatorDisplay();
+}
+
+void networkSendOperatorAdd() {
+    if (networkIsConnected()) {
+        const char* word = OP_FLAT[operatorFlatIdx].word;
+        StaticJsonDocument<64> doc;
+        doc["word"] = word;
+        JsonObject payload = doc.as<JsonObject>();
+        sendMessage(ClientMsg::OPERATOR_ADD, &payload);
+    }
+}
+
+void networkSendOperatorReady() {
+    if (networkIsConnected() && operatorWordCount > 0) {
+        sendMessage(ClientMsg::OPERATOR_READY);
+    }
+}
+
+void networkSendOperatorUnready() {
+    if (networkIsConnected()) {
+        sendMessage(ClientMsg::OPERATOR_UNREADY);
+    }
+}
+
+void networkSendOperatorClear() {
+    operatorFlatIdx = 0;
+    updateOperatorDisplay();
+    if (networkIsConnected()) {
+        sendMessage(ClientMsg::OPERATOR_CLEAR);
+    }
+}
+
+void networkSendOperatorDelete() {
+    // Jump dial to the position of the last committed word before deleting
+    if (operatorWordCount > 0) {
+        for (int i = 0; i < OP_FLAT_SIZE; i++) {
+            if (operatorLastWord == OP_FLAT[i].word) {
+                operatorFlatIdx = i;
+                break;
+            }
+        }
+    }
+    updateOperatorDisplay();
+    if (networkIsConnected()) {
+        sendMessage(ClientMsg::OPERATOR_DELETE);
     }
 }

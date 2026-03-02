@@ -141,7 +141,7 @@ void setup() {
     displayPlayerSelect(selectedPlayer);
     playerSelectDirty = false;
 
-    Serial.println("Use dial to select player (1-9), press YES to confirm");
+    Serial.println("Use dial to select terminal (OPERATOR or PLAYER 1-9), press YES to confirm");
 }
 
 void loop() {
@@ -180,43 +180,56 @@ void loop() {
 
         switch (event) {
             case InputEvent::UP:
-                // Move selection up (wrap from 1 to 9)
+                // Move selection up: OPERATOR(0) <-> 1-9 cycle
                 if (selectedPlayer == 1) {
+                    selectedPlayer = 0;  // OPERATOR
+                } else if (selectedPlayer == 0) {
                     selectedPlayer = 9;
                 } else {
                     selectedPlayer--;
                 }
                 playerSelectDirty = true;
-                Serial.print("Selected player: ");
-                Serial.println(selectedPlayer);
+                if (selectedPlayer == 0) {
+                    Serial.println("Selected: OPERATOR");
+                } else {
+                    Serial.print("Selected player: ");
+                    Serial.println(selectedPlayer);
+                }
                 break;
 
             case InputEvent::DOWN:
-                // Move selection down (wrap from 9 to 1)
+                // Move selection down: OPERATOR(0) <-> 1-9 cycle
                 if (selectedPlayer == 9) {
+                    selectedPlayer = 0;  // OPERATOR
+                } else if (selectedPlayer == 0) {
                     selectedPlayer = 1;
                 } else {
                     selectedPlayer++;
                 }
                 playerSelectDirty = true;
-                Serial.print("Selected player: ");
-                Serial.println(selectedPlayer);
+                if (selectedPlayer == 0) {
+                    Serial.println("Selected: OPERATOR");
+                } else {
+                    Serial.print("Selected player: ");
+                    Serial.println(selectedPlayer);
+                }
                 break;
 
             case InputEvent::YES:
                 // Confirm selection and start connecting
-                Serial.print("Player confirmed: ");
-                Serial.println(selectedPlayer);
                 playerConfirmed = true;
-
-                // Set the player ID
-                networkSetPlayerId(selectedPlayer);
-
-                // Turn off YES button pulse
                 ledsSetYes(LedState::OFF);
-
-                // Initialize network (this will start WiFi connection)
                 Serial.println("Initializing network...");
+
+                if (selectedPlayer == 0) {
+                    Serial.println("Confirmed: OPERATOR");
+                    networkSetOperatorMode();
+                } else {
+                    Serial.print("Confirmed player: ");
+                    Serial.println(selectedPlayer);
+                    networkSetPlayerId(selectedPlayer);
+                }
+
                 networkInit();
                 networkSetDisplayCallback(onDisplayUpdate);
                 break;
@@ -292,60 +305,104 @@ void loop() {
         // Poll for input events
         InputEvent event = inputPoll();
 
-        // Determine if player is idle (no pending events shown - inferred from display state)
-        // When idle, server sends leds.yes as OFF or DIM (for items), and display has no event info
-        // We use the idleScrollIndex and icon data to decide routing
-        bool hasActiveEvent = currentDisplay.leds.yes == LedState::BRIGHT ||
-                              currentDisplay.statusLed == GameLedState::VOTING ||
-                              currentDisplay.statusLed == GameLedState::LOCKED ||
-                              currentDisplay.statusLed == GameLedState::ABSTAINED;
-        bool isIdle = !hasActiveEvent &&
-                      currentDisplay.statusLed != GameLedState::LOBBY &&
-                      currentDisplay.statusLed != GameLedState::GAME_OVER &&
-                      currentDisplay.statusLed != GameLedState::DEAD;
+        if (networkIsOperatorMode()) {
+            // Operator terminal input
+            switch (event) {
+                case InputEvent::UP:
+                    if (!networkIsOperatorReady()) networkOperatorScrollUp();
+                    break;
 
-        switch (event) {
-            case InputEvent::UP:
-                Serial.println("Input: UP");
-                if (isIdle) {
-                    networkSendIdleScrollUp();
-                } else {
-                    networkSendSelectUp();
-                }
-                break;
+                case InputEvent::DOWN:
+                    if (!networkIsOperatorReady()) networkOperatorScrollDown();
+                    break;
 
-            case InputEvent::DOWN:
-                Serial.println("Input: DOWN");
-                if (isIdle) {
-                    networkSendIdleScrollDown();
-                } else {
-                    networkSendSelectDown();
-                }
-                break;
-
-            case InputEvent::YES:
-                Serial.println("Input: YES");
-                if (isIdle && currentDisplay.leds.yes == LedState::DIM) {
-                    // On a usable item slot - send useItem
-                    // The item ID comes from the icon at the current scroll index
-                    uint8_t idx = currentDisplay.idleScrollIndex;
-                    if (idx > 0 && idx <= 2) {
-                        const char* itemId = currentDisplay.icons[idx].id.c_str();
-                        networkSendUseItem(itemId);
+                case InputEvent::YES:
+                    if (!networkIsOperatorReady()) {
+                        Serial.println("Operator: add word");
+                        networkSendOperatorAdd();
                     }
-                } else {
-                    networkSendConfirm();
-                }
-                break;
+                    break;
 
-            case InputEvent::NO:
-                Serial.println("Input: NO");
-                networkSendAbstain();
-                break;
+                case InputEvent::NO:
+                    if (networkIsOperatorReady()) {
+                        Serial.println("Operator: cancel ready");
+                        networkSendOperatorUnready();
+                    } else {
+                        Serial.println("Operator: delete word");
+                        networkSendOperatorDelete();
+                    }
+                    break;
 
-            case InputEvent::NONE:
-            default:
-                break;
+                case InputEvent::LONG_YES:
+                    if (!networkIsOperatorReady()) {
+                        Serial.println("Operator: long YES -> ready");
+                        networkSendOperatorReady();  // guards wordCount > 0 internally
+                    }
+                    break;
+
+                case InputEvent::LONG_NO:
+                    Serial.println("Operator: long NO -> clear");
+                    networkSendOperatorClear();
+                    break;
+
+                case InputEvent::NONE:
+                default:
+                    break;
+            }
+        } else {
+            // Normal player input
+            // Determine if player is idle (no pending events shown - inferred from display state)
+            bool hasActiveEvent = currentDisplay.leds.yes == LedState::BRIGHT ||
+                                  currentDisplay.statusLed == GameLedState::VOTING ||
+                                  currentDisplay.statusLed == GameLedState::LOCKED ||
+                                  currentDisplay.statusLed == GameLedState::ABSTAINED;
+            bool isIdle = !hasActiveEvent &&
+                          currentDisplay.statusLed != GameLedState::LOBBY &&
+                          currentDisplay.statusLed != GameLedState::GAME_OVER &&
+                          currentDisplay.statusLed != GameLedState::DEAD;
+
+            switch (event) {
+                case InputEvent::UP:
+                    Serial.println("Input: UP");
+                    if (isIdle) {
+                        networkSendIdleScrollUp();
+                    } else {
+                        networkSendSelectUp();
+                    }
+                    break;
+
+                case InputEvent::DOWN:
+                    Serial.println("Input: DOWN");
+                    if (isIdle) {
+                        networkSendIdleScrollDown();
+                    } else {
+                        networkSendSelectDown();
+                    }
+                    break;
+
+                case InputEvent::YES:
+                    Serial.println("Input: YES");
+                    if (isIdle && currentDisplay.leds.yes == LedState::DIM) {
+                        // On a usable item slot - send useItem
+                        uint8_t idx = currentDisplay.idleScrollIndex;
+                        if (idx > 0 && idx <= 2) {
+                            const char* itemId = currentDisplay.icons[idx].id.c_str();
+                            networkSendUseItem(itemId);
+                        }
+                    } else {
+                        networkSendConfirm();
+                    }
+                    break;
+
+                case InputEvent::NO:
+                    Serial.println("Input: NO");
+                    networkSendAbstain();
+                    break;
+
+                case InputEvent::NONE:
+                default:
+                    break;
+            }
         }
 
         // Update display if dirty

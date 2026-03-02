@@ -10,64 +10,62 @@ const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:8080`
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
-// Max chars for message on line 1: 32 chars = 192px, leaving room for right text
-const MSG_MAX = 32;
+// Build flat word list: all words sorted alphabetically across categories (deduplicated),
+// then READY at end. catNum: 0 marks the READY sentinel entry.
+const _allWords = new Set();
+OPERATOR_CATEGORIES.slice(0, -1).forEach(cat => OPERATOR_WORDS[cat].forEach(w => _allWords.add(w)));
+const FLAT_WORDS = [..._allWords].sort().map(word => {
+  const c = word[0];
+  const icon = c <= 'C' ? 'op_range_ac'
+             : c <= 'H' ? 'op_range_dh'
+             : c <= 'M' ? 'op_range_im'
+             : c <= 'S' ? 'op_range_ns'
+             :             'op_range_tz';
+  return { word, icon };
+});
 
-function buildDisplay(layer, categoryIndex, wordIndex, words, ready, cleared) {
-  const currentCategory = OPERATOR_CATEGORIES[categoryIndex];
-  const currentWords = currentCategory === 'READY' ? [] : (OPERATOR_WORDS[currentCategory] || []);
-  const currentWord = currentWords[wordIndex] || '';
-  const wc = words.length;
-
-  // Line 1: accumulated message (last MSG_MAX chars), or placeholder
-  const msgFull = words.join(' ');
-  const msgLeft = msgFull.length > MSG_MAX ? msgFull.slice(-MSG_MAX) : msgFull;
+function buildDisplay(wordIndex, words, ready, cleared) {
+  const entry = FLAT_WORDS[wordIndex] || FLAT_WORDS[0];
 
   if (cleared) {
     return {
-      line1: { left: '' },
+      line1: { left: '', right: '' },
       line2: { text: 'SENT!', style: 'critical' },
-      line3: { text: '' },
+      line3: { text: '', left: '', right: '', center: '' },
+      icons: [
+        { id: 'empty', state: 'empty' },
+        { id: 'empty', state: 'empty' },
+        { id: 'empty', state: 'empty' },
+      ],
+      idleScrollIndex: 0,
     };
   }
 
-  if (ready) {
-    return {
-      line1: { left: msgLeft },
-      line2: { text: 'WAITING', style: 'waiting' },
-      line3: { text: 'NO:CANCEL' },
-    };
-  }
-
-  if (layer === 'word') {
-    return {
-      line1: { left: msgLeft, right: `${wordIndex + 1}/${currentWords.length}` },
-      line2: { text: currentWord },
-      line3: { left: 'YES:ADD', right: 'NO:BACK' },
-    };
-  }
-
-  // Category layer
-  const isReadyCat = currentCategory === 'READY';
-  if (isReadyCat) {
-    return {
-      line1: { left: msgLeft },
-      line2: { text: 'READY' },
-      line3: wc > 0
-        ? { left: 'YES:SEND', right: 'NO:DEL' }
-        : { text: 'NO MESSAGE YET' },
-    };
-  }
+  const previewWord = ready ? '' : entry.word;
+  const catIconId   = ready ? 'empty' : entry.icon;
 
   return {
-    line1: { left: msgLeft },
-    line2: { text: currentCategory },
-    line3: { left: 'YES:OPEN', right: wc > 0 ? 'NO:DEL' : 'NO:---' },
+    line1: { left: words.join(' '), right: '' },
+    line2: { text: previewWord, style: 'operator' },
+    line3: { text: '', left: '', right: '', center: '' },
+    icons: [
+      { id: catIconId, state: 'normal' },
+      { id: 'empty',   state: 'empty' },
+      { id: ready ? 'op_tick' : 'empty', state: ready ? 'normal' : 'empty' },
+    ],
+    idleScrollIndex: 0,
   };
 }
 
+const LONG_PRESS_MS = 600;
+
 export default function Operator() {
-  const wsRef = useRef(null);
+  const wsRef    = useRef(null);
+  const readyRef = useRef(false);  // mutable ref for stale-closure-safe access in onmessage
+  const yesTimerRef    = useRef(null);  // pointer long press timers
+  const noTimerRef     = useRef(null);
+  const keyYesTimerRef = useRef(null);  // keyboard long press timers
+  const keyNoTimerRef  = useRef(null);
   const [connected, setConnected] = useState(false);
 
   // Server-sync state
@@ -75,9 +73,7 @@ export default function Operator() {
   const [ready, setReady] = useState(false);
   const [cleared, setCleared] = useState(false);
 
-  // Local UI state
-  const [layer, setLayer] = useState('category');
-  const [categoryIndex, setCategoryIndex] = useState(0);
+  // Local dial state
   const [wordIndex, setWordIndex] = useState(0);
 
   const send = useCallback((type, payload = {}) => {
@@ -106,13 +102,14 @@ export default function Operator() {
         try {
           const { type, payload } = JSON.parse(event.data);
           if (type === ServerMsg.OPERATOR_STATE) {
-            const wasReady = ready;
+            const wasReady = readyRef.current;
+            readyRef.current = payload.ready;
             setWords(payload.words);
             setReady(payload.ready);
-            if (wasReady && payload.words.length === 0) {
+            // Cleared: was ready and now words are empty (slide was sent)
+            if (wasReady && payload.words.length === 0 && !payload.ready) {
               setCleared(true);
-              setLayer('category');
-              setCategoryIndex(0);
+              setWordIndex(0);
               setTimeout(() => setCleared(false), 2000);
             }
           }
@@ -125,40 +122,21 @@ export default function Operator() {
     return () => wsRef.current?.close();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentCategory = OPERATOR_CATEGORIES[categoryIndex];
-  const currentWords = currentCategory === 'READY' ? [] : (OPERATOR_WORDS[currentCategory] || []);
+  const entry = FLAT_WORDS[wordIndex] || FLAT_WORDS[0];
 
   function handleDialUp() {
     if (ready || cleared) return;
-    if (layer === 'category') {
-      setCategoryIndex(i => (i - 1 + OPERATOR_CATEGORIES.length) % OPERATOR_CATEGORIES.length);
-    } else {
-      setWordIndex(i => (i - 1 + currentWords.length) % currentWords.length);
-    }
+    setWordIndex(i => (i - 1 + FLAT_WORDS.length) % FLAT_WORDS.length);
   }
 
   function handleDialDown() {
     if (ready || cleared) return;
-    if (layer === 'category') {
-      setCategoryIndex(i => (i + 1) % OPERATOR_CATEGORIES.length);
-    } else {
-      setWordIndex(i => (i + 1) % currentWords.length);
-    }
+    setWordIndex(i => (i + 1) % FLAT_WORDS.length);
   }
 
   function handleYes() {
     if (ready || cleared) return;
-    if (layer === 'category') {
-      if (currentCategory === 'READY') {
-        if (words.length > 0) send(ClientMsg.OPERATOR_READY);
-      } else {
-        setWordIndex(0);
-        setLayer('word');
-      }
-    } else {
-      send(ClientMsg.OPERATOR_ADD, { word: currentWords[wordIndex] });
-      setLayer('category');
-    }
+    send(ClientMsg.OPERATOR_ADD, { word: entry.word });
   }
 
   function handleNo() {
@@ -167,39 +145,85 @@ export default function Operator() {
       send(ClientMsg.OPERATOR_UNREADY);
       return;
     }
-    if (layer === 'word') {
-      setLayer('category');
-    } else {
+    if (words.length > 0) {
+      // Jump dial to the position of the word being deleted
+      const lastWord = words[words.length - 1];
+      const idx = FLAT_WORDS.findIndex(w => w.word === lastWord);
+      if (idx !== -1) setWordIndex(idx);
       send(ClientMsg.OPERATOR_DELETE);
     }
   }
 
-  // Keyboard controls (re-binds each render for fresh closures)
+  function handleLongYes() {
+    if (ready || cleared) return;
+    if (words.length > 0) send(ClientMsg.OPERATOR_READY);
+  }
+
+  function handleLongNo() {
+    if (cleared) return;
+    if (words.length > 0 || ready) send(ClientMsg.OPERATOR_CLEAR);
+  }
+
+  // Pointer event handlers for YES button
+  function handleYesPointerDown() {
+    if (!yesEnabled) return;
+    yesTimerRef.current = setTimeout(() => { yesTimerRef.current = null; handleLongYes(); }, LONG_PRESS_MS);
+  }
+  function handleYesPointerUp() {
+    if (yesTimerRef.current) { clearTimeout(yesTimerRef.current); yesTimerRef.current = null; handleYes(); }
+  }
+  function handleYesPointerLeave() {
+    clearTimeout(yesTimerRef.current); yesTimerRef.current = null;
+  }
+
+  // Pointer event handlers for NO button
+  function handleNoPointerDown() {
+    if (!noEnabled) return;
+    noTimerRef.current = setTimeout(() => { noTimerRef.current = null; handleLongNo(); }, LONG_PRESS_MS);
+  }
+  function handleNoPointerUp() {
+    if (noTimerRef.current) { clearTimeout(noTimerRef.current); noTimerRef.current = null; handleNo(); }
+  }
+  function handleNoPointerLeave() {
+    clearTimeout(noTimerRef.current); noTimerRef.current = null;
+  }
+
+  // Keyboard controls (with long press support)
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'ArrowUp')                              { e.preventDefault(); handleDialUp(); }
-      if (e.key === 'ArrowDown')                            { e.preventDefault(); handleDialDown(); }
-      if (e.key === 'Enter')                                { e.preventDefault(); handleYes(); }
-      if (e.key === 'Backspace' || e.key === 'Escape')      { e.preventDefault(); handleNo(); }
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowUp')   { e.preventDefault(); handleDialUp(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); handleDialDown(); }
+      if (e.key === 'Enter' && !e.repeat) {
+        e.preventDefault();
+        keyYesTimerRef.current = setTimeout(() => { keyYesTimerRef.current = null; handleLongYes(); }, LONG_PRESS_MS);
+      }
+      if ((e.key === 'Backspace' || e.key === 'Escape') && !e.repeat) {
+        e.preventDefault();
+        keyNoTimerRef.current = setTimeout(() => { keyNoTimerRef.current = null; handleLongNo(); }, LONG_PRESS_MS);
+      }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onKeyUp = (e) => {
+      if (e.key === 'Enter') {
+        if (keyYesTimerRef.current) { clearTimeout(keyYesTimerRef.current); keyYesTimerRef.current = null; handleYes(); }
+      }
+      if (e.key === 'Backspace' || e.key === 'Escape') {
+        if (keyNoTimerRef.current) { clearTimeout(keyNoTimerRef.current); keyNoTimerRef.current = null; handleNo(); }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   });
 
-  const display = buildDisplay(layer, categoryIndex, wordIndex, words, ready, cleared);
+  const display = buildDisplay(wordIndex, words, ready, cleared);
 
   // Button enabled states
+  const yesEnabled = !ready && !cleared;
+  const noEnabled  = !cleared && (ready || words.length > 0);
   const navEnabled = !ready && !cleared;
-  const yesEnabled = !ready && !cleared && (
-    layer === 'word' ||
-    (layer === 'category' && currentCategory !== 'READY') ||
-    (layer === 'category' && currentCategory === 'READY' && words.length > 0)
-  );
-  const noEnabled = !cleared && (
-    ready ||
-    layer === 'word' ||
-    (layer === 'category' && words.length > 0)
-  );
 
   const yesLedClass = yesEnabled ? styles.led_yes_bright : styles.led_yes_off;
   const noLedClass  = noEnabled  ? styles.led_no_bright  : styles.led_no_off;
@@ -225,12 +249,20 @@ export default function Operator() {
           <button className={styles.navButton} onClick={handleDialDown} disabled={!navEnabled}>
             <span className={styles.arrow}>&#9660;</span>
           </button>
-          <button className={`${styles.yesButton} ${yesLedClass}`} onClick={handleYes} disabled={!yesEnabled}>
-            YES
-          </button>
-          <button className={`${styles.noButton} ${noLedClass}`} onClick={handleNo} disabled={!noEnabled}>
-            NO
-          </button>
+          <button
+            className={`${styles.yesButton} ${yesLedClass}`}
+            onPointerDown={handleYesPointerDown}
+            onPointerUp={handleYesPointerUp}
+            onPointerLeave={handleYesPointerLeave}
+            disabled={!yesEnabled}
+          >YES</button>
+          <button
+            className={`${styles.noButton} ${noLedClass}`}
+            onPointerDown={handleNoPointerDown}
+            onPointerUp={handleNoPointerUp}
+            onPointerLeave={handleNoPointerLeave}
+            disabled={!noEnabled}
+          >NO</button>
         </div>
       </div>
     </div>

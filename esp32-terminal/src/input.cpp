@@ -3,11 +3,22 @@
 #include "config.h"
 #include <ESP32Encoder.h>
 
-// Button state tracking
+#define LONG_PRESS_MS 600
+
+// Button debounce state
 static bool lastYesState = true;  // HIGH when not pressed (pullup)
 static bool lastNoState = true;
 static unsigned long lastYesChange = 0;
 static unsigned long lastNoChange = 0;
+
+// Long press tracking: start timing on press, fire normal on release if not long
+static bool yesPressing = false;
+static unsigned long yesPressStart = 0;
+static bool yesLongFired = false;
+
+static bool noPressing = false;
+static unsigned long noPressStart = 0;
+static bool noLongFired = false;
 
 // Rotary encoder
 static ESP32Encoder encoder;
@@ -21,7 +32,6 @@ void inputInit() {
     pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
 
     // Initialize rotary encoder
-    // Use full quadrature mode for accurate counting
     ESP32Encoder::useInternalWeakPullResistors = puType::up;
     encoder.attachFullQuad(PIN_ENCODER_A, PIN_ENCODER_B);
     encoder.clearCount();
@@ -34,7 +44,6 @@ void inputInit() {
 
 InputEvent inputPoll() {
     unsigned long now = millis();
-    InputEvent event = InputEvent::NONE;
 
     // === Check YES button ===
     bool yesState = digitalRead(PIN_BTN_YES);
@@ -43,11 +52,26 @@ InputEvent inputPoll() {
             lastYesChange = now;
             lastYesState = yesState;
 
-            // Button pressed (LOW because of pullup)
             if (yesState == LOW) {
-                return InputEvent::YES;
+                // Button pressed — start long press timer
+                yesPressing = true;
+                yesPressStart = now;
+                yesLongFired = false;
+            } else {
+                // Button released — fire normal press if long press didn't already fire
+                if (yesPressing && !yesLongFired) {
+                    yesPressing = false;
+                    return InputEvent::YES;
+                }
+                yesPressing = false;
             }
         }
+    }
+
+    // Check YES long press threshold while button is held
+    if (yesPressing && !yesLongFired && (now - yesPressStart >= LONG_PRESS_MS)) {
+        yesLongFired = true;
+        return InputEvent::LONG_YES;
     }
 
     // === Check NO button ===
@@ -57,11 +81,26 @@ InputEvent inputPoll() {
             lastNoChange = now;
             lastNoState = noState;
 
-            // Button pressed (LOW because of pullup)
             if (noState == LOW) {
-                return InputEvent::NO;
+                // Button pressed — start long press timer
+                noPressing = true;
+                noPressStart = now;
+                noLongFired = false;
+            } else {
+                // Button released — fire normal press if long press didn't already fire
+                if (noPressing && !noLongFired) {
+                    noPressing = false;
+                    return InputEvent::NO;
+                }
+                noPressing = false;
             }
         }
+    }
+
+    // Check NO long press threshold while button is held
+    if (noPressing && !noLongFired && (now - noPressStart >= LONG_PRESS_MS)) {
+        noLongFired = true;
+        return InputEvent::LONG_NO;
     }
 
     // === Check rotary encoder ===
@@ -71,13 +110,10 @@ InputEvent inputPoll() {
         int32_t currentCount = encoder.getCount();
         int32_t diff = currentCount - lastEncoderCount;
 
-        // Check if we've moved enough for a detent
         if (diff >= ENCODER_PULSES_PER_DETENT) {
-            // Clockwise rotation = DOWN (next item)
             lastEncoderCount += ENCODER_PULSES_PER_DETENT;
             return InputEvent::DOWN;
         } else if (diff <= -ENCODER_PULSES_PER_DETENT) {
-            // Counter-clockwise rotation = UP (previous item)
             lastEncoderCount -= ENCODER_PULSES_PER_DETENT;
             return InputEvent::UP;
         }
@@ -87,10 +123,7 @@ InputEvent inputPoll() {
 }
 
 uint8_t inputGetRotaryPosition() {
-    // For encoder, return a pseudo-position based on count
-    // This maintains API compatibility but isn't meaningful for encoders
     int32_t count = encoder.getCount() / ENCODER_PULSES_PER_DETENT;
-    // Wrap to 1-8 range for compatibility
     int pos = ((count % 8) + 8) % 8 + 1;
     return (uint8_t)pos;
 }

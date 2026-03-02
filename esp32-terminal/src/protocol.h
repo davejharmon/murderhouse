@@ -18,6 +18,7 @@ namespace ServerMsg {
     const char* const EVENT_PROMPT = "eventPrompt";
     const char* const EVENT_RESULT = "eventResult";
     const char* const PHASE_CHANGE = "phaseChange";
+    const char* const OPERATOR_STATE = "operatorState";
 }
 
 // ============================================================================
@@ -35,6 +36,12 @@ namespace ClientMsg {
     const char* const IDLE_SCROLL_UP = "idleScrollUp";
     const char* const IDLE_SCROLL_DOWN = "idleScrollDown";
     const char* const HEARTBEAT = "heartbeat";
+    const char* const OPERATOR_JOIN = "operatorJoin";
+    const char* const OPERATOR_ADD = "operatorAdd";
+    const char* const OPERATOR_DELETE = "operatorDelete";
+    const char* const OPERATOR_READY = "operatorReady";
+    const char* const OPERATOR_UNREADY = "operatorUnready";
+    const char* const OPERATOR_CLEAR   = "operatorClear";
 }
 
 // ============================================================================
@@ -65,7 +72,8 @@ enum class DisplayStyle {
     LOCKED,
     ABSTAINED,
     WAITING,
-    CRITICAL
+    CRITICAL,
+    OPERATOR   // Operator sentence mode: full 3-line sentence in FONT_SMALL
 };
 
 // Parse display style from string
@@ -74,6 +82,7 @@ inline DisplayStyle parseDisplayStyle(const String& style) {
     if (style == "abstained") return DisplayStyle::ABSTAINED;
     if (style == "waiting") return DisplayStyle::WAITING;
     if (style == "critical") return DisplayStyle::CRITICAL;
+    if (style == "operator") return DisplayStyle::OPERATOR;
     return DisplayStyle::NORMAL;
 }
 
@@ -112,7 +121,7 @@ inline GameLedState parseGameLedState(const String& state) {
 
 enum class ConnectionState {
     BOOT,
-    PLAYER_SELECT,   // Selecting player ID (1-9) before connecting
+    PLAYER_SELECT,   // Selecting player ID (1-9) or OPERATOR before connecting
     WIFI_CONNECTING,
     DISCOVERING,     // Broadcasting UDP to find server
     WS_CONNECTING,
@@ -131,7 +140,9 @@ enum class InputEvent {
     UP,
     DOWN,
     YES,
-    NO
+    NO,
+    LONG_YES,   // YES held >= LONG_PRESS_MS
+    LONG_NO     // NO held >= LONG_PRESS_MS
 };
 
 // ============================================================================

@@ -131,10 +131,121 @@ function drawSelectionBar(ctx, activeIndex, color) {
   ctx.fillRect(BAR_X, SLOT_Y[activeIndex], BAR_W, ICON_SLOT_H)
 }
 
+// Alphabetical range labels shown in icon slot 0 during operator mode
+const RANGE_LABELS = {
+  'op_range_ac': 'A-C',
+  'op_range_dh': 'D-H',
+  'op_range_im': 'I-M',
+  'op_range_ns': 'N-S',
+  'op_range_tz': 'T-Z',
+}
+
+// ─── Operator sentence rendering ─────────────────────────────────────────────
+
+// 3 evenly-spaced baselines across the 64px display for small-font sentence rows
+const OPERATOR_LINE_Y = [14, 34, 54]
+// Max chars per line: (TEXT_AREA_W - MARGIN_X) / FONT width = (234-4)/6 = 38, use 37 for safety
+const OP_MAX_CHARS = 37
+
+/**
+ * Word-wrap sentence + previewWord into 3 rows of max OP_MAX_CHARS chars each.
+ * previewWord is always the last word in the combined text.
+ */
+function operatorWordWrap(sentence, previewWord) {
+  const combined = [sentence.trim(), previewWord].filter(Boolean).join(' ')
+  if (!combined) return ['', '', '']
+
+  const words = combined.split(/\s+/)
+  const rows = ['', '', '']
+  let row = 0
+
+  for (const w of words) {
+    if (row >= 3) break
+    const test = rows[row] ? rows[row] + ' ' + w : w
+    if (test.length <= OP_MAX_CHARS) {
+      rows[row] = test
+    } else if (row < 2) {
+      row++
+      rows[row] = w
+    }
+  }
+
+  return rows
+}
+
+/**
+ * Render operator sentence mode: 3 lines of FONT_6x10, preview word optionally visible.
+ * Category numeral drawn as text in icon slot 0; op_tick icon drawn in slot 2.
+ */
+function renderOperatorDisplay(ctx, display, color, previewVisible = true) {
+  const sentence    = display.line1?.left || ''
+  const previewWord = display.line2?.text || ''
+
+  const rows = operatorWordWrap(sentence, previewWord)
+
+  // Locate which row ends with the preview word (it's always the last word)
+  let previewRow = -1
+  let previewX   = MARGIN_X
+  if (previewWord) {
+    for (let r = 2; r >= 0; r--) {
+      if (rows[r] && rows[r].endsWith(previewWord)) {
+        previewRow = r
+        const prefixLen = rows[r].length - previewWord.length
+        previewX = MARGIN_X + prefixLen * FONT_6x10.width
+        break
+      }
+    }
+  }
+
+  ctx.fillStyle = color
+
+  for (let r = 0; r < 3; r++) {
+    if (!rows[r]) continue
+
+    if (r === previewRow && previewWord) {
+      // Draw committed prefix on this row
+      const prefixLen = rows[r].length - previewWord.length
+      drawText(ctx, rows[r].substring(0, prefixLen), MARGIN_X, OPERATOR_LINE_Y[r], FONT_6x10)
+      // Blink: only draw preview word when visible
+      if (previewVisible) {
+        drawText(ctx, previewWord, previewX, OPERATOR_LINE_Y[r], FONT_6x10)
+      }
+    } else {
+      drawText(ctx, rows[r], MARGIN_X, OPERATOR_LINE_Y[r], FONT_6x10)
+    }
+  }
+
+  // Icon column (operator mode — no selection bar)
+  if (display.icons && display.icons.length >= 3) {
+    const catIcon = display.icons[0]
+    const rangeLabel = catIcon?.id ? RANGE_LABELS[catIcon.id] : null
+    if (rangeLabel) {
+      // Draw alphabetical range label as text, centred in slot 0
+      const labelW = measureText(rangeLabel, FONT_6x10)
+      const labelX = ICON_COL_X + Math.floor((ICON_SIZE - labelW) / 2)
+      const labelY = ICON_Y[0] + Math.floor((ICON_SIZE - FONT_6x10.height) / 2) + FONT_6x10.baseline
+      ctx.fillStyle = color
+      drawText(ctx, rangeLabel, labelX, labelY, FONT_6x10)
+    }
+
+    const tickIcon = display.icons[2]
+    if (tickIcon?.id === 'op_tick') {
+      drawIcon(ctx, 'op_tick', ICON_COL_X, ICON_Y[2], color)
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Render the full 3-line display with icon column onto a canvas context
  */
 function renderDisplay(ctx, display, color, line2Color = null, iconColors = null) {
+  // Operator sentence mode has completely different layout
+  if (display.line2?.style === 'operator') {
+    renderOperatorDisplay(ctx, display, color)
+    return
+  }
   const { line1, line2, line3, icons } = display
   const isLocked = line2.style === 'locked'
 
@@ -255,7 +366,36 @@ export default function TinyScreen({ display, compact = false }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // === Detect icon changes → queue per-slot blinks ===
+    const style = display?.line2?.style
+
+    // === Operator sentence mode ===
+    // Skip icon-blink detection; run a continuous preview-word blink loop instead.
+    if (style === 'operator') {
+      prevIconsRef.current = null
+      const previewWord = display.line2?.text || ''
+
+      if (!previewWord) {
+        // Locked (ready) — static render, no preview
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = COLOR_BG
+        ctx.fillRect(0, 0, W, H)
+        renderOperatorDisplay(ctx, display, COLOR_NORMAL, true)
+        return
+      }
+
+      // Continuous 350ms on/350ms off blink for the preview word
+      const animate = (timestamp) => {
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = COLOR_BG
+        ctx.fillRect(0, 0, W, H)
+        renderOperatorDisplay(ctx, display, COLOR_NORMAL, Math.floor(timestamp / 350) % 2 === 0)
+        animRef.current = requestAnimationFrame(animate)
+      }
+      animRef.current = requestAnimationFrame(animate)
+      return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
+    }
+
+    // === Detect icon changes → queue per-slot blinks (non-operator modes only) ===
     if (display) {
       const currentIcons = display.icons || []
       if (prevIconsRef.current !== null) {
@@ -286,8 +426,6 @@ export default function TinyScreen({ display, compact = false }) {
       drawText(ctx, waitText, Math.floor((W - waitW) / 2), LINE3_Y, FONT_6x10)
       return
     }
-
-    const style = display.line2.style
 
     if (style === 'waiting') {
       // Continuous pulse for line 2 — icon blinks deferred until state changes

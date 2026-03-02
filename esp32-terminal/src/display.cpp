@@ -84,9 +84,110 @@ static void drawSelectionBar(int activeIndex) {
     u8g2.drawBox(BAR_X, SLOT_Y[activeIndex], BAR_W, ICON_SLOT_H);
 }
 
+// Operator sentence mode: 3 lines of FONT_SMALL across the full display height.
+// line1.left = committed sentence, line2.text = preview word (inverted box),
+// line1.right = category label ("1".."4" or ""), icons[2] = op_tick or empty.
+static void _renderOperator(const DisplayState& state) {
+    static const int OP_Y[]    = {14, 34, 54};   // baselines for 3 evenly-spaced lines
+    static const int MAX_CHARS = 37;              // max chars per line at 6px each
+
+    // Build combined text
+    String sentence = state.line1.left;
+    String preview  = state.line2.text;
+    String combined;
+    if (sentence.length() > 0 && preview.length() > 0)
+        combined = sentence + " " + preview;
+    else if (sentence.length() > 0)
+        combined = sentence;
+    else
+        combined = preview;
+
+    // Word-wrap into 3 rows
+    String rows[3] = {"", "", ""};
+    int rowIdx = 0;
+    int pos = 0;
+    while (pos < (int)combined.length() && rowIdx < 3) {
+        int sp = combined.indexOf(' ', pos);
+        String word = (sp == -1) ? combined.substring(pos) : combined.substring(pos, sp);
+        pos = (sp == -1) ? combined.length() : sp + 1;
+        if (word.length() == 0) continue;
+        String candidate = rows[rowIdx].length() > 0 ? rows[rowIdx] + " " + word : word;
+        if ((int)candidate.length() <= MAX_CHARS) {
+            rows[rowIdx] = candidate;
+        } else if (rowIdx < 2) {
+            rowIdx++;
+            rows[rowIdx] = word;
+        }
+    }
+
+    // Find which row contains the preview word (it's the last word = end of last non-empty row)
+    int previewRow = -1;
+    int previewCharX = MARGIN_X;
+    if (preview.length() > 0) {
+        for (int r = 2; r >= 0; r--) {
+            if (rows[r].length() >= preview.length() && rows[r].endsWith(preview)) {
+                previewRow = r;
+                int prefixLen = rows[r].length() - preview.length();
+                previewCharX = MARGIN_X + prefixLen * 6; // FONT_SMALL = 6px/char
+                break;
+            }
+        }
+    }
+
+    u8g2.setFont(FONT_SMALL);
+
+    // Render rows
+    for (int r = 0; r < 3; r++) {
+        if (rows[r].length() == 0) continue;
+
+        if (r == previewRow && preview.length() > 0) {
+            // Draw committed prefix
+            int prefixLen = rows[r].length() - preview.length();
+            String prefix = rows[r].substring(0, prefixLen);
+            u8g2.setDrawColor(1);
+            if (prefix.length() > 0) u8g2.drawStr(MARGIN_X, OP_Y[r], prefix.c_str());
+
+            // Draw inverted box behind preview word
+            int previewW = u8g2.getStrWidth(preview.c_str());
+            u8g2.setDrawColor(1);
+            u8g2.drawBox(previewCharX - 1, OP_Y[r] - 9, previewW + 2, 11);
+
+            // Draw preview text dark-on-bright
+            u8g2.setDrawColor(0);
+            u8g2.drawStr(previewCharX, OP_Y[r], preview.c_str());
+            u8g2.setDrawColor(1);
+        } else {
+            u8g2.setDrawColor(1);
+            u8g2.drawStr(MARGIN_X, OP_Y[r], rows[r].c_str());
+        }
+    }
+
+    // === ICON COLUMN (operator mode) ===
+    // Slot 0: category label (line1.right = "1".."4")
+    if (state.line1.right.length() > 0) {
+        u8g2.setFont(FONT_SMALL);
+        u8g2.setDrawColor(1);
+        int lw = u8g2.getStrWidth(state.line1.right.c_str());
+        int lx = ICON_COL_X + (ICON_SLOT_SIZE - lw) / 2;
+        u8g2.drawStr(lx, ICON_Y[0] + 12, state.line1.right.c_str()); // baseline centred in 18px slot
+    }
+
+    // Slot 2: op_tick icon when ready
+    if (state.icons[2].id == "op_tick") {
+        drawIconXBM(getIconBitmap("op_tick"), ICON_COL_X, ICON_Y[2]);
+    }
+}
+
 // Internal: draw the full display state into u8g2 buffer and send it
 static void _renderBuffer(const DisplayState& state) {
     u8g2.clearBuffer();
+
+    // Operator sentence mode uses completely different layout
+    if (state.line2.style == DisplayStyle::OPERATOR) {
+        _renderOperator(state);
+        u8g2.sendBuffer();
+        return;
+    }
 
     // === ICON COLUMN ===
     for (int i = 0; i < 3; i++) {
@@ -154,6 +255,12 @@ static void _renderBuffer(const DisplayState& state) {
 }
 
 void displayRender(const DisplayState& state) {
+    // Operator mode renders once (inverted box provides the visual, no blink animation)
+    if (state.line2.style == DisplayStyle::OPERATOR) {
+        _renderBuffer(state);
+        return;
+    }
+
     int blinkCycles = (state.line2.style == DisplayStyle::CRITICAL) ? 3 : 1;
 
     for (int blink = 0; blink < blinkCycles; blink++) {
@@ -184,12 +291,16 @@ void displayPlayerSelect(uint8_t selectedPlayer) {
     // === LINE 1: Title ===
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
-    u8g2.drawStr(MARGIN_X, LINE1_Y, "SELECT PLAYER");
+    u8g2.drawStr(MARGIN_X, LINE1_Y, "SELECT TERMINAL");
 
-    // === LINE 2: Selected player number (large, centered) ===
+    // === LINE 2: Selected player/operator (large, centered) ===
     u8g2.setFont(FONT_LARGE);
     char playerText[16];
-    snprintf(playerText, sizeof(playerText), "PLAYER %d", selectedPlayer);
+    if (selectedPlayer == 0) {
+        snprintf(playerText, sizeof(playerText), "OPERATOR");
+    } else {
+        snprintf(playerText, sizeof(playerText), "PLAYER %d", selectedPlayer);
+    }
     int textWidth = u8g2.getStrWidth(playerText);
     int textX = (DISPLAY_WIDTH - textWidth) / 2;
 

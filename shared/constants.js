@@ -116,6 +116,7 @@ export const ClientMsg = {
   OPERATOR_DELETE: 'operatorDelete',
   OPERATOR_READY: 'operatorReady',
   OPERATOR_UNREADY: 'operatorUnready',
+  OPERATOR_CLEAR: 'operatorClear',
   OPERATOR_SEND: 'operatorSend',
 
   // Scores
@@ -306,16 +307,23 @@ export const DisplayStyle = {
 
 // Operator terminal word library
 export const OPERATOR_WORDS = {
-  WARNINGS: ['BEWARE', 'TRUST', 'IGNORE', 'WATCH', 'LISTEN', 'REMEMBER', 'FORGET', 'SUSPECT'],
-  SUBJECTS: ['THE', 'LOUD', 'QUIET', 'KIND', 'SCARED', 'ANGRY', 'CLEVER', 'COWARDLY', 'BRAVE',
-             'BLESSED', 'LUCKY', 'UNLUCKY', 'LEFT', 'RIGHT', 'MEAN', 'SHOUTY', 'STRANGE',
-             'ONE', 'THEM', 'ALL', 'NONE', 'FIRST', 'LAST'],
-  STATE:    ['LIES', 'KNOWS', 'HIDES', 'PROTECTS', 'HUNTS', 'IS', 'NOT', 'SOON', 'LATE', 'TOO',
-             'SAFE', 'LOST', 'WRONG', 'STUPID', 'LYING', 'CRAZY', 'WILL', 'DIE', 'LIVE',
-             'WIN', 'LOSE', 'NEXT', 'WANTS', 'HATES', 'THIS', 'THAT', 'CHANGES', 'STARTS', 'ENDS'],
-  CHAOS:    ['YIKES', 'SORRY', 'BYE', 'HELLO', 'HELP', 'NO', 'YES', 'MAYBE', 'RED', 'DARK',
-             'SOON', 'ALWAYS', 'NEVER', 'DAVE'],
+  WARNINGS:  ['BEWARE', 'TRUST', 'IGNORE', 'WATCH', 'LISTEN', 'REMEMBER', 'FORGET', 'SUSPECT', 'WARNED'],
+  SUBJECTS:  ['THE', 'LOUD', 'QUIET', 'KIND', 'SCARED', 'ANGRY', 'CLEVER', 'COWARDLY', 'BRAVE',
+              'BLESSED', 'LUCKY', 'UNLUCKY', 'LEFT', 'RIGHT', 'MEAN', 'SHOUTY', 'STRANGE',
+              'ONE', 'THEM', 'ALL', 'NONE', 'FIRST', 'LAST',
+              'GOOD', 'EVIL', 'REAL', 'FAKE', 'GUILTY', 'INNOCENT', 'OBVIOUS', 'ALONE', 'TRUE'],
+  STATE:     ['LIES', 'KNOWS', 'HIDES', 'PROTECTS', 'HUNTS', 'IS', 'NOT', 'SOON', 'LATE', 'TOO',
+              'SAFE', 'LOST', 'WRONG', 'STUPID', 'LYING', 'CRAZY', 'WILL', 'DIE', 'LIVE',
+              'WIN', 'LOSE', 'NEXT', 'WANTS', 'HATES', 'THIS', 'THAT', 'CHANGES', 'STARTS', 'ENDS',
+              'SAW', 'HEARD', 'TOLD', 'VOTED', 'SAVED', 'KILLED', 'CHOSE', 'FEARS', 'TRUSTS', 'LIED',
+              'WAS', 'WERE', 'HAS', 'HAVE', 'DID', 'DOES', 'ONLY', 'EVEN', 'JUST', 'ALREADY', 'AGAIN', 'STILL'],
+  CHAOS:     ['YIKES', 'SORRY', 'BYE', 'HELLO', 'HELP', 'NO', 'YES', 'MAYBE', 'RED', 'DARK',
+              'SOON', 'ALWAYS', 'NEVER', 'DAVE',
+              'OOPS', 'RIP', 'WELP', 'FINALLY', 'ANYWAY', 'HONESTLY', 'OBVIOUSLY', 'WHOOPS', 'THANKS'],
+  PRONOUNS:  ['HE', 'SHE', 'THEY', 'YOU', 'I', 'WE', 'US', 'MY', 'YOUR', 'HIS', 'HER', 'IT',
+              'A', 'AN', 'AND', 'BUT', 'OR', 'SO'],
+  NOUNS:     ['WOLF', 'KILL', 'VOTE', 'NIGHT', 'DAY', 'TOWN', 'TRUTH', 'LIAR', 'KILLER', 'TEAM'],
 };
 
 // Category order for dial cycling (READY is special — not a word list)
-export const OPERATOR_CATEGORIES = ['WARNINGS', 'SUBJECTS', 'STATE', 'CHAOS', 'READY'];
+export const OPERATOR_CATEGORIES = ['WARNINGS', 'SUBJECTS', 'STATE', 'CHAOS', 'PRONOUNS', 'NOUNS', 'READY'];

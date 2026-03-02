@@ -662,6 +662,7 @@ export function createHandlers(game) {
 
     [ClientMsg.OPERATOR_JOIN]: (ws) => {
       ws.clientType = 'operator';
+      send(ws, ServerMsg.WELCOME, { role: 'operator' });
       send(ws, ServerMsg.OPERATOR_STATE, game.getOperatorState());
       return { success: true };
     },
@@ -686,6 +687,11 @@ export function createHandlers(game) {
 
     [ClientMsg.OPERATOR_UNREADY]: () => {
       game.operatorSetReady(false);
+      return { success: true };
+    },
+
+    [ClientMsg.OPERATOR_CLEAR]: () => {
+      game.operatorClear();
       return { success: true };
     },
 

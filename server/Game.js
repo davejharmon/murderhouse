@@ -2320,6 +2320,12 @@ export class Game {
     this.broadcastOperatorState();
   }
 
+  operatorClear() {
+    this.operatorWords = [];
+    this.operatorReady = false;
+    this.broadcastOperatorState();
+  }
+
   operatorSetReady(ready) {
     this.operatorReady = ready;
     this.broadcastOperatorState();

@@ -291,6 +291,7 @@ _(none currently)_
 - Add glyph for Jester
   Add new role: Jailer
 - Improve pulse test
+- Improve operator terminal/client parity and UX
 - Add pulse test debug pulse
 - Add detonator
 - Add library of night and day fallback phrases
@@ -304,3 +305,4 @@ _(none currently)_
 - janitor is missing a glyph
 - Poisoned victim should not say 'poisoned' on death - more generic
 - poison death will be skipped if you go next phase
+- Scrubbing back / auto advance broken on ghost message
