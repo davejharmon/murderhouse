@@ -84,6 +84,21 @@
   font-size: 0.9rem;
 }
 
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1400px) {
   .grid {

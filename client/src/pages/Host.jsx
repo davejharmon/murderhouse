@@ -2,13 +2,14 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
+import { ClientMsg, GamePhase, PlayerStatus, SlideStyle, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
 import GameLog from '../components/GameLog';
 import SettingsModal from '../components/SettingsModal';
 import TutorialSlidesModal from '../components/TutorialSlidesModal';
+import HeartbeatModal from '../components/HeartbeatModal';
 import styles from './Host.module.css';
 
 const TAB_CONTROLS = 0;
@@ -36,6 +37,7 @@ export default function Host() {
 
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
   const [timerDuration, setTimerDuration] = useState(30);
+  const [heartbeatThreshold, setHeartbeatThreshold] = useState(110);
   const [loadedPresetId, setLoadedPresetId] = useState(null);
   const hostSettingsApplied = useRef(false);
   const autoAdvanceTimerRef = useRef(null);
@@ -44,6 +46,7 @@ export default function Host() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
+  const [showHeartbeat, setShowHeartbeat] = useState(false);
 
   // Mobile tab navigation
   const [mobileTab, setMobileTab] = useState(TAB_PLAYERS);
@@ -67,6 +70,7 @@ export default function Host() {
     hostSettingsApplied.current = true;
     setTimerDuration(hostSettings.timerDuration ?? 30);
     setAutoAdvanceEnabled(hostSettings.autoAdvanceEnabled ?? false);
+    setHeartbeatThreshold(hostSettings.heartbeatThreshold ?? 110);
     if (hostSettings.lastLoadedPresetId)
       setLoadedPresetId(hostSettings.lastLoadedPresetId);
   }, [hostSettings]);
@@ -206,6 +210,11 @@ export default function Host() {
     });
   };
 
+  const handleHeartbeatThresholdChange = (val) => {
+    setHeartbeatThreshold(val);
+    send(ClientMsg.SAVE_HOST_SETTINGS, { heartbeatThreshold: val });
+  };
+
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => {
     autoAdvancePausedRef.current = true;
@@ -272,6 +281,19 @@ export default function Host() {
     send(ClientMsg.PUSH_ROLE_TIP_SLIDE, { roleId });
   const handlePushItemTipSlide = (itemId) =>
     send(ClientMsg.PUSH_ITEM_TIP_SLIDE, { itemId });
+
+  const handlePushPhaseSlide = () => {
+    const title = phase === GamePhase.DAY
+      ? `DAY ${gameState?.dayCount}`
+      : `NIGHT ${gameState?.dayCount}`;
+    const playerIds = (gameState?.players ?? [])
+      .filter(p => p.status === PlayerStatus.ALIVE)
+      .map(p => p.id);
+    send(ClientMsg.PUSH_SLIDE, {
+      slide: { type: 'gallery', title, playerIds, style: SlideStyle.NEUTRAL },
+      jumpTo: true,
+    });
+  };
 
   const handlePushHeartbeatSlide = (playerId) =>
     send(ClientMsg.PUSH_HEARTBEAT_SLIDE, { playerId });
@@ -351,6 +373,12 @@ export default function Host() {
           )}
 
           {!isLobby && !isGameOver && (
+            <button onClick={handlePushPhaseSlide}>
+              {phase === GamePhase.DAY ? `DAY ${gameState?.dayCount}` : `NIGHT ${gameState?.dayCount}`}
+            </button>
+          )}
+
+          {!isLobby && !isGameOver && (
             <button onClick={handleNextPhase}>Next Phase</button>
           )}
 
@@ -360,21 +388,11 @@ export default function Host() {
         </div>
       </section>
 
-      {gameState?.players?.some((p) => p.heartbeat?.active) && (
+      {(gameState?.players?.filter(p => p.heartbeat?.active).length >= 2) && (
         <section className={styles.section}>
-          <h2>Heartbeat</h2>
-          <div className={styles.buttonGroup}>
-            {gameState.players
-              .filter((p) => p.heartbeat?.active)
-              .map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePushHeartbeatSlide(p.id)}
-                >
-                  ❤️ {p.name} ({p.heartbeat.bpm})
-                </button>
-              ))}
-          </div>
+          <button onClick={() => setShowHeartbeat(true)}>
+            ❤️ Heartbeat...
+          </button>
         </section>
       )}
 
@@ -384,6 +402,12 @@ export default function Host() {
         </button>
         <button onClick={handlePushScoreSlide}>
           Scoreboard
+        </button>
+        <button
+          className={gameState?.heartbeatMode ? 'primary' : ''}
+          onClick={() => send(ClientMsg.TOGGLE_HEARTBEAT_MODE)}
+        >
+          {gameState?.heartbeatMode ? '❤️ Heartbeat Mode ON' : '❤️ Heartbeat Mode'}
         </button>
       </section>
 
@@ -478,6 +502,8 @@ export default function Host() {
         onTimerDurationChange={handleTimerDurationChange}
         autoAdvanceEnabled={autoAdvanceEnabled}
         onToggleAutoAdvance={handleToggleAutoAdvance}
+        heartbeatThreshold={heartbeatThreshold}
+        onHeartbeatThresholdChange={handleHeartbeatThresholdChange}
         connectedPlayers={gameState?.players ?? []}
         scores={scores}
         onSetScore={handleSetScore}
@@ -490,6 +516,13 @@ export default function Host() {
         onPushCompSlide={handlePushCompSlide}
         onPushRoleTipSlide={handlePushRoleTipSlide}
         onPushItemTipSlide={handlePushItemTipSlide}
+      />
+
+      <HeartbeatModal
+        isOpen={showHeartbeat}
+        onClose={() => setShowHeartbeat(false)}
+        players={gameState?.players || []}
+        onPushHeartbeatSlide={handlePushHeartbeatSlide}
       />
 
       {/* Connection indicator */}

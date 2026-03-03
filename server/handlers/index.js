@@ -632,10 +632,17 @@ export function createHandlers(game) {
       player.heartbeat = {
         bpm: payload.bpm || 0,
         active: (payload.bpm || 0) > 0,
+        fake: payload.fake === true,
         lastUpdate: Date.now(),
       };
+      game._checkHeartbeatModeSpike(player);
       game.broadcastGameState();
       return { success: true };
+    },
+
+    [ClientMsg.TOGGLE_HEARTBEAT_MODE]: (ws) => {
+      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
+      return game.toggleHeartbeatMode();
     },
 
     [ClientMsg.PUSH_HEARTBEAT_SLIDE]: (ws, payload) => {
@@ -647,12 +654,14 @@ export function createHandlers(game) {
         return { success: false, error: 'Player not found' };
       }
       const bpm = player.heartbeat?.bpm || 0;
+      const fake = player.heartbeat?.fake ?? false;
       game.pushSlide({
         type: SlideType.HEARTBEAT,
         playerId: payload.playerId,
         playerName: player.name,
         portrait: player.portrait,
         bpm,
+        fake,
         style: SlideStyle.HOSTILE,
       }, true);
       return { success: true };

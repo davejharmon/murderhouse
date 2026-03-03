@@ -13,6 +13,48 @@ import {
 import PixelGlyph from '../components/PixelGlyph';
 import styles from './Screen.module.css';
 
+// BPM colour: neutral white below 80% of threshold, ramps yellow→orange→red up to threshold,
+// solid danger red above it.
+function bpmColor(bpm, threshold) {
+  if (bpm >= threshold) return '#ff3333';
+  const start = threshold * 0.7;
+  if (bpm <= start) return 'rgba(255,255,255,0.75)';
+  const t = (bpm - start) / (threshold - start); // 0 → 1
+  const hue = Math.round(55 * (1 - t));           // 55° yellow → 0° red
+  const sat = Math.round(80 + t * 20);
+  const lit = Math.round(65 - t * 15);
+  return `hsl(${hue}, ${sat}%, ${lit}%)`;
+}
+
+// Animated BPM counter — ticks one integer at a time toward the target value,
+// showing every intermediate number so jumps look like an analog needle sweep.
+function AnimatedBpm({ value, threshold }) {
+  const [displayed, setDisplayed] = useState(value);
+  const displayedRef = useRef(value);
+  const targetRef = useRef(value);
+
+  targetRef.current = value;
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const target = targetRef.current;
+      const current = displayedRef.current;
+      if (current === target) return;
+      const next = current + Math.sign(target - current);
+      displayedRef.current = next;
+      setDisplayed(next);
+    }, 30);
+    return () => clearInterval(tick);
+  }, []);
+
+  return (
+    <span
+      className={`${styles.thumbBpm} ${displayed >= threshold ? styles.thumbBpmDanger : ''}`}
+      style={{ color: bpmColor(displayed, threshold) }}
+    >{displayed}</span>
+  );
+}
+
 // Compute font-size so a title string never wraps. .slide has 5vw side padding
 // → 90vw available. Monospace + letter-spacing:0.1em ≈ 0.65× font-size per char.
 function fitFontSize(text, maxVw = 8) {
@@ -25,21 +67,16 @@ function fitFontSize(text, maxVw = 8) {
 const BPM_HISTORY_DURATION = 30000; // 30 seconds visible on graph
 const BPM_SAMPLE_INTERVAL = 200;    // Record a point every 200ms
 
-function HeartbeatSlide({ slide, gameState }) {
+function HeartbeatGraph({ bpm, active }) {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
-  const bpmRef = useRef(slide.bpm || 72);
-  const activeRef = useRef(true);
-  const historyRef = useRef([]); // [{time, bpm}]
+  const bpmRef = useRef(bpm || 72);
+  const activeRef = useRef(active);
+  const historyRef = useRef([]);
   const lastSampleRef = useRef(0);
 
-  // Live data from gameState
-  const livePlayer = gameState?.players?.find(p => p.id === slide.playerId);
-  const liveActive = livePlayer?.heartbeat?.active ?? true;
-  const liveBpm = liveActive ? (livePlayer?.heartbeat?.bpm || slide.bpm || 72) : 0;
-
-  bpmRef.current = liveBpm;
-  activeRef.current = liveActive;
+  bpmRef.current = bpm;
+  activeRef.current = active;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -52,7 +89,6 @@ function HeartbeatSlide({ slide, gameState }) {
     const PAD_BOT = 20;
     const graphH = H - PAD_TOP - PAD_BOT;
 
-    // Seed history with initial BPM
     const startTime = performance.now();
     historyRef.current = [{ time: startTime, bpm: bpmRef.current }];
     lastSampleRef.current = startTime;
@@ -61,11 +97,9 @@ function HeartbeatSlide({ slide, gameState }) {
       const currentBpm = bpmRef.current;
       const isActive = activeRef.current;
 
-      // Sample BPM into history at regular intervals
       if (now - lastSampleRef.current >= BPM_SAMPLE_INTERVAL) {
         historyRef.current.push({ time: now, bpm: isActive ? currentBpm : -1 });
         lastSampleRef.current = now;
-        // Trim old entries
         const cutoff = now - BPM_HISTORY_DURATION - 2000;
         while (historyRef.current.length > 2 && historyRef.current[0].time < cutoff) {
           historyRef.current.shift();
@@ -73,23 +107,19 @@ function HeartbeatSlide({ slide, gameState }) {
       }
 
       const history = historyRef.current;
-
-      // Fixed Y range: 50 BPM (ice calm) to 180 BPM (apoplectic)
       const yMin = 50;
       const yMax = 180;
       const yRange = yMax - yMin;
-
-      const bpmToY = (bpm) => PAD_TOP + graphH - ((bpm - yMin) / yRange) * graphH;
+      const bpmToY = (v) => PAD_TOP + graphH - ((v - yMin) / yRange) * graphH;
       const timeToX = (t) => ((t - (now - BPM_HISTORY_DURATION)) / BPM_HISTORY_DURATION) * W;
 
-      // Clear
       ctx.fillStyle = 'rgba(10, 12, 15, 1)';
       ctx.fillRect(0, 0, W, H);
 
-      // Grid lines (faint horizontal)
+      // Grid lines
       ctx.strokeStyle = 'rgba(201, 76, 76, 0.08)';
       ctx.lineWidth = 1;
-      const gridStep = yRange < 30 ? 5 : yRange < 80 ? 10 : 20;
+      const gridStep = 20;
       const gridStart = Math.ceil(yMin / gridStep) * gridStep;
       ctx.font = '16px monospace';
       ctx.fillStyle = 'rgba(201, 76, 76, 0.25)';
@@ -104,8 +134,7 @@ function HeartbeatSlide({ slide, gameState }) {
         ctx.fillText(String(v), W - 8, gy);
       }
 
-      // Draw BPM trend line
-      // Split into active/inactive segments
+      // Trend line
       ctx.lineWidth = 4;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -116,21 +145,13 @@ function HeartbeatSlide({ slide, gameState }) {
       for (let i = 0; i < history.length; i++) {
         const pt = history[i];
         const x = timeToX(pt.time);
-        if (x < -20) continue; // Off-screen left
-
+        if (x < -20) continue;
         if (pt.bpm < 0) {
-          // Inactive — end current segment
-          if (inSegment) {
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            inSegment = false;
-          }
+          if (inSegment) { ctx.stroke(); ctx.shadowBlur = 0; inSegment = false; }
           continue;
         }
-
         const y = bpmToY(pt.bpm);
         lastActiveY = y;
-
         if (!inSegment) {
           ctx.beginPath();
           ctx.strokeStyle = '#c94c4c';
@@ -142,18 +163,13 @@ function HeartbeatSlide({ slide, gameState }) {
           ctx.lineTo(x, y);
         }
       }
+      if (inSegment) { ctx.stroke(); ctx.shadowBlur = 0; }
 
-      if (inSegment) {
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-
-      // Leading dot at the latest point
+      // Leading dot
       if (isActive && history.length > 0) {
         const lastPt = history[history.length - 1];
         const x = timeToX(lastPt.time);
         const y = lastPt.bpm > 0 ? bpmToY(lastPt.bpm) : lastActiveY;
-
         ctx.beginPath();
         ctx.arc(x, y, 7, 0, Math.PI * 2);
         ctx.fillStyle = '#ff6b6b';
@@ -163,9 +179,8 @@ function HeartbeatSlide({ slide, gameState }) {
         ctx.shadowBlur = 0;
       }
 
-      // "SIGNAL LOST" overlay when inactive
+      // SIGNAL LOST overlay
       if (!isActive) {
-        // Dim flatline across center
         const flatY = H / 2;
         ctx.strokeStyle = 'rgba(201, 76, 76, 0.3)';
         ctx.shadowBlur = 0;
@@ -176,8 +191,6 @@ function HeartbeatSlide({ slide, gameState }) {
         ctx.lineTo(W, flatY);
         ctx.stroke();
         ctx.setLineDash([]);
-
-        // Blinking text
         const blink = Math.sin(now / 500) > 0;
         if (blink) {
           ctx.font = 'bold 40px monospace';
@@ -192,34 +205,53 @@ function HeartbeatSlide({ slide, gameState }) {
     };
 
     animRef.current = requestAnimationFrame(draw);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, []);
+  return (
+    <canvas
+      ref={canvasRef}
+      width={1200}
+      height={300}
+      className={styles.heartbeatCanvas}
+    />
+  );
+}
+
+function HeartbeatSlide({ slide, gameState }) {
+  // Live data from gameState
+  const livePlayer = gameState?.players?.find(p => p.id === slide.playerId);
+  const liveActive = livePlayer?.heartbeat?.active ?? true;
+  const liveBpm = liveActive ? (livePlayer?.heartbeat?.bpm || slide.bpm || 72) : 0;
+  const isDebug = livePlayer?.heartbeat?.fake ?? slide.fake ?? false;
 
   return (
     <div className={`${styles.slide} ${styles.heartbeatSlide}`}>
       <div className={styles.heartbeatHeader}>
-        <img
-          src={`/images/players/${slide.portrait}`}
-          alt={slide.playerName}
-          className={styles.heartbeatPortrait}
-        />
+        <div className={styles.portraitWrap}>
+          <img
+            src={`/images/players/${slide.portrait}`}
+            alt={slide.playerName}
+            className={styles.heartbeatPortrait}
+          />
+          {livePlayer?.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
+        </div>
         <span className={styles.heartbeatName}>{slide.playerName}</span>
+        {isDebug && <span className={styles.heartbeatDebugBadge}>DEBUG</span>}
       </div>
-      <canvas
-        ref={canvasRef}
-        width={1200}
-        height={300}
-        className={styles.heartbeatCanvas}
-      />
+      {slide.title && (
+        <p className={styles.heartbeatSlideTitle}>{slide.title}</p>
+      )}
+      <HeartbeatGraph bpm={liveBpm} active={liveActive} />
       <div className={styles.heartbeatBpmRow}>
         <span className={`${styles.heartbeatBpm} ${!liveActive ? styles.heartbeatBpmLost : ''}`}>
           {liveActive ? liveBpm : '—'}
         </span>
         <span className={styles.heartbeatLabel}>BPM</span>
       </div>
+      {slide.subtitle && (
+        <p className={styles.heartbeatSlideSubtitle}>{slide.subtitle}</p>
+      )}
     </div>
   );
 }
@@ -452,6 +484,7 @@ export default function Screen() {
               >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
                 {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
+                {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>MAD</div>}
               </div>
             );
           })}
@@ -473,6 +506,7 @@ export default function Screen() {
               className={styles.largePortrait}
             />
             {player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
+            {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
           </div>
         )}
         <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
@@ -507,6 +541,7 @@ export default function Screen() {
             />
             {slide.jesterWon && <div className={styles.winnerBadgeLarge}>WINNER</div>}
             {!slide.jesterWon && player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
+            {!slide.jesterWon && player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
           </div>
           {slide.subtitle ? (
             <h2 className={styles.deathName}>{slide.subtitle}</h2>
@@ -610,6 +645,8 @@ export default function Screen() {
 
   const renderGallery = (slide) => {
     const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
+    const heartbeatMode = gameState?.heartbeatMode;
+    const heartbeatThreshold = gameState?.heartbeatThreshold ?? 110;
 
     // targetsOnly mode: just title, subtitle, then gallery — no werewolf tracker
     if (slide.targetsOnly) {
@@ -630,6 +667,10 @@ export default function Screen() {
               >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
                 {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
+                {p.hasNovote && <div className={styles.tooMadBadge}>MAD</div>}
+                {heartbeatMode && p.heartbeat?.active && (
+                  <AnimatedBpm value={p.heartbeat.bpm} threshold={heartbeatThreshold} />
+                )}
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
             ))}
@@ -665,6 +706,10 @@ export default function Screen() {
               >
                 <img src={`/images/players/${p.portrait}`} alt={p.name} />
                 {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
+                {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>MAD</div>}
+                {heartbeatMode && !isDead && p.heartbeat?.active && (
+                  <AnimatedBpm value={p.heartbeat.bpm} threshold={heartbeatThreshold} />
+                )}
                 <span className={styles.thumbName}>{p.name}</span>
               </div>
             );
@@ -751,6 +796,7 @@ export default function Screen() {
                 className={`${styles.largePortrait} ${styles.cowardPortrait}`}
               />
               <div className={styles.cowardBadgeLarge}>COWARD</div>
+              {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
             </div>
             <h2 className={styles.deathName}>{slide.subtitle}</h2>
             {slide.revealText && (
@@ -772,11 +818,14 @@ export default function Screen() {
           {slide.title || 'ELIMINATED'}
         </h1>
         <div className={styles.deathReveal}>
-          <img
-            src={`/images/players/${player.portrait}`}
-            alt={player.name}
-            className={`${styles.largePortrait} ${styles.deathPortrait}`}
-          />
+          <div className={styles.portraitWrap}>
+            <img
+              src={`/images/players/${player.portrait}`}
+              alt={player.name}
+              className={`${styles.largePortrait} ${styles.deathPortrait}`}
+            />
+            {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
+          </div>
           {slide.revealRole && (player.role || slide.revealText) && (
             <p
               className={styles.roleReveal}
@@ -1128,6 +1177,7 @@ export default function Screen() {
             >
               <img src={`/images/players/${p.portrait}`} alt={p.name} />
               {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
+              {p.hasNovote && <div className={styles.tooMadBadge}>MAD</div>}
               <span className={styles.thumbName}>{p.name}</span>
             </div>
           ))}

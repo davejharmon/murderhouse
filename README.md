@@ -290,9 +290,6 @@ _(none currently)_
 - Add slide to game end that shows score including suspect tracking
 - Add glyph for Jester
   Add new role: Jailer
-- Improve pulse test
-- Improve operator terminal/client parity and UX
-- Add pulse test debug pulse
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button

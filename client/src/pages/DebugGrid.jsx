@@ -10,13 +10,49 @@ const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:8080`
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
+const HEARTBEAT_TICK_MS = 1500;
+
+function initSimState() {
+  const base = 60 + Math.random() * 20; // resting BPM 60–80
+  return { base, current: base, mode: 'normal', spikeTarget: 0, spikeTicks: 0 };
+}
+
+function tickSimState(s) {
+  if (s.mode === 'normal') {
+    if (Math.random() < 0.005) {
+      // 0.5% chance per tick to spike above 110
+      s.mode = 'spiking';
+      s.spikeTarget = 112 + Math.random() * 20; // 112–132
+      s.spikeTicks = 5 + Math.floor(Math.random() * 5); // 5–9 ticks
+    } else {
+      const drift = (s.base - s.current) * 0.15;
+      s.current = Math.round(s.current + drift + (Math.random() * 6 - 3));
+      s.current = Math.max(54, Math.min(100, s.current));
+    }
+  } else if (s.mode === 'spiking') {
+    s.current = Math.round(s.current + (s.spikeTarget - s.current) * 0.5);
+    s.spikeTicks--;
+    if (s.spikeTicks <= 0) s.mode = 'recovering';
+  } else if (s.mode === 'recovering') {
+    s.current = Math.round(s.current + (s.base - s.current) * 0.15);
+    if (Math.abs(s.current - s.base) < 3) {
+      s.current = Math.round(s.base);
+      s.mode = 'normal';
+    }
+  }
+  return s;
+}
+
 export default function DebugGrid() {
   const [playerStates, setPlayerStates] = useState({});
   const [gameStates, setGameStates] = useState({});
   const [eventPrompts, setEventPrompts] = useState({});
   const [eventResults, setEventResults] = useState({});
   const [connections, setConnections] = useState({});
+  const [fakeHeartbeats, setFakeHeartbeats] = useState(false);
   const wsRefs = useRef({});
+  const simStateRef = useRef({});
+  const gameStatesRef = useRef({});
 
   // Set page title
   useEffect(() => {
@@ -52,6 +88,7 @@ export default function DebugGrid() {
             break;
 
           case ServerMsg.GAME_STATE:
+            gameStatesRef.current[playerId] = payload;
             setGameStates((prev) => ({ ...prev, [playerId]: payload }));
 
             // Auto-rejoin if game was reset (in lobby and player not in player list)
@@ -113,6 +150,44 @@ export default function DebugGrid() {
     };
   }, []);
 
+  // Fake heartbeat simulation
+  useEffect(() => {
+    if (!fakeHeartbeats) {
+      // Clear heartbeats for all players
+      for (let i = 1; i <= PLAYER_COUNT; i++) {
+        const ws = wsRefs.current[String(i)];
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: ClientMsg.HEARTBEAT, payload: { bpm: 0 } }));
+        }
+      }
+      return;
+    }
+
+    // Initialise sim state for any players that don't have one yet
+    for (let i = 1; i <= PLAYER_COUNT; i++) {
+      const id = String(i);
+      if (!simStateRef.current[id]) simStateRef.current[id] = initSimState();
+    }
+
+    const timer = setInterval(() => {
+      for (let i = 1; i <= PLAYER_COUNT; i++) {
+        const id = String(i);
+        const ws = wsRefs.current[id];
+        if (!ws || ws.readyState !== WebSocket.OPEN) continue;
+
+        // If a real (non-fake) terminal is sending heartbeats for this player, step aside
+        const liveHeartbeat = gameStatesRef.current[id]?.players?.find(p => p.id === id)?.heartbeat;
+        if (liveHeartbeat?.active && !liveHeartbeat?.fake) continue;
+
+        const s = simStateRef.current[id] ?? initSimState();
+        simStateRef.current[id] = tickSimState(s);
+        ws.send(JSON.stringify({ type: ClientMsg.HEARTBEAT, payload: { bpm: s.current, fake: true } }));
+      }
+    }, HEARTBEAT_TICK_MS);
+
+    return () => clearInterval(timer);
+  }, [fakeHeartbeats]);
+
   // Send message for a specific player
   const send = (playerId, type, payload = {}) => {
     const ws = wsRefs.current[playerId];
@@ -145,6 +220,14 @@ export default function DebugGrid() {
         <Link to='/operator' className={styles.controlLink}>
           Operator
         </Link>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={fakeHeartbeats}
+            onChange={(e) => setFakeHeartbeats(e.target.checked)}
+          />
+          Fake Heartbeats
+        </label>
         <div className={styles.info}>
           Connected: {Object.values(connections).filter(Boolean).length}/
           {PLAYER_COUNT}

@@ -100,7 +100,7 @@
       },
       "rolePool": null,
       "timerDuration": 3,
-      "autoAdvanceEnabled": false,
+      "autoAdvanceEnabled": true,
       "roleMode": "assigned",
       "roleAssignments": {
         "1": "alpha",

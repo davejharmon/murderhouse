@@ -137,6 +137,10 @@ export class Game {
     // Operator terminal
     this.operatorWords = [];
     this.operatorReady = false;
+
+    // Heartbeat mode
+    this.heartbeatMode = false;
+    this.heartbeatSpikesThisDay = new Set();
   }
 
   // === Player Management ===
@@ -183,7 +187,7 @@ export class Game {
   // === Host Settings ===
 
   _loadHostSettingsFromDisk() {
-    const defaults = { timerDuration: 30, autoAdvanceEnabled: false };
+    const defaults = { timerDuration: 30, autoAdvanceEnabled: false, heartbeatThreshold: 110 };
     if (!fs.existsSync(HOST_SETTINGS_PATH)) {
       this._hostSettings = defaults;
       return;
@@ -488,6 +492,9 @@ export class Game {
       player.syncState(this);
     }
 
+    // Clear per-day heartbeat spike tracking
+    this.heartbeatSpikesThisDay.clear();
+
     // Build pending events for this phase
     this.buildPendingEvents();
 
@@ -770,6 +777,7 @@ export class Game {
     } else if (this.phase === GamePhase.NIGHT) {
       this.phase = GamePhase.DAY;
       this.dayCount++;
+      this.heartbeatSpikesThisDay.clear();
       this.addLog(`Day ${this.dayCount} begins`);
       this.pushSlide({
         type: 'gallery',
@@ -2347,6 +2355,47 @@ export class Game {
     this.broadcast(ServerMsg.OPERATOR_STATE, this.getOperatorState());
   }
 
+  // === Heartbeat Mode ===
+
+  toggleHeartbeatMode() {
+    this.heartbeatMode = !this.heartbeatMode;
+    this.broadcastGameState();
+    return { success: true, heartbeatMode: this.heartbeatMode };
+  }
+
+  _checkHeartbeatModeSpike(player) {
+    if (!this.heartbeatMode) return;
+    if (this.phase !== GamePhase.DAY) return;
+    if (!player.isAlive) return;
+    const threshold = this._hostSettings.heartbeatThreshold ?? 110;
+    if (player.heartbeat.bpm <= threshold) return;
+    if (this.heartbeatSpikesThisDay.has(player.id)) return;
+
+    // If vote is already running, check if player already confirmed — if so, skip
+    if (this.activeEvents.has(EventId.VOTE)) {
+      const voteInstance = this.activeEvents.get(EventId.VOTE);
+      if (player.id in voteInstance.results) return;
+      // Remove player from vote participants so they can't vote
+      voteInstance.participants = voteInstance.participants.filter(id => id !== player.id);
+    }
+
+    this.heartbeatSpikesThisDay.add(player.id);
+    player.addItem(getItem(ItemId.NOVOTE));
+    this.addLog(`${player.getNameWithEmoji()} panicked! BPM ${player.heartbeat.bpm} (threshold ${threshold}) — vote lost`);
+    this.pushSlide({
+      type: SlideType.HEARTBEAT,
+      playerId: player.id,
+      playerName: player.name,
+      portrait: player.portrait,
+      bpm: player.heartbeat.bpm,
+      fake: player.heartbeat.fake ?? false,
+      title: `${player.name.toUpperCase()} CARES TOO MUCH`,
+      subtitle: 'loses their vote till tomorrow',
+      style: SlideStyle.WARNING,
+    }, false);
+    this.broadcastGameState();
+  }
+
   // === Broadcasting ===
 
   broadcastGameState() {
@@ -2445,6 +2494,7 @@ export class Game {
       base.heartbeat = {
         bpm: p.heartbeat.bpm,
         active: p.heartbeat.active && !stale,
+        fake: p.heartbeat.fake ?? false,
       };
 
       return base;
@@ -2466,6 +2516,8 @@ export class Game {
       eventProgress: this.getEventProgressMap(),
       eventMetadata: this.getEventMetadataMap(),
       eventRespondents: this.getEventRespondentsMap(),
+      heartbeatMode: this.heartbeatMode,
+      heartbeatThreshold: this._hostSettings.heartbeatThreshold ?? 110,
     };
   }
 

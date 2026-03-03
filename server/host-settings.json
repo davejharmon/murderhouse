@@ -1,6 +1,7 @@
 {
   "timerDuration": 3,
-  "autoAdvanceEnabled": false,
+  "autoAdvanceEnabled": true,
+  "heartbeatThreshold": 110,
   "defaultPresetId": "1772244697845",
   "lastLoadedPresetId": "1772244697845"
 }

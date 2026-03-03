@@ -32,6 +32,8 @@ export default function SettingsModal({
   onTimerDurationChange,
   autoAdvanceEnabled,
   onToggleAutoAdvance,
+  heartbeatThreshold,
+  onHeartbeatThresholdChange,
   connectedPlayers = [],
   scores = {},
   onSetScore,
@@ -123,6 +125,23 @@ export default function SettingsModal({
               title='Timer duration in seconds'
             />
             <span className={styles.timerUnit}>s</span>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Heartbeat Mode</h3>
+          <div className={styles.timerRow}>
+            <label>Spike threshold</label>
+            <input
+              type='number'
+              min='60'
+              max='200'
+              value={heartbeatThreshold ?? 110}
+              onChange={(e) => onHeartbeatThresholdChange(parseInt(e.target.value) || 110)}
+              className={styles.timerInput}
+              title='BPM above this value triggers the panic vote-loss effect'
+            />
+            <span className={styles.timerUnit}>BPM</span>
           </div>
         </section>
 

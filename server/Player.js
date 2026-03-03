@@ -300,6 +300,7 @@ export class Player {
       deathTimestamp: isDead ? this.deathTimestamp : null,
       isPoisoned: this.isPoisoned,
       isCowering: this.hasItem(ItemId.COWARD),
+      hasNovote: this.hasItem(ItemId.NOVOTE),
     };
   }
 
