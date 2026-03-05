@@ -193,9 +193,35 @@ export function createHandlers(game) {
       return { success: false, error: 'No active event' };
     },
 
-    [ClientMsg.CONFIRM]: (ws) => {
+    // Settle update from terminal: sets selection by targetId after dial stops moving.
+    // No syncState — terminal already shows correct state; we only need server + pack in sync.
+    [ClientMsg.SELECT_TO]: (ws, payload) => {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
+      if (!payload?.targetId) return { success: false, error: 'Missing targetId' };
+
+      player.currentSelection = payload.targetId;
+      game.debouncedBroadcastGameState();
+
+      for (const [eventId] of game.activeEvents) {
+        if (game.shouldBroadcastPackState(eventId, player)) {
+          game.broadcastPackState();
+          break;
+        }
+      }
+
+      return { success: true };
+    },
+
+    [ClientMsg.CONFIRM]: (ws, payload) => {
+      const player = game.getPlayer(ws.playerId);
+      if (!player) return { success: false, error: 'Not a player' };
+
+      // ESP32 terminals send the explicit targetId to bypass stale server-side selection
+      // (caused by rate-limited SELECT messages during rapid dial scrubbing)
+      if (payload?.targetId) {
+        player.currentSelection = payload.targetId;
+      }
 
       const targetId = player.confirmSelection();
       if (targetId === null) {

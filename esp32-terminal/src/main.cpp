@@ -22,6 +22,11 @@ static uint8_t selectedPlayer = 1;  // 1-9
 static bool playerSelectDirty = true;
 static bool playerConfirmed = false;
 
+// Settle timer: sends selectTo after dial stops moving during target selection
+static unsigned long lastScrollMs = 0;
+static bool settlePending = false;
+static const unsigned long SCROLL_SETTLE_MS = 150;
+
 // Heartbeat send state
 static unsigned long lastHeartbeatSend = 0;
 static bool lastHeartbeatActive = false;
@@ -306,6 +311,9 @@ void loop() {
         InputEvent event = inputPoll();
 
         if (networkIsOperatorMode()) {
+            // Tick to expire the "SENT!" display after 2 seconds
+            networkOperatorTick();
+
             // Operator terminal input
             switch (event) {
                 case InputEvent::UP:
@@ -366,6 +374,17 @@ void loop() {
                     Serial.println("Input: UP");
                     if (isIdle) {
                         networkSendIdleScrollUp();
+                    } else if (currentDisplay.targetCount > 0) {
+                        // Local prediction only — settle timer will sync server after dial stops.
+                        int newIdx = (currentDisplay.selectionIndex <= 0)
+                            ? currentDisplay.targetCount - 1
+                            : currentDisplay.selectionIndex - 1;
+                        currentDisplay.selectionIndex = newIdx;
+                        currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
+                        currentDisplay.line2.style = DisplayStyle::NORMAL;
+                        displayDirty = true;
+                        lastScrollMs = millis();
+                        settlePending = true;
                     } else {
                         networkSendSelectUp();
                     }
@@ -375,6 +394,18 @@ void loop() {
                     Serial.println("Input: DOWN");
                     if (isIdle) {
                         networkSendIdleScrollDown();
+                    } else if (currentDisplay.targetCount > 0) {
+                        // Local prediction only — settle timer will sync server after dial stops.
+                        int newIdx = (currentDisplay.selectionIndex < 0 ||
+                                      currentDisplay.selectionIndex >= currentDisplay.targetCount - 1)
+                            ? 0
+                            : currentDisplay.selectionIndex + 1;
+                        currentDisplay.selectionIndex = newIdx;
+                        currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
+                        currentDisplay.line2.style = DisplayStyle::NORMAL;
+                        displayDirty = true;
+                        lastScrollMs = millis();
+                        settlePending = true;
                     } else {
                         networkSendSelectDown();
                     }
@@ -389,6 +420,13 @@ void loop() {
                             const char* itemId = currentDisplay.icons[idx].id.c_str();
                             networkSendUseItem(itemId);
                         }
+                    } else if (currentDisplay.targetCount > 0 &&
+                               currentDisplay.selectionIndex >= 0 &&
+                               currentDisplay.selectionIndex < currentDisplay.targetCount) {
+                        // Confirm with explicit targetId so server lands on the locally-shown
+                        // target regardless of how many rate-limited SELECTs it received
+                        const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
+                        networkSendConfirmWithTarget(targetId);
                     } else {
                         networkSendConfirm();
                     }
@@ -402,6 +440,16 @@ void loop() {
                 case InputEvent::NONE:
                 default:
                     break;
+            }
+        }
+
+        // Settle timer: after dial stops for SCROLL_SETTLE_MS, sync selection to server
+        if (settlePending && (millis() - lastScrollMs >= SCROLL_SETTLE_MS)) {
+            settlePending = false;
+            if (currentDisplay.selectionIndex >= 0 &&
+                currentDisplay.selectionIndex < currentDisplay.targetCount) {
+                const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
+                networkSendSelectTo(targetId);
             }
         }
 

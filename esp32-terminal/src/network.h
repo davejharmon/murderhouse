@@ -40,7 +40,9 @@ void networkRetryJoin();
 // Send messages to server
 void networkSendSelectUp();
 void networkSendSelectDown();
+void networkSendSelectTo(const char* targetId);  // Settle update — sets server selection by ID
 void networkSendConfirm();
+void networkSendConfirmWithTarget(const char* targetId);  // Explicit target — bypasses stale server selection
 void networkSendAbstain();
 void networkSendUseItem(const char* itemId);
 void networkSendIdleScrollUp();
@@ -48,6 +50,7 @@ void networkSendIdleScrollDown();
 void networkSendHeartbeat(uint8_t bpm);
 
 // Operator terminal messages
+void networkOperatorTick();       // Call each loop; clears SENT! screen after 2s
 void networkOperatorScrollUp();
 void networkOperatorScrollDown();
 void networkSendOperatorAdd();

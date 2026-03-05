@@ -60,6 +60,9 @@ static String operatorBuiltMsg  = "";
 static String operatorLastWord  = "";  // last committed word, for NO jump
 static int    operatorWordCount = 0;
 
+// Operator "SENT!" feedback timer (0 = inactive)
+static unsigned long operatorSentTime = 0;
+
 // Connection state
 static ConnectionState connState = ConnectionState::BOOT;
 static bool wsConnected = false;
@@ -91,6 +94,18 @@ static const char* getRangeLabel(const char* word) {
 }
 
 static void updateOperatorDisplay() {
+    // Show "SENT!" briefly after a slide was dispatched (matches React Operator UX)
+    if (operatorSentTime > 0 && millis() - operatorSentTime < 2000) {
+        DisplayState state;
+        state.line2.text  = "SENT!";
+        state.line2.style = DisplayStyle::CRITICAL;
+        state.leds.yes    = LedState::OFF;
+        state.leds.no     = LedState::OFF;
+        state.statusLed   = GameLedState::NONE;
+        if (displayCallback != nullptr) displayCallback(state);
+        return;
+    }
+
     DisplayState state;
     const OpWord& entry = OP_FLAT[operatorFlatIdx];
 
@@ -348,9 +363,27 @@ void networkSendSelectDown() {
     }
 }
 
+void networkSendSelectTo(const char* targetId) {
+    if (networkIsConnected()) {
+        StaticJsonDocument<128> doc;
+        doc["targetId"] = targetId;
+        JsonObject payload = doc.as<JsonObject>();
+        sendMessage(ClientMsg::SELECT_TO, &payload);
+    }
+}
+
 void networkSendConfirm() {
     if (networkIsConnected()) {
         sendMessage(ClientMsg::CONFIRM);
+    }
+}
+
+void networkSendConfirmWithTarget(const char* targetId) {
+    if (networkIsConnected()) {
+        StaticJsonDocument<128> doc;
+        doc["targetId"] = targetId;
+        JsonObject payload = doc.as<JsonObject>();
+        sendMessage(ClientMsg::CONFIRM, &payload);
     }
 }
 
@@ -413,7 +446,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             Serial.println((char*)payload);
 
             // Parse JSON message
-            StaticJsonDocument<2048> doc;
+            StaticJsonDocument<4096> doc;
             DeserializationError error = deserializeJson(doc, payload, length);
 
             if (error) {
@@ -526,6 +559,21 @@ static void parsePlayerState(JsonObject& payload) {
     }
     currentDisplayState.idleScrollIndex = display["idleScrollIndex"] | 0;
 
+    // Parse target list for local scrolling and accurate confirm
+    currentDisplayState.targetCount = 0;
+    currentDisplayState.selectionIndex = display["selectionIndex"] | -1;
+    if (display.containsKey("targetNames")) {
+        JsonArray namesArr = display["targetNames"];
+        JsonArray idsArr   = display["targetIds"];
+        for (int i = 0; i < DisplayState::MAX_TARGETS && i < (int)namesArr.size(); i++) {
+            currentDisplayState.targetNames[i] = namesArr[i].as<String>();
+            if (!idsArr.isNull() && i < (int)idsArr.size()) {
+                currentDisplayState.targetIds[i] = idsArr[i].as<String>();
+            }
+            currentDisplayState.targetCount++;
+        }
+    }
+
     // Notify callback
     if (displayCallback != nullptr) {
         displayCallback(currentDisplayState);
@@ -551,12 +599,21 @@ static void parseOperatorState(JsonObject& payload) {
         }
     }
 
-    // Reset dial to start only when a slide was sent (was ready → now empty)
+    // Reset dial and show "SENT!" when a slide was dispatched (was ready → now empty)
     if (wasReady && operatorWordCount == 0 && !operatorReady) {
         operatorFlatIdx = 0;
+        operatorSentTime = millis();
     }
 
     updateOperatorDisplay();
+}
+
+// Call each loop iteration to clear the "SENT!" screen after 2 seconds
+void networkOperatorTick() {
+    if (operatorSentTime > 0 && millis() - operatorSentTime >= 2000) {
+        operatorSentTime = 0;
+        updateOperatorDisplay();
+    }
 }
 
 void networkOperatorScrollDown() {

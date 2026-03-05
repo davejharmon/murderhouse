@@ -21,6 +21,7 @@ export default function PlayerConsole({
   onUseItem,
   onIdleScrollUp,
   onIdleScrollDown,
+  connected,
   compact = false,
 }) {
   const isAlive = player?.status === PlayerStatus.ALIVE;
@@ -33,16 +34,7 @@ export default function PlayerConsole({
   // Get current icon data from display state
   const icons = player?.display?.icons;
   const idleScrollIndex = player?.display?.idleScrollIndex ?? 0;
-
-  // Check if current scroll position is on a usable item
   const currentIconSlot = icons?.[idleScrollIndex];
-  const isOnUsableItem = isIdle && idleScrollIndex > 0 && currentIconSlot?.state === 'active' && currentIconSlot?.id !== 'empty';
-
-  // Check if scrolled item has startsEvent (only those are YES-activatable)
-  const scrolledItem = isOnUsableItem
-    ? player?.inventory?.[idleScrollIndex - 1]
-    : null;
-  const canActivateItem = scrolledItem?.startsEvent && (scrolledItem.maxUses === -1 || scrolledItem.uses > 0);
 
   // Handle UP button (rotary switch increment)
   const handleUp = () => {
@@ -62,10 +54,17 @@ export default function PlayerConsole({
     }
   };
 
+  // Server-driven LED states for YES/NO buttons
+  const yesLed = player?.display?.leds?.yes || 'off';
+  const noLed = player?.display?.leds?.no || 'off';
+
+  // Mirror ESP32: usable item signalled by server via DIM yes LED in idle state
+  const canActivateItem = isIdle && yesLed === 'dim';
+
   // Handle YES button
   const handleYes = () => {
-    if (isIdle && canActivateItem) {
-      onUseItem(scrolledItem.id);
+    if (canActivateItem) {
+      onUseItem(currentIconSlot?.id);
     } else if (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) {
       onConfirm();
     }
@@ -78,12 +77,8 @@ export default function PlayerConsole({
     }
   };
 
-  // Server-driven LED states for YES/NO buttons
-  const yesLed = player?.display?.leds?.yes || 'off';
-  const noLed = player?.display?.leds?.no || 'off';
-
   // Client-side interactivity (keep disabled logic for touch)
-  const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || (isIdle && canActivateItem);
+  const yesEnabled = (hasActiveEvent && selectedTarget && !confirmedTarget && !abstained) || canActivateItem;
   const canAbstain = eventPrompt?.allowAbstain !== false;
   const noEnabled = hasActiveEvent && !confirmedTarget && !abstained && canAbstain;
   const navEnabled = (hasActiveEvent && !confirmedTarget && !abstained) || isIdle;
@@ -93,7 +88,7 @@ export default function PlayerConsole({
       {/* Indicator LEDs — matches physical terminal panel */}
       <div className={styles.indicators}>
         <div className={styles.powerLed} title="D1 Power" />
-        <StatusLed status={player?.display?.statusLed} />
+        <StatusLed status={player?.display?.statusLed} connected={connected} />
         <span className={styles.playerLabel}>#{player?.seatNumber} {player?.name}</span>
       </div>
 

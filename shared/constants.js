@@ -52,6 +52,7 @@ export const ClientMsg = {
   SET_NAME: 'setName',
   SELECT_UP: 'selectUp',
   SELECT_DOWN: 'selectDown',
+  SELECT_TO: 'selectTo',  // Set selection by explicit targetId (no response sent back)
   CONFIRM: 'confirm',
   CANCEL: 'cancel',
   ABSTAIN: 'abstain',

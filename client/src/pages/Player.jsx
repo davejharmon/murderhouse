@@ -171,6 +171,7 @@ export default function Player() {
         onUseItem={handleUseItem}
         onIdleScrollUp={handleIdleScrollUp}
         onIdleScrollDown={handleIdleScrollDown}
+        connected={connected}
       />
     </div>
   );

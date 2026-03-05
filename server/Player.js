@@ -557,7 +557,7 @@ export class Player {
       line2Text = targetName.toUpperCase();
     }
 
-    return this._display(
+    const display = this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: line2Text, style: DisplayStyle.NORMAL },
       packHint
@@ -566,6 +566,14 @@ export class Player {
       { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING
     );
+
+    // Include target list so ESP32 can scroll locally without a server round-trip per tick
+    const instance = game.activeEvents?.get(activeEventId);
+    const validTargets = instance?.event?.validTargets?.(this, game) || [];
+    display.targetNames = validTargets.map(t => t.name.toUpperCase());
+    display.targetIds    = validTargets.map(t => t.id);
+    display.selectionIndex = validTargets.findIndex(t => t.id === this.currentSelection);
+    return display;
   }
 
   _displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName) {
@@ -585,7 +593,7 @@ export class Player {
       );
     }
 
-    return this._display(
+    const display = this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: actions.prompt, style: DisplayStyle.WAITING },
       packHint
@@ -594,6 +602,14 @@ export class Player {
       { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING
     );
+
+    // Include target list so ESP32 can render the first selection locally without a round-trip
+    const instance = game.activeEvents?.get(activeEventId);
+    const validTargets = instance?.event?.validTargets?.(this, game) || [];
+    display.targetNames = validTargets.map(t => t.name.toUpperCase());
+    display.targetIds    = validTargets.map(t => t.id);
+    display.selectionIndex = -1;
+    return display;
   }
 
   _displayVoteLocked(getLine1) {
@@ -949,9 +965,27 @@ export class Player {
     return true;
   }
 
-  // Helper: Send updated private state to this player
+  // Helper: Send updated private state to this player.
+  // Terminal connections (ESP32) only receive { display } — the full private state
+  // can exceed the terminal's JSON parse buffer and is not needed for rendering.
+  // Web connections receive the full state as usual.
   syncState(game) {
-    return this.send(ServerMsg.PLAYER_STATE, this.getPrivateState(game, { forSelf: true }));
+    if (this.connections.length === 0) return false
+
+    const fullState = this.getPrivateState(game, { forSelf: true })
+
+    let sent = false
+    for (const ws of this.connections) {
+      if (!ws || ws.readyState !== 1) continue
+      try {
+        const payload = ws.source === 'terminal' ? { display: fullState.display } : fullState
+        ws.send(JSON.stringify({ type: ServerMsg.PLAYER_STATE, payload }))
+        sent = true
+      } catch (err) {
+        console.error(`[Player ${this.id}] syncState error:`, err.message)
+      }
+    }
+    return sent
   }
 
   // Add a new connection (supports multiple simultaneous connections)

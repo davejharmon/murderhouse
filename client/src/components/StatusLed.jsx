@@ -4,25 +4,27 @@
 import styles from './StatusLed.module.css';
 
 const STATUS_COLORS = {
-  lobby:    { r: 100, g: 100, b: 100 },
-  day:      { r: 0,   g: 255, b: 0   },
-  night:    { r: 0,   g: 0,   b: 255 },
-  voting:   { r: 255, g: 200, b: 0   },
-  locked:   { r: 0,   g: 255, b: 0   },
-  abstained:{ r: 60,  g: 60,  b: 60  },
-  dead:     { r: 255, g: 0,   b: 0   },
-  gameOver: { r: 100, g: 100, b: 100 },
+  reconnecting: { r: 255, g: 100, b: 0   },  // orange — matches ESP32 RECONNECTING
+  lobby:        { r: 100, g: 100, b: 100  },
+  day:          { r: 0,   g: 255, b: 0    },
+  night:        { r: 0,   g: 0,   b: 255  },
+  voting:       { r: 255, g: 200, b: 0    },
+  locked:       { r: 0,   g: 255, b: 0    },
+  abstained:    { r: 60,  g: 60,  b: 60   },
+  dead:         { r: 255, g: 0,   b: 0    },
+  gameOver:     { r: 100, g: 100, b: 100  },
 };
 
-const PULSE_STATES = new Set(['voting']);
+const PULSE_STATES = new Set(['voting', 'reconnecting']);
 
-export default function StatusLed({ status }) {
-  const color = STATUS_COLORS[status];
+export default function StatusLed({ status, connected }) {
+  const displayStatus = connected === false ? 'reconnecting' : status;
+  const color = STATUS_COLORS[displayStatus];
   if (!color) return null;
 
   const { r, g, b } = color;
   const rgb = `${r}, ${g}, ${b}`;
-  const isPulsing = PULSE_STATES.has(status);
+  const isPulsing = PULSE_STATES.has(displayStatus);
 
   return (
     <div

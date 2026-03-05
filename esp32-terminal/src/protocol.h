@@ -30,6 +30,7 @@ namespace ClientMsg {
     const char* const REJOIN = "rejoin";
     const char* const SELECT_UP = "selectUp";
     const char* const SELECT_DOWN = "selectDown";
+    const char* const SELECT_TO = "selectTo";
     const char* const CONFIRM = "confirm";
     const char* const ABSTAIN = "abstain";
     const char* const USE_ITEM = "useItem";
@@ -205,6 +206,17 @@ struct DisplayState {
     IconSlot icons[3];
     uint8_t idleScrollIndex;
 
+    // Target list for local scrolling during event target selection.
+    // Populated by server when player is in target-selection state; empty otherwise.
+    // Allows ESP32 to predict scroll locally (instant display) while rate-limiting server sends.
+    // targetIds are used in CONFIRM so the server lands on the right target regardless of
+    // how many throttled SELECT messages it received.
+    static const int MAX_TARGETS = 10;
+    String targetIds[MAX_TARGETS];    // player IDs — sent in CONFIRM for accuracy
+    String targetNames[MAX_TARGETS];  // display names — used for local rendering
+    int    targetCount;
+    int    selectionIndex;  // -1 = no selection
+
     // Default constructor
     DisplayState() {
         line1.left = "CONNECTING";
@@ -216,6 +228,8 @@ struct DisplayState {
         leds.no = LedState::OFF;
         statusLed = GameLedState::NONE;
         idleScrollIndex = 0;
+        targetCount = 0;
+        selectionIndex = -1;
     }
 };
 
