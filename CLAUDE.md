@@ -40,7 +40,8 @@ client/
   src/
     context/GameContext.jsx   # Central WebSocket state management
     strings/index.js          # getStr(cat, key, tokens) — catalog + localStorage overrides
-    pages/                   # Landing, Player, Host, Screen, DebugGrid, Operator
+    pages/                   # Landing, Player, Host, Screen, DebugGrid,
+                             #   Operator (/operator — dead players send messages from beyond),
                              #   SlideEditor (/slides), StringSheets (/strings)
     components/              # PlayerConsole, TinyScreen, StatusLed, PlayerGrid,
                              #   PixelGlyph, ScreenPreview, EventPanel, SlideControls,

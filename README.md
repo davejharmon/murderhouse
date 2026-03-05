@@ -18,7 +18,7 @@ Open in your browser:
 - **Host Dashboard**: http://localhost:5173/host
 - **Big Screen**: http://localhost:5173/screen (projector/TV)
 - **Players**: http://localhost:5173/player/1 through /player/10
-- **Operator**: http://localhost:5173/operator (host read-only terminal)
+- **Operator**: http://localhost:5173/operator (dead players send "messages from beyond" to living players)
 - **Slide Editor**: http://localhost:5173/slides (dev: preview slides with mock data)
 - **String Sheets**: http://localhost:5173/strings (dev: browse and override string catalog)
 
@@ -199,7 +199,7 @@ murderhouse/
 │       │   ├── Host.jsx          # Host dashboard
 │       │   ├── Screen.jsx        # Big screen projector display (~145 lines)
 │       │   ├── DebugGrid.jsx     # 9-player debug grid (/debug)
-│       │   ├── Operator.jsx      # Host read-only terminal (/operator)
+│       │   ├── Operator.jsx      # Dead-player terminal: send "messages from beyond" (/operator)
 │       │   ├── SlideEditor.jsx   # Dev: preview all slide types with mock data (/slides)
 │       │   └── StringSheets.jsx  # Dev: browse, filter, and override string catalog (/strings)
 │       ├── components/
