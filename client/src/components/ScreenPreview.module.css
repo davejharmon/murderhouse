@@ -1,0 +1,18 @@
+/* client/src/components/ScreenPreview.module.css */
+
+.container {
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.frame {
+  width: 1920px;
+  height: 1080px;
+  border: none;
+  display: block;
+  pointer-events: none;
+}

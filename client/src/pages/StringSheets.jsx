@@ -1,6 +1,6 @@
 // client/src/pages/StringSheets.jsx
 // Dev tool: export/import all game strings as CSV, edit inline with localStorage persistence.
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { STRING_CATALOG, STRING_CATEGORIES, TAG_GROUPS } from '@shared/strings/gameStrings.js'
 import styles from './StringSheets.module.css'
 
@@ -172,6 +172,8 @@ export default function StringSheets() {
   })
   const importRef = useRef(null)
 
+  useEffect(() => { document.title = 'Strings - MURDERHOUSE' }, [])
+
   function toggleLightMode() {
     setLightMode(prev => {
       const next = !prev
@@ -237,6 +239,10 @@ export default function StringSheets() {
       })
       const data = await res.json()
       if (data.ok) {
+        localStorage.removeItem(LS_KEY)
+        localStorage.removeItem(LS_TAGS_KEY)
+        setOverrides({})
+        setTagOverrides({})
         flash('Applied — gameStrings.js updated')
       } else {
         flash(data.error || 'Write failed', 'err')
