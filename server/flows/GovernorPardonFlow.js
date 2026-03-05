@@ -120,8 +120,8 @@ export class GovernorPardonFlow extends InterruptFlow {
       {
         type: 'death',
         playerId: condemned.id,
-        title: 'CONDEMNED',
-        subtitle: 'Calling the governor...',
+        title: str('slides', 'flow.condemnedTitle'),
+        subtitle: str('slides', 'flow.condemnedSubtitle'),
         revealRole: false,
         style: SlideStyle.WARNING,
       },
@@ -215,8 +215,8 @@ export class GovernorPardonFlow extends InterruptFlow {
         slide: {
           type: 'death',
           playerId: condemned.id,
-          title: 'PARDONED',
-          subtitle: `${condemned.name} was not eliminated`,
+          title: str('slides', 'flow.pardonedTitle'),
+          subtitle: str('slides', 'flow.pardonedSubtitle', { name: condemned.name }),
           revealRole: false,
           style: SlideStyle.POSITIVE,
         },
@@ -247,8 +247,8 @@ export class GovernorPardonFlow extends InterruptFlow {
       {
         slide: {
           type: 'title',
-          title: 'NO PARDON',
-          subtitle: `${condemned.name}'s fate is sealed`,
+          title: str('slides', 'flow.noPardonTitle'),
+          subtitle: str('slides', 'flow.noPardonSubtitle', { name: condemned.name }),
           style: SlideStyle.HOSTILE,
         },
         jumpTo: false,

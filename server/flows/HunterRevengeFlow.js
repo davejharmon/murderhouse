@@ -73,8 +73,8 @@ export class HunterRevengeFlow extends InterruptFlow {
       // (killPlayer triggers this flow before the death slide is pushed)
       pendingSlide: {
         type: 'title',
-        title: "HUNTER'S REVENGE",
-        subtitle: `${player.name} is choosing a target with their dying breath...`,
+        title: str('slides', 'flow.hunterTitle'),
+        subtitle: str('slides', 'flow.hunterSubtitle', { name: player.name }),
         playerId: player.id,
         style: SlideStyle.HOSTILE,
       },
@@ -170,9 +170,14 @@ export class HunterRevengeFlow extends InterruptFlow {
 
     this.phase = 'resolving';
 
-    const isNight = this.state.triggeredInPhase === GamePhase.NIGHT;
-    const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
-    const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
+    const teamNames = {
+      village: str('slides', 'death.teamVillager'),
+      werewolf: str('slides', 'death.teamWerewolf'),
+      neutral: str('slides', 'death.teamNeutral'),
+    };
+    const teamName = victim.role?.id === 'jester'
+      ? str('slides', 'death.teamJester')
+      : (teamNames[victim.role?.team] || str('slides', 'death.teamUnknown'));
     const message = str('log', 'hunterRevengeKill', { hunter: hunter.getNameWithEmoji(), victim: victim.getNameWithEmoji() });
 
     // Cleanup before returning (frees flow for potential nested hunter revenge)
@@ -187,8 +192,8 @@ export class HunterRevengeFlow extends InterruptFlow {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: `${teamName} KILLED`,
-          subtitle: `${victim.name} was killed in the ${isNight ? 'night' : 'day'}`,
+          title: `${teamName} ${str('slides', 'death.suffixKilled')}`,
+          subtitle: str('slides', 'death.subtitleHunter', { name: victim.name }),
           revealRole: true,
           style: SlideStyle.HOSTILE,
         },

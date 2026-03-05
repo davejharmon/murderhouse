@@ -16,13 +16,13 @@ import { str } from '../strings.js';
 
 /** Map team to display name for slides/messages */
 function getTeamDisplayName(role) {
-  if (role?.id === RoleId.JESTER) return 'JESTER';
+  if (role?.id === RoleId.JESTER) return str('slides', 'death.teamJester');
   const names = {
-    village: 'VILLAGER',
-    werewolf: 'WEREWOLF',
-    neutral: 'INDEPENDENT',
+    village: str('slides', 'death.teamVillager'),
+    werewolf: str('slides', 'death.teamWerewolf'),
+    neutral: str('slides', 'death.teamNeutral'),
   };
-  return names[role?.team] || 'PLAYER';
+  return names[role?.team] || str('slides', 'death.teamUnknown');
 }
 
 /** Count votes from results map, skipping abstentions */
@@ -148,8 +148,8 @@ const events = {
           message: str('log', 'voteNoElimination'),
           slide: {
             type: 'title',
-            title: 'NO ELIMINATION',
-            subtitle: 'The village could not decide.',
+            title: str('slides', 'vote.noElimTitle'),
+            subtitle: str('slides', 'vote.noElimSubtitle'),
             style: SlideStyle.NEUTRAL,
           },
         };
@@ -175,7 +175,7 @@ const events = {
             slide: {
               type: 'death',
               playerId: victim.id,
-              title: `${teamName} ELIMINATED`,
+              title: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
               subtitle: victim.name,
               revealRole: true,
               style: SlideStyle.HOSTILE,
@@ -197,7 +197,7 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: `${teamName} ELIMINATED`,
+          title: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
           subtitle: victim.name,
           revealRole: true,
           style: SlideStyle.HOSTILE,
@@ -274,7 +274,7 @@ const events = {
           slide: {
             type: 'death',
             playerId: target.id,
-            title: `${teamName} KILLED`,
+            title: `${teamName} ${str('slides', 'death.suffixKilled')}`,
             subtitle: target.name,
             revealRole: true,
             style: SlideStyle.HOSTILE,
@@ -537,7 +537,7 @@ const events = {
         game.janitorCleaning = false;
       }
 
-      const teamName = cleaned ? 'PLAYER' : getTeamDisplayName(victim.role);
+      const teamName = cleaned ? str('slides', 'death.teamUnknown') : getTeamDisplayName(victim.role);
       return {
         success: true,
         outcome: 'killed',
@@ -546,10 +546,10 @@ const events = {
         slide: {
           type: 'death',
           playerId: victim.id,
-          title: `${teamName} KILLED`,
+          title: `${teamName} ${str('slides', 'death.suffixKilled')}`,
           subtitle: victim.name,
           revealRole: true,
-          revealText: cleaned ? 'Good cleanup work' : null,
+          revealText: cleaned ? str('slides', 'misc.janitorReveal') : null,
           style: SlideStyle.HOSTILE,
         },
       };
@@ -713,7 +713,7 @@ const events = {
             game.queueDeathSlide({
               type: 'death',
               playerId: target.id,
-              title: `${getTeamDisplayName(target.role)} KILLED`,
+              title: `${getTeamDisplayName(target.role)} ${str('slides', 'death.suffixKilled')}`,
               subtitle: target.name,
               revealRole: true,
               style: SlideStyle.HOSTILE,
@@ -903,8 +903,8 @@ const events = {
           message: str('log', 'shooterAbstains', { name: shooter.getNameWithEmoji() }),
           slide: {
             type: 'title',
-            title: 'NO SHOTS FIRED',
-            subtitle: `${shooter.name} is keeping their powder dry... for now.`,
+            title: str('slides', 'misc.noShotsTitle'),
+            subtitle: str('slides', 'misc.noShotsSubtitle', { name: shooter.name }),
             style: SlideStyle.NEUTRAL,
           },
         };
@@ -927,7 +927,7 @@ const events = {
           type: 'death',
           playerId: victim.id,
           shooterId: shooter.id,
-          title: `${teamName} KILLED`,
+          title: `${teamName} ${str('slides', 'death.suffixKilled')}`,
           identityTitle: `${shooter.name} shot ${victim.name}!`,
           subtitle: `${shooter.name} shot ${victim.name}!`,
           revealRole: true,
@@ -1000,7 +1000,7 @@ const events = {
           message: str('log', 'customNoVotes'),
           slide: {
             type: 'title',
-            title: 'NO WINNER',
+            title: str('slides', 'vote.noWinnerTitle'),
             subtitle: config.description,
             style: SlideStyle.NEUTRAL,
           },
@@ -1093,7 +1093,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
     slide: {
       type: SlideType.PLAYER_REVEAL,
       playerId: winnerId,
-      title: 'CUSTOM EVENT RESULT',
+      title: str('slides', 'vote.customResultTitle'),
       subtitle: slideSubtitle,
       style: SlideStyle.NEUTRAL,
     },

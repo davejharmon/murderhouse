@@ -272,7 +272,7 @@ export class Game {
     const entries = this.getScoresForConnectedPlayers();
     this.pushSlide({
       type: SlideType.SCORES,
-      title: 'SCOREBOARD',
+      title: str('slides', 'misc.scoreboardTitle'),
       entries,
     });
   }
@@ -517,8 +517,8 @@ export class Game {
     this.addLog(str('log', 'gameStarted'));
     this.pushSlide({
       type: 'gallery',
-      title: 'DAY 1',
-      subtitle: 'The game begins.',
+      title: str('slides', 'phase.day1.title'),
+      subtitle: str('slides', 'phase.day1.subtitle'),
       playerIds: this.getAlivePlayers().map((p) => p.id),
       style: SlideStyle.NEUTRAL,
     });
@@ -778,8 +778,8 @@ export class Game {
       this.addLog(str('log', 'nightBegins', { n: this.dayCount }));
       this.pushSlide({
         type: 'gallery',
-        title: `NIGHT ${this.dayCount}`,
-        subtitle: 'Close your eyes... just kidding.',
+        title: str('slides', 'phase.nightN.title', { n: this.dayCount }),
+        subtitle: str('slides', 'phase.nightN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
@@ -792,8 +792,8 @@ export class Game {
       this.addLog(str('log', 'dayBegins', { n: this.dayCount }));
       this.pushSlide({
         type: 'gallery',
-        title: `DAY ${this.dayCount}`,
-        subtitle: 'The sun rises.',
+        title: str('slides', 'phase.dayN.title', { n: this.dayCount }),
+        subtitle: str('slides', 'phase.dayN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
@@ -917,8 +917,8 @@ export class Game {
       this.pushSlide(
         {
           type: 'title',
-          title: 'DRAW!',
-          subtitle: `${shooter.name} is searching for a target...`,
+          title: str('slides', 'misc.drawTitle'),
+          subtitle: str('slides', 'misc.drawSubtitle', { name: shooter.name }),
           style: SlideStyle.WARNING,
         },
         true,
@@ -930,8 +930,8 @@ export class Game {
       this.pushSlide(
         {
           type: 'gallery',
-          title: 'ELIMINATION VOTE',
-          subtitle: 'Choose who to eliminate',
+          title: str('slides', 'vote.slideTitle'),
+          subtitle: str('slides', 'vote.slideSubtitle'),
           playerIds: this.getAlivePlayers().map((p) => p.id),
           targetsOnly: true,
           activeEventId: eventId,
@@ -1112,7 +1112,7 @@ export class Game {
     this.pushSlide(
       {
         type: 'gallery',
-        title: 'CUSTOM VOTE',
+        title: str('slides', 'vote.customTitle'),
         subtitle: config.description,
         itemDescription: rewardItemDef?.description || null,
         playerIds: customTargets.map((p) => p.id),
@@ -1277,8 +1277,8 @@ export class Game {
     this.pushSlide(
       {
         type: 'gallery',
-        title: "TIME'S UP",
-        subtitle: "Confirm your selection before it's too late.",
+        title: str('slides', 'misc.timesUpTitle'),
+        subtitle: str('slides', 'misc.timesUpSubtitle'),
         playerIds: allParticipants,
         targetsOnly: true,
         timerEventId: eventIds[0],
@@ -1486,8 +1486,8 @@ export class Game {
     if (this.phase === GamePhase.NIGHT && this.slideQueue.length === this._nightStartSlideCount) {
       this.pushSlide({
         type: 'title',
-        title: '🌙 TIME PASSES',
-        subtitle: 'Tensions are rising',
+        title: str('slides', 'phase.timePasses.title'),
+        subtitle: str('slides', 'phase.timePasses.subtitle'),
         style: SlideStyle.NEUTRAL,
       });
     }
@@ -1569,23 +1569,23 @@ export class Game {
     const isTied = frontrunners.length > 1;
 
     // Determine title and subtitle based on outcome
-    let title = isTied ? 'VOTES TIED' : 'VOTES';
+    let title = isTied ? str('slides', 'vote.tallyTitleTied') : str('slides', 'vote.tallyTitle');
     let subtitle;
     switch (outcome.type) {
       case 'runoff':
-        subtitle = 'Tiebreaker vote starting soon';
+        subtitle = str('slides', 'vote.subtitleRunoff');
         break;
       case 'random':
-        subtitle = 'Selecting random frontrunner';
+        subtitle = str('slides', 'vote.subtitleRandom');
         break;
       case 'selected':
-        subtitle = `${outcome.selectedName} has been selected`;
+        subtitle = str('slides', 'vote.subtitleSelected', { name: outcome.selectedName });
         break;
       case 'no-selection':
-        subtitle = 'No one was selected';
+        subtitle = str('slides', 'vote.subtitleNoSelection');
         break;
       default:
-        subtitle = `${Object.keys(tally).length} candidates received votes`;
+        subtitle = str('slides', 'vote.subtitleDefault', { count: Object.keys(tally).length });
     }
 
     return {
@@ -1772,7 +1772,7 @@ export class Game {
     this.pushSlide(
       {
         type: 'gallery',
-        title: `RUNOFF VOTE #${instance.runoffRound}`,
+        title: str('slides', 'vote.runoffTitle', { n: instance.runoffRound }),
         subtitle: runoffSubtitle,
         playerIds: instance.participants,
         targetsOnly: true,
@@ -1862,7 +1862,9 @@ export class Game {
       player.isRoleCleaned = false;
     }
 
-    const winnerName = winner === Team.VILLAGE ? 'VILLAGERS' : 'WEREWOLVES';
+    const winnerName = winner === Team.VILLAGE
+      ? str('slides', 'victory.villagerName')
+      : str('slides', 'victory.werewolfName');
 
     this.addLog(str('log', 'gameOver', { winners: winnerName }));
 
@@ -1885,8 +1887,8 @@ export class Game {
         title: `${winnerName} WIN`,
         subtitle:
           winner === Team.VILLAGE
-            ? 'All werewolves have been eliminated.'
-            : 'The werewolves have taken over.',
+            ? str('slides', 'victory.villageSubtitle')
+            : str('slides', 'victory.werewolfSubtitle'),
         style:
           winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
       },
@@ -1994,12 +1996,6 @@ export class Game {
   // Process poison deaths when transitioning from night to day.
   // Called before resetForPhase() so isProtected is still readable.
   _processPoisonDeaths() {
-    const teamDisplayNames = {
-      village: 'VILLAGER',
-      werewolf: 'WEREWOLF',
-      neutral: 'INDEPENDENT',
-    };
-
     for (const player of this.players.values()) {
       if (!player.isPoisoned || !player.isAlive) continue;
       // Trigger one night after poison was applied (poisonedAt + 1 === current dayCount)
@@ -2017,11 +2013,16 @@ export class Game {
 
       this.addLog(str('log', 'playerDiedPoison', { name: player.getNameWithEmoji() }));
       this.killPlayer(player.id, 'poison');
-      const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
+      const teamNames = {
+        village: str('slides', 'death.teamVillager'),
+        werewolf: str('slides', 'death.teamWerewolf'),
+        neutral: str('slides', 'death.teamNeutral'),
+      };
+      const teamName = teamNames[player.role?.team] || str('slides', 'death.teamUnknown');
       this.queueDeathSlide({
         type: 'death',
         playerId: player.id,
-        title: `${teamName} POISONED`,
+        title: `${teamName} ${str('slides', 'death.suffixPoisoned')}`,
         subtitle: player.name,
         revealRole: true,
         style: SlideStyle.HOSTILE,
@@ -2135,7 +2136,7 @@ export class Game {
         coward: true,
         playerId: player.id,
         title: player.name.toUpperCase(),
-        subtitle: "HAS TAKEN THE COWARD'S WAY OUT",
+        subtitle: str('slides', 'death.cowardTitle'),
         revealRole: true,
         revealText: itemDef.description,
         style: SlideStyle.WARNING,
@@ -2225,39 +2226,42 @@ export class Game {
 
   // Create a death slide for a given cause (used when events don't provide custom slides)
   createDeathSlide(player, cause) {
-    const teamDisplayNames = {
-      village: 'VILLAGER',
-      werewolf: 'WEREWOLF',
-      neutral: 'INDEPENDENT',
+    const teamNames = {
+      village: str('slides', 'death.teamVillager'),
+      werewolf: str('slides', 'death.teamWerewolf'),
+      neutral: str('slides', 'death.teamNeutral'),
     };
-    const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
+    const teamName = player.role?.id === RoleId.JESTER
+      ? str('slides', 'death.teamJester')
+      : (teamNames[player.role?.team] || str('slides', 'death.teamUnknown'));
 
+    const killed = str('slides', 'death.suffixKilled');
     const titles = {
-      eliminated: `${teamName} ELIMINATED`,
-      werewolf: `${teamName} KILLED`,
-      vigilante: `${teamName} KILLED`,
-      shot: `${teamName} KILLED`,
-      hunter: `${teamName} KILLED`,
-      heartbreak: `${teamName} HEARTBROKEN`,
-      host: `${teamName} REMOVED`,
-      poison: `${teamName} POISONED`,
+      eliminated: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
+      werewolf:   `${teamName} ${killed}`,
+      vigilante:  `${teamName} ${killed}`,
+      shot:       `${teamName} ${killed}`,
+      hunter:     `${teamName} ${killed}`,
+      heartbreak: `${teamName} ${str('slides', 'death.suffixHeartbroken')}`,
+      host:       `${teamName} ${str('slides', 'death.suffixRemoved')}`,
+      poison:     `${teamName} ${str('slides', 'death.suffixPoisoned')}`,
     };
 
     const subtitles = {
       eliminated: player.name,
-      werewolf: player.name,
-      vigilante: player.name,
-      shot: `${player.name} was shot`,
-      hunter: `${player.name} was killed`,
-      heartbreak: `${player.name} died of a broken heart`,
-      host: `${player.name} was removed by the host`,
-      poison: `${player.name} succumbed to poison`,
+      werewolf:   player.name,
+      vigilante:  player.name,
+      shot:       str('slides', 'death.subtitleShot',        { name: player.name }),
+      hunter:     str('slides', 'death.subtitleHunter',      { name: player.name }),
+      heartbreak: str('slides', 'death.subtitleHeartbreak',  { name: player.name }),
+      host:       str('slides', 'death.subtitleHost',        { name: player.name }),
+      poison:     str('slides', 'death.subtitlePoison',      { name: player.name }),
     };
 
     return {
       type: 'death',
       playerId: player.id,
-      title: titles[cause] || `${teamName} DEAD`,
+      title: titles[cause] || `${teamName} ${str('slides', 'death.suffixDead')}`,
       subtitle: subtitles[cause] || player.name,
       revealRole: true,
       hostKill: cause === 'host',
@@ -2309,24 +2313,24 @@ export class Game {
     if (this.phase === GamePhase.DAY) {
       this.pushSlide({
         type: 'gallery',
-        title: `DAY ${this.dayCount}`,
-        subtitle: 'The sun rises.',
+        title: str('slides', 'phase.dayN.title', { n: this.dayCount }),
+        subtitle: str('slides', 'phase.dayN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.NIGHT) {
       this.pushSlide({
         type: 'gallery',
-        title: `NIGHT ${this.dayCount}`,
-        subtitle: 'Close your eyes... just kidding.',
+        title: str('slides', 'phase.nightN.title', { n: this.dayCount }),
+        subtitle: str('slides', 'phase.nightN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
     } else if (this.phase === GamePhase.LOBBY) {
       this.pushSlide({
         type: 'gallery',
-        title: 'LOBBY',
-        subtitle: 'Waiting for game to start',
+        title: str('slides', 'phase.lobby.title'),
+        subtitle: str('slides', 'phase.lobby.subtitle'),
         playerIds: [...this.players.values()].map((p) => p.id),
         style: SlideStyle.NEUTRAL,
       });
@@ -2375,7 +2379,7 @@ export class Game {
     if (this.operatorWords.length === 0) return;
     this.pushSlide({
       type: SlideType.OPERATOR,
-      title: 'A MESSAGE FROM BEYOND...',
+      title: str('slides', 'misc.operatorTitle'),
       words: [...this.operatorWords],
     }, true);
     this.operatorWords = [];
@@ -2421,8 +2425,8 @@ export class Game {
       portrait: player.portrait,
       bpm: player.heartbeat.bpm,
       fake: player.heartbeat.fake ?? false,
-      title: `${player.name.toUpperCase()} CARES TOO MUCH`,
-      subtitle: 'loses their vote till tomorrow',
+      title: str('slides', 'misc.bpmSpike.title', { name: player.name.toUpperCase() }),
+      subtitle: str('slides', 'misc.bpmSpike.subtitle'),
       style: SlideStyle.WARNING,
     }, false);
     this.broadcastGameState();
@@ -2640,7 +2644,7 @@ export class Game {
 
     this.pushSlide({
       type: SlideType.COMPOSITION,
-      title: 'ASSIGNED ROLES',
+      title: str('slides', 'misc.compositionTitle'),
       playerIds: players.map((p) => p.id),
       roles: Object.values(roleCounts),
       teamCounts: { ...teamCounts, unassigned },
@@ -2659,7 +2663,7 @@ export class Game {
 
     this.pushSlide({
       type: SlideType.ROLE_TIP,
-      title: 'NEW ROLE',
+      title: str('slides', 'misc.roleTipTitle'),
       roleId: roleDef.id,
       roleName: roleDef.name,
       roleEmoji: roleDef.emoji,
@@ -2686,7 +2690,7 @@ export class Game {
     const display = ITEM_DISPLAY[itemId] || {};
     this.pushSlide({
       type: SlideType.ITEM_TIP,
-      title: 'ITEM',
+      title: str('slides', 'misc.itemTipTitle'),
       itemId: itemDef.id,
       itemName: itemDef.name,
       itemEmoji: display.emoji || '📦',

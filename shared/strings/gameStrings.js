@@ -182,6 +182,7 @@ export const STRING_CATALOG = [
   { cat: 'slides', key: 'death.teamWerewolf',   default: 'WEREWOLF',            desc: 'Team prefix on death slide title (werewolf role)' },
   { cat: 'slides', key: 'death.teamNeutral',    default: 'INDEPENDENT',         desc: 'Team prefix on death slide title (neutral role)' },
   { cat: 'slides', key: 'death.teamUnknown',    default: 'PLAYER',              desc: 'Team prefix on death slide title (cleaned/unknown)' },
+  { cat: 'slides', key: 'death.teamJester',    default: 'JESTER',              desc: 'Team prefix on death slide title for Jester role' },
   { cat: 'slides', key: 'death.suffixEliminated', default: 'ELIMINATED',        desc: 'Suffix appended to team name: "{TEAM} ELIMINATED"' },
   { cat: 'slides', key: 'death.suffixKilled',   default: 'KILLED',              desc: 'Suffix appended to team name: "{TEAM} KILLED"' },
   { cat: 'slides', key: 'death.suffixHeartbroken', default: 'HEARTBROKEN',      desc: 'Suffix for heartbreak death: "{TEAM} HEARTBROKEN"' },
@@ -193,7 +194,7 @@ export const STRING_CATALOG = [
   { cat: 'slides', key: 'death.subtitleHeartbreak', default: '{name} died of a broken heart', tokens: ['{name}'], desc: 'Death slide subtitle — heartbreak death' },
   { cat: 'slides', key: 'death.subtitleHost',   default: '{name} was removed by the host', tokens: ['{name}'], desc: 'Death slide subtitle — host removal' },
   { cat: 'slides', key: 'death.subtitlePoison', default: '{name} succumbed to poison', tokens: ['{name}'], desc: 'Death slide subtitle — poison death' },
-  { cat: 'slides', key: 'death.cowardTitle',    default: '{name} HAS TAKEN THE COWARD\'S WAY OUT', tokens: ['{name}'], desc: 'Slide title when player takes the Coward item' },
+  { cat: 'slides', key: 'death.cowardTitle',    default: 'HAS TAKEN THE COWARD\'S WAY OUT', desc: 'Subtitle on coward slide (title is player name)' },
 
   // ── Slide strings — vote ───────────────────────────────────────────────────
 
@@ -209,6 +210,9 @@ export const STRING_CATALOG = [
   { cat: 'slides', key: 'vote.customTitle',      default: 'CUSTOM VOTE',        desc: 'Gallery slide title for custom event vote' },
   { cat: 'slides', key: 'vote.customResultTitle',default: 'CUSTOM EVENT RESULT', desc: 'Player reveal slide title for custom event winner' },
   { cat: 'slides', key: 'vote.noWinnerTitle',    default: 'NO WINNER',          desc: 'Slide title when custom event gets no votes' },
+  { cat: 'slides', key: 'vote.subtitleSelected',   default: '{name} has been selected', tokens: ['{name}'], desc: 'Vote tally subtitle when a player is condemned/selected' },
+  { cat: 'slides', key: 'vote.subtitleNoSelection', default: 'No one was selected',    desc: 'Vote tally subtitle when no selection was made' },
+  { cat: 'slides', key: 'vote.subtitleDefault',    default: '{count} candidates received votes', tokens: ['{count}'], desc: 'Vote tally fallback subtitle' },
 
   // ── Slide strings — victory ────────────────────────────────────────────────
 
