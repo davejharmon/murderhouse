@@ -315,4 +315,4 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**Death slides can be auto-advanced past**~~ — Fixed: `createDeathSlide` now sets `skipProtected: true`; the auto-advance logic in `Host.jsx` skips slides with that flag.
 - ~~**Operator slide auto-advances before animation completes**~~ — Fixed: auto-advance delay for operator slides is computed as `max(AUTO_ADVANCE_DELAY, START_DELAY + (N-1)*WORD_INTERVAL + 180 + 1000ms grace)`.
 - replace emojis with fancy pixel art - in progress could look better
-- janitor is missing a glyph
+- ~~janitor is missing a glyph~~ — Added `ICON_JANITOR` (broom) to `shared/icons.js` and `esp32-terminal/src/icons.h`.

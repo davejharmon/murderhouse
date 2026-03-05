@@ -473,6 +473,28 @@ const uint8_t PROGMEM ICON_OP_TICK[] = {
   0x00, 0x00, 0x00,  // row 17
 };
 
+// Janitor - broom (diagonal handle upper-right to lower-left, solid head, tine bristles)
+const uint8_t PROGMEM ICON_JANITOR[] = {
+  0x00, 0x60, 0x00,  // row  0: handle tip (cols 13,14)
+  0x00, 0x30, 0x00,  // row  1: cols 12,13
+  0x00, 0x18, 0x00,  // row  2: cols 11,12
+  0x00, 0x0C, 0x00,  // row  3: cols 10,11
+  0x00, 0x06, 0x00,  // row  4: cols 9,10
+  0x00, 0x03, 0x00,  // row  5: cols 8,9
+  0x80, 0x01, 0x00,  // row  6: cols 7,8
+  0xC0, 0x00, 0x00,  // row  7: cols 6,7
+  0x60, 0x00, 0x00,  // row  8: cols 5,6
+  0x30, 0x00, 0x00,  // row  9: cols 4,5
+  0xFF, 0x7F, 0x00,  // row 10: head top (cols 0-14)
+  0xFF, 0x7F, 0x00,  // row 11: head
+  0xFF, 0x7F, 0x00,  // row 12: head bottom
+  0x55, 0x55, 0x00,  // row 13: bristles (cols 0,2,4,6,8,10,12,14)
+  0x55, 0x55, 0x00,  // row 14: bristles
+  0x55, 0x55, 0x00,  // row 15: bristles
+  0x00, 0x00, 0x00,  // row 16: blank
+  0x00, 0x00, 0x00,  // row 17: blank
+};
+
 // Get icon bitmap by string ID (matching JS icon IDs)
 inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "villager") return ICON_VILLAGER;
@@ -485,6 +507,7 @@ inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "governor") return ICON_GOVERNOR;
     if (id == "cupid") return ICON_CUPID;
     if (id == "roleblocker") return ICON_ROLEBLOCKER;
+    if (id == "janitor") return ICON_JANITOR;
     if (id == "tanner") return ICON_TANNER;
     if (id == "tanned") return ICON_TANNER;
     if (id == "prospect") return ICON_PROSPECT;
