@@ -16,12 +16,13 @@ import GameLog from '../components/GameLog';
 import SettingsModal from '../components/SettingsModal';
 import TutorialSlidesModal from '../components/TutorialSlidesModal';
 import HeartbeatModal from '../components/HeartbeatModal';
+import { getStr } from '../strings/index.js';
 import styles from './Host.module.css';
 
 const TAB_CONTROLS = 0;
 const TAB_PLAYERS = 1;
 const TAB_LOG = 2;
-const TAB_LABELS = ['Controls', 'Players', 'Log'];
+const TAB_LABELS = () => [getStr('host', 'tabControls'), getStr('host', 'tabPlayers'), getStr('host', 'tabLog')];
 const SWIPE_THRESHOLD = 50;
 
 export default function Host() {
@@ -182,7 +183,7 @@ export default function Host() {
   const handleStartGame = () => send(ClientMsg.START_GAME);
   const handleNextPhase = () => send(ClientMsg.NEXT_PHASE);
   const handleResetGame = () => {
-    if (window.confirm('Reset the game? This cannot be undone.')) {
+    if (window.confirm(getStr('host', 'resetConfirm'))) {
       send(ClientMsg.RESET_GAME);
     }
   };
@@ -233,7 +234,7 @@ export default function Host() {
   const handleRevivePlayer = (playerId) =>
     send(ClientMsg.REVIVE_PLAYER, { playerId });
   const handleKickPlayer = (playerId) => {
-    if (window.confirm('Remove this player?')) {
+    if (window.confirm(getStr('host', 'removePlayerConfirm'))) {
       send(ClientMsg.KICK_PLAYER, { playerId });
     }
   };
@@ -355,10 +356,10 @@ export default function Host() {
           </button>
         </div>
         <div className={styles.phaseIndicator}>
-          {isLobby && 'LOBBY'}
+          {isLobby && getStr('host', 'phaseLobby')}
           {phase === GamePhase.DAY && `DAY ${gameState?.dayCount}`}
           {phase === GamePhase.NIGHT && `NIGHT ${gameState?.dayCount}`}
-          {isGameOver && 'GAME OVER'}
+          {isGameOver && getStr('host', 'phaseGameOver')}
         </div>
       </header>
 
@@ -371,12 +372,12 @@ export default function Host() {
               onClick={handleStartGame}
               disabled={!gameState?.players || gameState.players.length < 4}
             >
-              Start Game
+              {getStr('host', 'startGame')}
             </button>
           )}
 
           {isLobby && gameState?.players?.some((p) => p.preAssignedRole) && (
-            <button onClick={handleRandomizeRoles}>Shuffle Roles</button>
+            <button onClick={handleRandomizeRoles}>{getStr('host', 'shuffleRoles')}</button>
           )}
 
           {!isLobby && !isGameOver && (
@@ -388,31 +389,31 @@ export default function Host() {
           )}
 
           {!isLobby && !isGameOver && (
-            <button onClick={handleNextPhase}>Next Phase</button>
+            <button onClick={handleNextPhase}>{getStr('host', 'nextPhase')}</button>
           )}
 
           <button className='danger' onClick={handleResetGame}>
-            Reset
+            {getStr('host', 'reset')}
           </button>
         </div>
       </section>
 
       {gameState?.players?.filter((p) => p.heartbeat?.active).length >= 2 && (
         <section className={styles.section}>
-          <button onClick={() => setShowHeartbeat(true)}>👤 Heartbeats</button>
+          <button onClick={() => setShowHeartbeat(true)}>{getStr('host', 'btnHeartbeats')}</button>
         </section>
       )}
 
       <section className={styles.section}>
         <button onClick={() => setShowTutorialSlides(true)}>
-          👤 Tutorials
+          {getStr('host', 'btnTutorials')}
         </button>
-        <button onClick={handlePushScoreSlide}>🏆 Scoreboard</button>
+        <button onClick={handlePushScoreSlide}>{getStr('host', 'btnScoreboard')}</button>
         <button
           className={gameState?.heartbeatMode ? 'primary' : ''}
           onClick={() => send(ClientMsg.TOGGLE_HEARTBEAT_MODE)}
         >
-          ❤️ HB Mode
+          {getStr('host', 'btnHeartbeatMode')}
         </button>
       </section>
 
@@ -459,7 +460,7 @@ export default function Host() {
           {operatorState?.words?.length > 0 ? (
             operatorState.words.join(' ')
           ) : (
-            <span className={styles.operatorEmpty}>no message</span>
+            <span className={styles.operatorEmpty}>{getStr('host', 'noMessage')}</span>
           )}
         </div>
       </div>
@@ -536,7 +537,7 @@ export default function Host() {
           connected ? 'connected' : 'disconnected'
         }`}
       >
-        {connected ? '● ONLINE' : '○ OFFLINE'}
+        {connected ? getStr('player', 'online') : getStr('player', 'offline')}
       </div>
 
       {/* Notifications */}
@@ -578,7 +579,7 @@ export default function Host() {
 
       {/* Mobile bottom nav */}
       <nav className={styles.mobileNav}>
-        {TAB_LABELS.map((label, i) => (
+        {TAB_LABELS().map((label, i) => (
           <button
             key={label}
             className={`${styles.mobileNavBtn} ${mobileTab === i ? styles.mobileNavActive : ''}`}

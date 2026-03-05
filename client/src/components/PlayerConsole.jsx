@@ -1,6 +1,7 @@
 // client/src/components/PlayerConsole.jsx
 // Simplified console mimicking physical ESP32 terminal experience
 import { GamePhase, PlayerStatus } from '@shared/constants.js';
+import { getStr } from '../strings/index.js';
 import TinyScreen from './TinyScreen';
 import StatusLed from './StatusLed';
 import styles from './PlayerConsole.module.css';
@@ -126,7 +127,7 @@ export default function PlayerConsole({
             onClick={handleYes}
             disabled={!yesEnabled}
           >
-            YES
+            {getStr('player', 'buttonYes')}
           </button>
 
           {/* NO - Red LED button */}
@@ -135,7 +136,7 @@ export default function PlayerConsole({
             onClick={handleNo}
             disabled={!noEnabled}
           >
-            NO
+            {getStr('player', 'buttonNo')}
           </button>
         </div>
       </div>

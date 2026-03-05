@@ -12,6 +12,7 @@ import {
 import { getEvent } from '../definitions/events.js';
 import { getItem } from '../definitions/items.js';
 import { getRole } from '../definitions/roles.js';
+import { str } from '../strings.js';
 
 // Wraps a handler so it only runs when the connection is authenticated as host.
 function requireHost(fn) {
@@ -368,7 +369,7 @@ export function createHandlers(game) {
       const oldRoleName = player.role?.name || 'None';
       player.assignRole(role);
       game._invalidateWinCache(); // Team may have changed
-      game.addLog(`${player.getNameWithEmoji()} role changed: ${oldRoleName} → ${role.name}`);
+      game.addLog(str('log', 'roleChanged', { name: player.getNameWithEmoji(), old: oldRoleName, new: role.name }));
       game.broadcastGameState();
       return { success: true };
     }),
@@ -383,7 +384,7 @@ export function createHandlers(game) {
       const player = game.getPlayer(payload.playerId);
       if (!player) return { success: false, error: 'Player not found' };
       game.killPlayer(payload.playerId, 'host');
-      game.addLog(`${player.getNameWithEmoji()} killed by host`);
+      game.addLog(str('log', 'killedByHost', { name: player.getNameWithEmoji() }));
       // Queue death slide (queueDeathSlide handles hunter revenge automatically)
       game.queueDeathSlide(game.createDeathSlide(player, 'host'), true);
       game.broadcastGameState();
@@ -428,7 +429,7 @@ export function createHandlers(game) {
       if (!player) return { success: false, error: 'Player not found' };
       const removed = game.removeItem(payload.playerId, payload.itemId);
       if (removed) {
-        game.addLog(`${player.getNameWithEmoji()} lost ${payload.itemId}`);
+        game.addLog(str('log', 'itemRemoved', { name: player.getNameWithEmoji(), item: payload.itemId }));
         game.broadcastGameState();
         return { success: true };
       }

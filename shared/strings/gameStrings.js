@@ -254,7 +254,11 @@ export const STRING_CATALOG = [
   { cat: 'screen', key: 'gallery.werewolf',        default: 'WEREWOLF',               desc: 'Anonymous werewolf placeholder in tracker' },
   { cat: 'screen', key: 'gallery.coward',          default: 'COWARD',                 desc: 'Coward badge in player gallery' },
   { cat: 'screen', key: 'gallery.mad',             default: 'MAD',                    desc: 'Mad badge (no-vote) in player gallery' },
+  { cat: 'screen', key: 'scores.title',            default: 'SCOREBOARD',             desc: 'Scores slide header title' },
   { cat: 'screen', key: 'scores.empty',            default: 'No scores yet',           desc: 'Scores slide empty state' },
+  { cat: 'screen', key: 'death.eliminated',         default: 'ELIMINATED',             desc: 'Fallback title on death slide (when no slide.title set)' },
+  { cat: 'screen', key: 'death.coward',             default: 'COWARD',                 desc: 'Badge on coward variant death slide' },
+  { cat: 'screen', key: 'death.mad',                default: 'MAD',                    desc: 'No-vote badge on death slide' },
   { cat: 'screen', key: 'heartbeat.bpm',           default: 'BPM',                    desc: 'BPM unit label on heartbeat slide' },
   { cat: 'screen', key: 'heartbeat.signalLost',    default: 'SIGNAL LOST',            desc: 'Overlay text when heartbeat inactive' },
   { cat: 'screen', key: 'heartbeat.debug',         default: 'DEBUG',                  desc: 'Badge on simulated heartbeat' },
@@ -312,7 +316,7 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'playerSavedPoison',       default: '{name} was saved from poison by the Doctor', tokens: ['{name}'], desc: 'Log when Doctor cures poison' },
   { cat: 'log', key: 'barricadeAbsorbed',       default: "{name}'s barricade absorbed the attack", tokens: ['{name}'], desc: 'Log when barricade activates' },
   { cat: 'log', key: 'bpmPanicked',             default: '{name} panicked! BPM {bpm} (threshold {threshold}) — vote lost', tokens: ['{name}', '{bpm}', '{threshold}'], desc: 'Log when heartbeat spike costs player their vote' },
-  { cat: 'log', key: 'gameOver',                default: '{winners} win!',       tokens: ['{winners}'], desc: 'Log entry when game ends' },
+  { cat: 'log', key: 'gameOver',                default: 'Game over — {winners} win!', tokens: ['{winners}'], desc: 'Log entry when game ends' },
   { cat: 'log', key: 'nightBegins',             default: 'Night {n} begins',     tokens: ['{n}'], desc: 'Log entry for night start' },
   { cat: 'log', key: 'dayBegins',               default: 'Day {n} begins',       tokens: ['{n}'], desc: 'Log entry for day start' },
 
@@ -327,9 +331,14 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'presetDeleted',           default: 'Deleted game preset: {name}', tokens: ['{name}'], desc: 'Log when a preset is deleted' },
 
   // Event lifecycle logs
+  { cat: 'log', key: 'eventStarted',            default: '{name} started',      tokens: ['{name}'], desc: 'Log when any event starts' },
+  { cat: 'log', key: 'runoffRound',             default: '{name} runoff — Round {round}', tokens: ['{name}', '{round}'], desc: 'Log when a vote runoff round starts' },
   { cat: 'log', key: 'timerStarted',            default: 'Timer started for {count} event(s)', tokens: ['{count}'], desc: 'Log when host starts an event countdown' },
   { cat: 'log', key: 'eventSkipped',            default: '{name} skipped', tokens: ['{name}'], desc: 'Log when host skips a pending event' },
   { cat: 'log', key: 'eventReset',              default: '{name} reset',   tokens: ['{name}'], desc: 'Log when host resets an event to pending' },
+  { cat: 'log', key: 'poisonerActing',          default: 'Poisoner is using their poison tonight', desc: 'Log when poisoner acts this night' },
+  { cat: 'log', key: 'janitorActing',           default: 'Janitor is cleaning up tonight', desc: 'Log when janitor acts this night' },
+  { cat: 'log', key: 'stumbleCompleted',        default: 'Stumble investigation completed', desc: 'Log when drunk stumble-investigates' },
   { cat: 'log', key: 'roleTipPushed',           default: 'Role tip slide pushed: {role}', tokens: ['{role}'], desc: 'Log when host pushes a role tutorial slide' },
   { cat: 'log', key: 'itemTipPushed',           default: 'Item tip slide pushed: {item}', tokens: ['{item}'], desc: 'Log when host pushes an item tutorial slide' },
   { cat: 'log', key: 'customEventStarted',      default: 'Custom event started — {description}', tokens: ['{description}'], desc: 'Log when host creates a custom vote' },
@@ -367,9 +376,17 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'itemRemoved',             default: '{name} lost {item}',           tokens: ['{name}', '{item}'], desc: 'Log when host removes an item from a player' },
   { cat: 'log', key: 'itemGiven',               default: '{name} received {item}',       tokens: ['{name}', '{item}'], desc: 'Log when host gives an item to a player' },
 
+  // Role passive death logs
+  { cat: 'log', key: 'alphaPromoted',           default: '{name} becomes the new Alpha!', tokens: ['{name}'], desc: 'Log when a werewolf is promoted to Alpha on Alpha death' },
+  { cat: 'log', key: 'jesterWins',              default: '{name} was the Jester — they win!', tokens: ['{name}'], desc: 'Log when Jester gets eliminated (wins)' },
+
   // Flow logs (HunterRevengeFlow, GovernorPardonFlow)
-  { cat: 'log', key: 'hunterRevenge',           default: '{name} gets a revenge shot',   tokens: ['{name}'], desc: 'Log when hunter dies and revenge flow starts' },
+  { cat: 'log', key: 'hunterRevenge',            default: '{name} gets a revenge shot',   tokens: ['{name}'], desc: 'Log when hunter dies and revenge flow starts' },
+  { cat: 'log', key: 'hunterRevengeKill',        default: '{hunter} took {victim} down with them', tokens: ['{hunter}', '{victim}'], desc: 'Log when hunter revenge kill lands' },
+  { cat: 'log', key: 'hunterDisconnected',       default: '{name} disconnected — revenge cancelled', tokens: ['{name}'], desc: 'Log when hunter disconnects with no targets' },
+  { cat: 'log', key: 'hunterAutoResolved',      default: '{name} disconnected — revenge auto-resolved', tokens: ['{name}'], desc: 'Log when hunter disconnects and revenge auto-fires' },
   { cat: 'log', key: 'governorDecision',        default: '{name} awaits the Governor\'s decision', tokens: ['{name}'], desc: 'Log while governor pardon flow is pending' },
+  { cat: 'log', key: 'governorDisconnected',    default: '{name} disconnected — pardon cancelled', tokens: ['{name}'], desc: 'Log when governor disconnects during pardon flow' },
   { cat: 'log', key: 'pardoned',                default: '{governor} pardoned {victim}',  tokens: ['{governor}', '{victim}'], desc: 'Log when governor grants a pardon' },
   { cat: 'log', key: 'notPardoned',             default: '{governor} condemned {victim}', tokens: ['{governor}', '{victim}'], desc: 'Log when governor denies a pardon' },
 
@@ -574,6 +591,7 @@ export const TAG_ASSIGNMENTS = {
 
   // ── Log — flows ──────────────────────────────────────────────────────────
   'log.hunterRevenge':      ['hunter', 'hunterRevenge'],
+  'log.hunterRevengeKill':  ['hunter', 'hunterRevenge'],
   'log.governorDecision':   ['governor', 'governorPardon'],
   'log.pardoned':           ['governor', 'governorPardon'],
   'log.notPardoned':        ['governor', 'governorPardon'],

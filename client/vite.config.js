@@ -20,11 +20,15 @@ function devWriteFilePlugin() {
         req.on('end', () => {
           try {
             const { file, content } = JSON.parse(body);
-            // Only allow writes within src/
-            const target = path.resolve(__dirname, 'src', file);
-            if (!target.startsWith(path.resolve(__dirname, 'src'))) {
+            // Resolve from client/ dir; allow writes to src/ or ../shared/strings/
+            const target = path.resolve(__dirname, file);
+            const allowed = [
+              path.resolve(__dirname, 'src'),
+              path.resolve(__dirname, '../shared/strings'),
+            ];
+            if (!allowed.some(root => target.startsWith(root))) {
               res.statusCode = 403;
-              res.end(JSON.stringify({ error: 'Path outside src/ not allowed' }));
+              res.end(JSON.stringify({ error: 'Path not in allowed write roots' }));
               return;
             }
             fs.writeFileSync(target, content, 'utf8');

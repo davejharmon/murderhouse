@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { ClientMsg, GamePhase } from '@shared/constants.js';
 import PlayerConsole from '../components/PlayerConsole';
+import { getStr } from '../strings/index.js';
 import styles from './Player.module.css';
 
 export default function Player() {
@@ -122,7 +123,7 @@ export default function Player() {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
-          <div className={styles.loadingText}>CONNECTING</div>
+          <div className={styles.loadingText}>{getStr('terminal', 'connecting')}</div>
           <div className={styles.loadingDots}>...</div>
         </div>
       </div>
@@ -142,7 +143,7 @@ export default function Player() {
     <div className={styles.container}>
       {/* Connection indicator */}
       <div className={`connection-badge ${connected ? 'connected' : 'disconnected'}`}>
-        {connected ? '● ONLINE' : '○ OFFLINE'}
+        {connected ? getStr('player', 'online') : getStr('player', 'offline')}
       </div>
 
       {/* Notifications */}

@@ -27,6 +27,7 @@ import {
 import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
 import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
+import { str } from './strings.js';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -178,7 +179,7 @@ export class Game {
     this.players.set(id, player);
 
     const via = ws.source === 'terminal' ? 'terminal' : 'web';
-    this.addLog(`${player.name} joined via ${via}`);
+    this.addLog(str('log', 'playerJoined', { name: player.name, via }));
     this.broadcastPlayerList();
 
     return { success: true, player };
@@ -338,7 +339,7 @@ export class Game {
       if (index !== -1) {
         this._gamePresets[index] = { ...this._gamePresets[index], name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled };
         this._saveGamePresetsToDisk();
-        this.addLog(`Updated game preset: ${name}`);
+        this.addLog(str('log', 'presetUpdated', { name }));
         return this._gamePresets[index];
       }
     }
@@ -357,7 +358,7 @@ export class Game {
 
     this._gamePresets.push(preset);
     this._saveGamePresetsToDisk();
-    this.addLog(`Saved game preset: ${preset.name}`);
+    this.addLog(str('log', 'presetSaved', { name: preset.name }));
     return preset;
   }
 
@@ -413,7 +414,7 @@ export class Game {
       this.broadcastPlayerList();
       this.broadcastGameState();
     }
-    this.addLog(`Loaded game preset: ${preset.name}`);
+    this.addLog(str('log', 'presetLoaded', { name: preset.name }));
     return { timerDuration: preset.timerDuration, autoAdvanceEnabled: preset.autoAdvanceEnabled };
   }
 
@@ -423,7 +424,7 @@ export class Game {
     const name = this._gamePresets[index].name;
     this._gamePresets.splice(index, 1);
     this._saveGamePresetsToDisk();
-    this.addLog(`Deleted game preset: ${name}`);
+    this.addLog(str('log', 'presetDeleted', { name }));
     return true;
   }
 
@@ -432,7 +433,7 @@ export class Game {
     if (!player) return { success: false, error: 'Player not found' };
 
     this.players.delete(id);
-    this.addLog(`${player.name} left`);
+    this.addLog(str('log', 'playerLeft', { name: player.name }));
     this.broadcastPlayerList();
 
     return { success: true };
@@ -462,9 +463,9 @@ export class Game {
 
     const via = ws.source === 'terminal' ? 'terminal' : 'web';
     if (!wasConnected) {
-      this.addLog(`${player.name} reconnected via ${via}`);
+      this.addLog(str('log', 'playerReconnected', { name: player.name, via }));
     } else if (ws.source === 'terminal' && !hadTerminal) {
-      this.addLog(`${player.name} terminal connected`);
+      this.addLog(str('log', 'terminalConnected', { name: player.name }));
     }
 
     return { success: true, player };
@@ -483,7 +484,7 @@ export class Game {
     // Validate pre-assigned composition before assigning
     const validation = this._validateComposition();
     if (!validation.valid) {
-      this.addLog(`Cannot start: ${validation.error}`);
+      this.addLog(str('log', 'gameStartError', { error: validation.error }));
       return { success: false, error: validation.error };
     }
 
@@ -513,7 +514,7 @@ export class Game {
       if (player.isAlive) player.roleRevealPending = true;
     }
 
-    this.addLog('Game started — Day 1');
+    this.addLog(str('log', 'gameStarted'));
     this.pushSlide({
       type: 'gallery',
       title: 'DAY 1',
@@ -578,7 +579,7 @@ export class Game {
       playerList[i].preAssignedRole = roles[i];
     }
 
-    this.addLog(`Roles randomized`);
+    this.addLog(str('log', 'rolesRandomized'));
     this.broadcastPlayerList();
     this.broadcastGameState();
     return { success: true };
@@ -774,7 +775,7 @@ export class Game {
     // Transition phase
     if (this.phase === GamePhase.DAY) {
       this.phase = GamePhase.NIGHT;
-      this.addLog(`Night ${this.dayCount} begins`);
+      this.addLog(str('log', 'nightBegins', { n: this.dayCount }));
       this.pushSlide({
         type: 'gallery',
         title: `NIGHT ${this.dayCount}`,
@@ -788,7 +789,7 @@ export class Game {
       this.phase = GamePhase.DAY;
       this.dayCount++;
       this.heartbeatSpikesThisDay.clear();
-      this.addLog(`Day ${this.dayCount} begins`);
+      this.addLog(str('log', 'dayBegins', { n: this.dayCount }));
       this.pushSlide({
         type: 'gallery',
         title: `DAY ${this.dayCount}`,
@@ -908,7 +909,7 @@ export class Game {
       { eventName: event.name, description: event.description, allowAbstain: event.allowAbstain !== false },
     );
 
-    this.addLog(`${event.name} started`);
+    this.addLog(str('log', 'eventStarted', { name: event.name }));
 
     // Special handling for shoot event - show immediate slide
     if (eventId === EventId.SHOOT && participants.length > 0) {
@@ -1009,7 +1010,7 @@ export class Game {
       { eventName: name, description, allowAbstain },
     );
 
-    this.addLog(`${name} started`);
+    this.addLog(str('log', 'eventStarted', { name }));
     this.broadcastGameState();
 
     return { success: true };
@@ -1100,7 +1101,7 @@ export class Game {
       { eventName: event.name, description: config.description, allowAbstain: event.allowAbstain !== false },
     );
 
-    this.addLog(`Custom event started — ${config.description}`);
+    this.addLog(str('log', 'customEventStarted', { description: config.description }));
 
     // Show slide when custom event starts — gallery of eligible targets
     const customTargets =
@@ -1286,7 +1287,7 @@ export class Game {
       true,
     );
 
-    this.addLog(`Timer started for ${eventIds.length} event(s)`);
+    this.addLog(str('log', 'timerStarted', { count: eventIds.length }));
 
     return { success: true };
   }
@@ -1515,7 +1516,7 @@ export class Game {
     this.activeEvents.delete(eventId);
     this.clearEventTimer(eventId);
 
-    this.addLog(`${event.name} skipped`);
+    this.addLog(str('log', 'eventSkipped', { name: event.name }));
     this.broadcastGameState();
 
     return { success: true };
@@ -1542,7 +1543,7 @@ export class Game {
     // Return to pending so host can re-start it
     this.pendingEvents.push(eventId);
 
-    this.addLog(`${event.name} reset`);
+    this.addLog(str('log', 'eventReset', { name: event.name }));
     this.broadcastGameState();
 
     return { success: true };
@@ -1782,9 +1783,7 @@ export class Game {
       false,
     );
 
-    this.addLog(
-      `${instance.event.name} runoff — Round ${instance.runoffRound}`,
-    );
+    this.addLog(str('log', 'runoffRound', { name: instance.event.name, round: instance.runoffRound }));
     this.broadcastGameState();
 
     return { success: true, runoff: true };
@@ -1865,7 +1864,7 @@ export class Game {
 
     const winnerName = winner === Team.VILLAGE ? 'VILLAGERS' : 'WEREWOLVES';
 
-    this.addLog(`Game over — ${winnerName} win!`);
+    this.addLog(str('log', 'gameOver', { winners: winnerName }));
 
     const winners = [...this.players.values()]
       .filter((p) => p.role.team === winner)
@@ -2012,11 +2011,11 @@ export class Game {
       // Doctor protection on the death night cures the poison — no slide
       if (player.isProtected) {
         player.isProtected = false;
-        this.addLog(`${player.getNameWithEmoji()} was saved from poison by the Doctor`);
+        this.addLog(str('log', 'playerSavedPoison', { name: player.getNameWithEmoji() }));
         continue;
       }
 
-      this.addLog(`${player.getNameWithEmoji()} died from poison`);
+      this.addLog(str('log', 'playerDiedPoison', { name: player.getNameWithEmoji() }));
       this.killPlayer(player.id, 'poison');
       const teamName = teamDisplayNames[player.role?.team] || 'PLAYER';
       this.queueDeathSlide({
@@ -2065,7 +2064,7 @@ export class Game {
   _barricadeAbsorb(player) {
     player.removeItem(ItemId.BARRICADE);
     player.lastEventResult = { message: 'BARRICADE BROKEN', detail: 'You are on your own now', critical: true };
-    this.addLog(`${player.getNameWithEmoji()}'s barricade absorbed the attack`);
+    this.addLog(str('log', 'barricadeAbsorbed', { name: player.getNameWithEmoji() }));
   }
 
   _recruitProspect(player) {
@@ -2073,7 +2072,7 @@ export class Game {
     player.assignRole(getRole(RoleId.WEREWOLF));
     this._invalidateWinCache(); // Team changed
     player.lastEventResult = { message: 'TEAM CHANGED', detail: 'You were recruited by the wolves', critical: true };
-    this.addLog(`${player.getNameWithEmoji()} was recruited by the werewolves`);
+    this.addLog(str('log', 'playerRecruited', { name: player.getNameWithEmoji() }));
     this.broadcastPackState(); // syncs all wolves including the new recruit
   }
 
@@ -2100,7 +2099,7 @@ export class Game {
     for (const other of this.players.values()) {
       if (other.linkedTo === player.id && other.isAlive) {
         this.killPlayer(other.id, 'heartbreak');
-        this.addLog(`${other.getNameWithEmoji()} died of heartbreak`);
+        this.addLog(str('log', 'playerDiedHeartbreak', { name: other.getNameWithEmoji() }));
         this.queueDeathSlide(this.createDeathSlide(other, 'heartbreak'), false);
       }
     }
@@ -2111,7 +2110,7 @@ export class Game {
     if (!player) return false;
     player.revive(cause);
     this._invalidateWinCache();
-    this.addLog(`${player.getNameWithEmoji()} revived`);
+    this.addLog(str('log', 'playerRevived', { name: player.getNameWithEmoji() }));
     return true;
   }
 
@@ -2128,7 +2127,7 @@ export class Game {
 
     player.addItem(itemDef);
     if (itemId === ItemId.COWARD) this._invalidateWinCache();
-    this.addLog(`${player.getNameWithEmoji()} received ${itemDef.name}`);
+    this.addLog(str('log', 'itemGiven', { name: player.getNameWithEmoji(), item: itemDef.name }));
 
     if (itemId === 'coward') {
       this.pushSlide({
@@ -2414,7 +2413,7 @@ export class Game {
 
     this.heartbeatSpikesThisDay.add(player.id);
     player.addItem(getItem(ItemId.NOVOTE));
-    this.addLog(`${player.getNameWithEmoji()} panicked! BPM ${player.heartbeat.bpm} (threshold ${threshold}) — vote lost`);
+    this.addLog(str('log', 'bpmPanicked', { name: player.getNameWithEmoji(), bpm: player.heartbeat.bpm, threshold }));
     this.pushSlide({
       type: SlideType.HEARTBEAT,
       playerId: player.id,
@@ -2648,7 +2647,7 @@ export class Game {
       style: SlideStyle.NEUTRAL,
     });
 
-    this.addLog('Composition slide pushed');
+    this.addLog(str('log', 'compositionPushed'));
     return { success: true };
   }
 
@@ -2674,7 +2673,7 @@ export class Game {
           : SlideStyle.NEUTRAL,
     });
 
-    this.addLog(`Role tip slide pushed: ${roleDef.name}`);
+    this.addLog(str('log', 'roleTipPushed', { role: roleDef.name }));
     return { success: true };
   }
 
@@ -2696,7 +2695,7 @@ export class Game {
       style: SlideStyle.WARNING,
     });
 
-    this.addLog(`Item tip slide pushed: ${itemDef.name}`);
+    this.addLog(str('log', 'itemTipPushed', { item: itemDef.name }));
     return { success: true };
   }
 

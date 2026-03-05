@@ -1,7 +1,7 @@
 // client/src/strings/index.js
 // Runtime string resolution: localStorage overrides → catalog defaults.
 // Usage: getStr('landing', 'title')  →  override ?? catalog default ?? key
-import { STRING_CATALOG } from './gameStrings.js'
+import { STRING_CATALOG } from '@shared/strings/gameStrings.js'
 
 const LS_KEY = 'game_strings_overrides'
 

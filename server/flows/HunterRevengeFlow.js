@@ -3,6 +3,7 @@
 
 import { GamePhase, RoleId, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
+import { str } from '../strings.js';
 
 /**
  * Hunter Revenge Flow
@@ -90,7 +91,7 @@ export class HunterRevengeFlow extends InterruptFlow {
       playerResolved: false, // Host resolves, or auto-resolve on selection
     });
 
-    this.game.addLog(`${player.getNameWithEmoji()} gets a revenge shot`);
+    this.game.addLog(str('log', 'hunterRevenge', { name: player.getNameWithEmoji() }));
 
     return { interrupt: true, flowId: HunterRevengeFlow.id };
   }
@@ -172,7 +173,7 @@ export class HunterRevengeFlow extends InterruptFlow {
     const isNight = this.state.triggeredInPhase === GamePhase.NIGHT;
     const teamDisplayNames = { village: 'VILLAGER', werewolf: 'WEREWOLF', neutral: 'INDEPENDENT' };
     const teamName = teamDisplayNames[victim.role?.team] || 'PLAYER';
-    const message = `${hunter.getNameWithEmoji()} took ${victim.getNameWithEmoji()} down with them`;
+    const message = str('log', 'hunterRevengeKill', { hunter: hunter.getNameWithEmoji(), victim: victim.getNameWithEmoji() });
 
     // Cleanup before returning (frees flow for potential nested hunter revenge)
     this.cleanup();
@@ -210,10 +211,10 @@ export class HunterRevengeFlow extends InterruptFlow {
     if (targets.length === 0) {
       // No valid targets — skip the revenge quietly.
       this.cleanup();
-      return { success: true, kills: [], slides: [], log: `${player.getNameWithEmoji()} disconnected — revenge cancelled` };
+      return { success: true, kills: [], slides: [], log: str('log', 'hunterDisconnected', { name: player.getNameWithEmoji() }) };
     }
     const target = targets[Math.floor(Math.random() * targets.length)];
-    this.game.addLog(`${player.getNameWithEmoji()} disconnected — revenge auto-resolved`);
+    this.game.addLog(str('log', 'hunterAutoResolved', { name: player.getNameWithEmoji() }));
     return this.resolve(target.id);
   }
 

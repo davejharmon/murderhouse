@@ -1,42 +1,45 @@
 // client/src/components/slides/slideStrings.js
-// All static string literals used by slide components.
-// Override via strings prop on each component, or edit here and export to source.
+// All static string literals used by slide components, resolved via the catalog.
+// Getters are used so each access reads the current localStorage override.
+// Overrides are set via the String Sheets dev tool (/strings).
+
+import { getStr } from '@/strings/index.js'
 
 export const SLIDE_STRINGS = {
   fallback: {
-    title: 'MURDERHOUSE',
-    players: '{n} players connected',
-    day: 'DAY',
-    night: 'NIGHT',
+    get title()   { return getStr('screen', 'fallback.title') },
+    get players() { return getStr('screen', 'fallback.players') },
+    get day()     { return getStr('screen', 'fallback.day') },
+    get night()   { return getStr('screen', 'fallback.night') },
   },
   death: {
-    eliminated: 'ELIMINATED',
-    coward: 'COWARD',
-    mad: 'MAD',
+    get eliminated() { return getStr('screen', 'death.eliminated') },
+    get coward()     { return getStr('screen', 'death.coward') },
+    get mad()        { return getStr('screen', 'death.mad') },
   },
   gallery: {
-    werewolf: 'WEREWOLF',
-    coward: 'COWARD',
-    mad: 'MAD',
+    get werewolf() { return getStr('screen', 'gallery.werewolf') },
+    get coward()   { return getStr('screen', 'gallery.coward') },
+    get mad()      { return getStr('screen', 'gallery.mad') },
   },
   scores: {
-    title: 'SCOREBOARD',
-    empty: 'No scores yet',
+    get title() { return getStr('screen', 'scores.title') },
+    get empty() { return getStr('screen', 'scores.empty') },
   },
   heartbeat: {
-    bpm: 'BPM',
-    signalLost: 'SIGNAL LOST',
-    debug: 'DEBUG',
+    get bpm()        { return getStr('screen', 'heartbeat.bpm') },
+    get signalLost() { return getStr('screen', 'heartbeat.signalLost') },
+    get debug()      { return getStr('screen', 'heartbeat.debug') },
   },
   composition: {
-    unassigned: 'Unassigned',
+    get unassigned() { return getStr('screen', 'composition.unassigned') },
   },
   roleTip: {
-    werewolf: 'WEREWOLF',
-    independent: 'INDEPENDENT',
-    village: 'VILLAGE',
-    passive: 'PASSIVE',
-    singleUse: 'SINGLE USE',
-    uses: 'USES',
+    get werewolf()    { return getStr('screen', 'roleTip.werewolf') },
+    get independent() { return getStr('screen', 'roleTip.independent') },
+    get village()     { return getStr('screen', 'roleTip.village') },
+    get passive()     { return getStr('screen', 'roleTip.passive') },
+    get singleUse()   { return getStr('screen', 'roleTip.singleUse') },
+    get uses()        { return getStr('screen', 'roleTip.uses') },
   },
 }

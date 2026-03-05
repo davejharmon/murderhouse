@@ -270,10 +270,6 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### High Impact
 
-1. **String catalog coverage is incomplete on the server side** — `client/src/strings/gameStrings.js` catalogs ~200 user-visible strings, and `client/src/strings/index.js` provides `getStr(cat, key)` for runtime lookup from localStorage overrides. However, server-side strings (all `addLog()` calls, event resolution messages, slide text built in `events.js` and flows) are still hardcoded template literals. There is no server-side analogue of `getStr()`. A `str(cat, key, tokens)` helper in `server/strings.js` that reads from a shared JSON catalog (or the same `gameStrings.js` via `@shared`) would make the catalog complete and auditable with a single grep. Without this, the `/strings` tool can display server-side strings but cannot apply edits back to running game logic.
-
-2. **Most client pages still hardcode strings** — Only `Landing.jsx` currently reads strings via `getStr()`. `Host.jsx`, `Player.jsx`, `PlayerConsole.jsx`, and the slide components in `client/src/components/slides/` all still hardcode their display text. Wiring these to the catalog is mechanical but has not been done.
-
 ### Medium Impact
 
 
@@ -281,6 +277,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### Fixed
 
+- ~~**String catalog coverage is incomplete on the server side**~~ — `server/strings.js` provides `str(cat, key, tokens)` reading from the shared `shared/strings/gameStrings.js` catalog with file-based overrides (`data/string-overrides.json`). All `addLog()` calls in `Game.js`, `events.js`, `flows/`, `roles.js`, and `handlers/index.js` now use `str()`.
+- ~~**Most client pages still hardcode strings**~~ — `Host.jsx`, `Player.jsx`, `PlayerConsole.jsx`, and all slide components now read strings via `getStr()`. The string catalog has been moved to `shared/strings/gameStrings.js` so both client and server reference the same source.
 - ~~**`Screen.jsx` is a 1200-line monolith**~~ — All 14 slide types extracted into individual components under `client/src/components/slides/`. `Screen.jsx` is now ~145 lines. A `/slides` dev tool at `/slides` lets you preview all slide types with mock data and edit strings live.
 - ~~**`broadcastGameState()` called excessively**~~ — Schedules via `queueMicrotask()` with a `_broadcastScheduled` flag; multiple calls per synchronous handler now coalesce into one send.
 - ~~**ABSTAINED state lost on fast event resolve**~~ — `player.syncState()` now called before `player.clearFromEvent()` in `resolveEvent` so `getActiveResult()` can read the null result and display ABSTAINED correctly.

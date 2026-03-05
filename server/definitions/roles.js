@@ -3,6 +3,7 @@
 // Each role specifies its team, abilities, and event participation
 
 import { Team, RoleId } from '../../shared/constants.js';
+import { str } from '../strings.js';
 
 /**
  * Role Definition Schema:
@@ -91,7 +92,7 @@ const roles = {
         promoted.assignRole(alphaRole);
 
         return {
-          message: `${promoted.name} becomes the new Alpha!`,
+          message: str('log', 'alphaPromoted', { name: promoted.name }),
         };
       },
     },
@@ -388,7 +389,7 @@ const roles = {
       onDeath: (player, cause, game) => {
         if (cause !== 'eliminated') return null;
         player.jesterWon = true;
-        return { message: `${player.name} was the Jester — they win!` };
+        return { message: str('log', 'jesterWins', { name: player.name }) };
       },
     },
   },

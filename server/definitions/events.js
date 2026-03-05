@@ -12,6 +12,7 @@ import {
   SlideType,
 } from '../../shared/constants.js';
 import { getRole } from './roles.js';
+import { str } from '../strings.js';
 
 /** Map team to display name for slides/messages */
 function getTeamDisplayName(role) {
@@ -53,7 +54,7 @@ function checkRunoff(frontrunners, tally, runoffRound, eventName) {
     runoff: true,
     frontrunners,
     tally,
-    message: `${eventName} tied. Starting runoff with ${frontrunners.length} candidates.`,
+    message: str('log', 'voteRunoffStarted', { event: eventName, count: frontrunners.length }),
   };
 }
 
@@ -144,7 +145,7 @@ const events = {
         return {
           success: true,
           outcome: 'no-kill',
-          message: 'No one was eliminated.',
+          message: str('log', 'voteNoElimination'),
           slide: {
             type: 'title',
             title: 'NO ELIMINATION',
@@ -170,7 +171,7 @@ const events = {
             outcome: 'eliminated',
             victim,
             tally,
-            message: `After multiple runoffs, ${victim.name} was randomly selected for elimination.`,
+            message: str('log', 'voteRandomSelected', { name: victim.name }),
             slide: {
               type: 'death',
               playerId: victim.id,
@@ -192,7 +193,7 @@ const events = {
         outcome: 'eliminated',
         victim,
         tally,
-        message: `${victim.name} was eliminated.`,
+        message: str('log', 'voteEliminated', { name: victim.name }),
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -290,7 +291,7 @@ const events = {
         return {
           success: true,
           outcome: 'protected',
-          message: `${kill.target.getNameWithEmoji()} was protected`,
+          message: str('log', 'vigilanteProtected', { name: kill.target.getNameWithEmoji() }),
         };
       }
 
@@ -298,7 +299,7 @@ const events = {
         success: true,
         outcome: 'killed',
         victim: kill.victim,
-        message: `${kill.vigilante.getNameWithEmoji()} shot ${kill.target.getNameWithEmoji()}`,
+        message: str('log', 'vigilanteShoots', { name: kill.vigilante.getNameWithEmoji(), target: kill.target.getNameWithEmoji() }),
         slide: kill.slide,
       };
     },
@@ -356,8 +357,7 @@ const events = {
       }
 
       const messages = suspicions.map(
-        (s) =>
-          `${s.actor.getNameWithEmoji()} suspects ${s.target.getNameWithEmoji()}`,
+        (s) => str('log', 'hunterSuspected', { name: s.actor.getNameWithEmoji(), target: s.target.getNameWithEmoji() }),
       );
 
       return {
@@ -396,7 +396,7 @@ const events = {
       if (game.poisonerActing) {
         return {
           success: true,
-          message: 'Poisoner is using their poison tonight',
+          message: str('log', 'poisonerActing'),
           silent: false,
         };
       }
@@ -430,7 +430,7 @@ const events = {
       if (game.janitorCleaning) {
         return {
           success: true,
-          message: 'Janitor is cleaning up tonight',
+          message: str('log', 'janitorActing'),
           silent: false,
         };
       }
@@ -489,7 +489,7 @@ const events = {
           return {
             success: true,
             silent: true,
-            message: `${victim.getNameWithEmoji()} was saved from poison`,
+            message: str('log', 'playerSavedPoison', { name: victim.getNameWithEmoji() }),
           };
         }
 
@@ -499,7 +499,7 @@ const events = {
         return {
           success: true,
           outcome: 'poisoned',
-          message: `${victim.getNameWithEmoji()} was poisoned`,
+          message: str('log', 'poisonedPlayer', { name: victim.getNameWithEmoji() }),
         };
       }
 
@@ -510,7 +510,7 @@ const events = {
           success: true,
           outcome: 'protected',
           targetId: victimId,
-          message: `${victim.getNameWithEmoji()} was protected`,
+          message: str('log', 'killProtected', { name: victim.getNameWithEmoji() }),
         };
       }
 
@@ -526,7 +526,7 @@ const events = {
         return {
           success: true,
           outcome: 'recruited',
-          message: `${victim.getNameWithEmoji()} was recruited by the werewolves`,
+          message: str('log', 'playerRecruited', { name: victim.getNameWithEmoji() }),
         };
       }
 
@@ -542,7 +542,7 @@ const events = {
         success: true,
         outcome: 'killed',
         victim,
-        message: `${victim.getNameWithEmoji()} was killed by werewolves`,
+        message: str('log', 'killedByWolves', { name: victim.getNameWithEmoji() }),
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -661,10 +661,7 @@ const events = {
 
       // Log investigations
       const messages = investigations.map(
-        (inv) =>
-          `${inv.seer.getNameWithEmoji()} learned ${inv.target.getNameWithEmoji()} is ${
-            inv.isEvil ? 'a WEREWOLF' : 'INNOCENT'
-          }`,
+        (inv) => str('log', 'seerInvestigated', { seer: inv.seer.getNameWithEmoji(), target: inv.target.getNameWithEmoji(), result: inv.isEvil ? 'a WEREWOLF' : 'INNOCENT' }),
       );
 
       return {
@@ -729,7 +726,7 @@ const events = {
         }
         // 'investigate' → no side effect
 
-        game.addLog(`🥴 ${actor.name} (Drunk) rolled: ${action} → ${target.name}`);
+        game.addLog(`🥴 ${actor.name} (Drunk) rolled: ${action} → ${target.name}`); // Debug log, not in catalog
 
         // Real investigate (25%) returns accurate result; other actions always show INNOCENT
         const isEvil = action === 'investigate'
@@ -760,7 +757,7 @@ const events = {
 
       return {
         success: true,
-        message: 'Stumble investigation completed',
+        message: str('log', 'stumbleCompleted'),
         investigations,
       };
     },
@@ -804,8 +801,7 @@ const events = {
       }
 
       const messages = blocks.map(
-        (b) =>
-          `${b.blocker.getNameWithEmoji()} blocked ${b.target.getNameWithEmoji()}`,
+        (b) => str('log', 'roleblockerBlocked', { blocker: b.blocker.getNameWithEmoji(), target: b.target.getNameWithEmoji() }),
       );
 
       return {
@@ -858,8 +854,7 @@ const events = {
 
       // Log protections
       const messages = protections.map(
-        (p) =>
-          `${p.doctor.getNameWithEmoji()} protected ${p.target.getNameWithEmoji()}`,
+        (p) => str('log', 'doctorProtected', { doctor: p.doctor.getNameWithEmoji(), target: p.target.getNameWithEmoji() }),
       );
 
       return {
@@ -905,7 +900,7 @@ const events = {
       // Player abstained
       if (targetId === null) {
         return {
-          message: `${shooter.getNameWithEmoji()} chose not to shoot`,
+          message: str('log', 'shooterAbstains', { name: shooter.getNameWithEmoji() }),
           slide: {
             type: 'title',
             title: 'NO SHOTS FIRED',
@@ -927,7 +922,7 @@ const events = {
 
       const teamName = getTeamDisplayName(victim.role);
       return {
-        message: `${shooter.getNameWithEmoji()} shot ${victim.getNameWithEmoji()}`,
+        message: str('log', 'shooterShoots', { name: shooter.getNameWithEmoji(), target: victim.getNameWithEmoji() }),
         slide: {
           type: 'death',
           playerId: victim.id,
@@ -1002,7 +997,7 @@ const events = {
         return {
           success: true,
           outcome: 'no-winner',
-          message: 'No votes were cast.',
+          message: str('log', 'customNoVotes'),
           slide: {
             type: 'title',
             title: 'NO WINNER',
@@ -1061,7 +1056,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
   switch (config.rewardType) {
     case 'item':
       game.giveItem(winner.id, config.rewardParam);
-      message = `${winner.name} received ${config.rewardParam}!`;
+      message = str('log', 'customReward', { name: winner.name, reward: config.rewardParam });
       slideSubtitle = `${winner.name} received ${config.rewardParam}`;
       break;
 
@@ -1069,7 +1064,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
       const newRole = getRole(config.rewardParam);
       if (newRole) {
         winner.assignRole(newRole);
-        message = `${winner.name} became ${newRole.name}!`;
+        message = str('log', 'customRoleChange', { name: winner.name, role: newRole.name });
         slideSubtitle = `${winner.name} is now ${newRole.name}`;
       }
       break;
@@ -1077,7 +1072,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
     case 'resurrection':
       if (!winner.isAlive) {
         game.revivePlayer(winner.id, 'vote');
-        message = `${winner.name} was resurrected!`;
+        message = str('log', 'customRevived', { name: winner.name });
         slideSubtitle = `${winner.name} returns from the dead`;
       } else {
         message = `${winner.name} was chosen but is already alive.`;

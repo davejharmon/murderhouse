@@ -3,6 +3,7 @@
 
 import { RoleId, ItemId, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
+import { str } from '../strings.js';
 
 /**
  * Governor Pardon Flow
@@ -127,7 +128,7 @@ export class GovernorPardonFlow extends InterruptFlow {
       false // Don't jump - tally slide is already shown
     );
 
-    this.game.addLog(`${condemned.getNameWithEmoji()} awaits the Governor's decision`);
+    this.game.addLog(str('log', 'governorDecision', { name: condemned.getNameWithEmoji() }));
 
     return { interrupt: true, flowId: GovernorPardonFlow.id };
   }
@@ -202,7 +203,7 @@ export class GovernorPardonFlow extends InterruptFlow {
   resolvePardon(governor, condemned) {
     this.phase = 'resolving';
 
-    const message = `${governor.getNameWithEmoji()} pardoned ${condemned.getNameWithEmoji()}`;
+    const message = str('log', 'pardoned', { governor: governor.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
 
     this.cleanup();
 
@@ -239,7 +240,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const condemnedId = this.state.condemnedId;
     const voteResolution = this.state.voteResolution;
     const voteInstance = this.state.voteInstance;
-    const message = `${governor.getNameWithEmoji()} condemned ${condemned.getNameWithEmoji()}`;
+    const message = str('log', 'notPardoned', { governor: governor.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
 
     // Build slides array: "NO PARDON" title, then execution death slide
     const slides = [
@@ -297,7 +298,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const condemned = this.game.getPlayer(this.state.condemnedId);
     const governor = player; // use disconnecting player as the "decider" for logging
     if (!condemned) { this.cleanup(); return null; }
-    this.game.addLog(`${player.getNameWithEmoji()} disconnected — pardon cancelled`);
+    this.game.addLog(str('log', 'governorDisconnected', { name: player.getNameWithEmoji() }));
     return this.resolveExecution(governor, condemned);
   }
 

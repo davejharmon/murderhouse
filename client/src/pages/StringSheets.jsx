@@ -1,7 +1,7 @@
 // client/src/pages/StringSheets.jsx
 // Dev tool: export/import all game strings as CSV, edit inline with localStorage persistence.
 import { useRef, useState } from 'react'
-import { STRING_CATALOG, STRING_CATEGORIES, TAG_GROUPS, TAG_ASSIGNMENTS } from '../strings/gameStrings.js'
+import { STRING_CATALOG, STRING_CATEGORIES, TAG_GROUPS, TAG_ASSIGNMENTS } from '@shared/strings/gameStrings.js'
 import styles from './StringSheets.module.css'
 
 const LS_KEY = 'game_strings_overrides'
@@ -185,7 +185,7 @@ export default function StringSheets() {
       const res = await fetch('/dev/write-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: 'strings/gameStrings.js', content: js }),
+        body: JSON.stringify({ file: '../shared/strings/gameStrings.js', content: js }),
       })
       const data = await res.json()
       if (data.ok) {
