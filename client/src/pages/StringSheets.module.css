@@ -124,6 +124,22 @@
   color: #2a7ab0;
 }
 
+.pageLight .tokenPreview {
+  color: #b0bac6;
+}
+
+.pageLight .tokenExampleInput {
+  border-color: #d0d5de;
+  color: #9aa5b4;
+}
+.pageLight .tokenExampleInput:focus {
+  border-color: #4a9eff;
+  color: #1a1e26;
+}
+.pageLight .tokenExampleInput::placeholder {
+  color: #c8d0dc;
+}
+
 .pageLight .empty {
   color: #b0bac6;
 }
@@ -564,8 +580,27 @@
   border-color: #7ed9a6;
 }
 
+/* Token preview (below value input) */
+.tokenPreview {
+  font-size: 10px;
+  color: #667;
+  padding: 2px 2px 0;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 /* Tokens */
-.tdTokens { white-space: nowrap; }
+.tdTokens { white-space: normal; min-width: 90px; }
+
+.tokenWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
 
 .token {
   display: inline-block;
@@ -575,7 +610,27 @@
   border: 1px solid #2a3040;
   color: #7eb8da;
   padding: 1px 4px;
-  margin-right: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tokenExampleInput {
+  width: 60px;
+  background: transparent;
+  border: 1px solid #1e2530;
+  color: #556;
+  font-family: inherit;
+  font-size: 10px;
+  padding: 1px 4px;
+  outline: none;
+  transition: border-color 0.1s, color 0.1s;
+}
+.tokenExampleInput:focus {
+  border-color: #7eb8da;
+  color: #ccd;
+}
+.tokenExampleInput::placeholder {
+  color: #2a3040;
 }
 
 /* Description */

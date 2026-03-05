@@ -6,6 +6,7 @@ import styles from './StringSheets.module.css'
 
 const LS_KEY = 'game_strings_overrides'
 const LS_TAGS_KEY = 'game_tag_overrides'
+const LS_TOKEN_KEY = 'game_token_examples'
 const CSV_COLUMNS = ['category', 'key', 'default', 'value', 'tokens', 'description']
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
@@ -34,6 +35,23 @@ function loadTagOverrides() {
 
 function saveTagOverrides(tagOverrides) {
   localStorage.setItem(LS_TAGS_KEY, JSON.stringify(tagOverrides))
+}
+
+function loadTokenExamples() {
+  try {
+    const raw = localStorage.getItem(LS_TOKEN_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveTokenExamples(examples) {
+  localStorage.setItem(LS_TOKEN_KEY, JSON.stringify(examples))
+}
+
+function renderWithTokens(template, tokenValues) {
+  return template.replace(/\{(\w+)\}/g, (_, key) => tokenValues[`{${key}}`] ?? `{${key}}`)
 }
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
@@ -148,6 +166,7 @@ export default function StringSheets() {
   const [activeTag, setActiveTag]           = useState(null)  // tag id string | null
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
   const [openTagPickerId, setOpenTagPickerId] = useState(null) // entry id with open picker
+  const [tokenExamples, setTokenExamples]     = useState(loadTokenExamples) // { 'cat.key': { '{token}': 'value' } }
   const [lightMode, setLightMode]           = useState(() => {
     try { return localStorage.getItem('ss_light_mode') === '1' } catch { return false }
   })
@@ -184,8 +203,10 @@ export default function StringSheets() {
     if (!confirm('Reset all values and tag edits to defaults? This clears localStorage.')) return
     localStorage.removeItem(LS_KEY)
     localStorage.removeItem(LS_TAGS_KEY)
+    localStorage.removeItem(LS_TOKEN_KEY)
     setOverrides({})
     setTagOverrides({})
+    setTokenExamples({})
     flash('Reset to defaults')
   }
 
@@ -304,6 +325,26 @@ export default function StringSheets() {
         next[id] = updated
       }
       saveTagOverrides(next)
+      return next
+    })
+  }
+
+  function handleTokenExample(entry, token, value) {
+    const id = `${entry.cat}.${entry.key}`
+    setTokenExamples(prev => {
+      const entryTokens = { ...(prev[id] || {}) }
+      if (value === '') {
+        delete entryTokens[token]
+      } else {
+        entryTokens[token] = value
+      }
+      const next = { ...prev }
+      if (Object.keys(entryTokens).length === 0) {
+        delete next[id]
+      } else {
+        next[id] = entryTokens
+      }
+      saveTokenExamples(next)
       return next
     })
   }
@@ -474,10 +515,24 @@ export default function StringSheets() {
                       readOnly={!IS_DEV}
                       onChange={IS_DEV ? e => handleChange(entry, e.target.value) : undefined}
                     />
+                    {entry.tokens?.length > 0 && (
+                      <div className={styles.tokenPreview}>
+                        {renderWithTokens(value, tokenExamples[id] || {})}
+                      </div>
+                    )}
                   </td>
                   <td className={styles.tdTokens}>
                     {(entry.tokens || []).map(t => (
-                      <code key={t} className={styles.token}>{t}</code>
+                      <span key={t} className={styles.tokenWrap}>
+                        <code className={styles.token}>{t}</code>
+                        <input
+                          className={styles.tokenExampleInput}
+                          type="text"
+                          placeholder="eg…"
+                          value={(tokenExamples[id] || {})[t] ?? ''}
+                          onChange={e => handleTokenExample(entry, t, e.target.value)}
+                        />
+                      </span>
                     ))}
                   </td>
                   <td className={styles.tdDesc}>{entry.desc}</td>
