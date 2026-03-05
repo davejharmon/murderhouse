@@ -985,8 +985,9 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return { success: false, error: 'Player not eligible' };
 
-    // Enforce phase restriction
-    if (event.phase && !event.phase.includes(this.phase)) {
+    // Enforce phase restriction only for player-initiated events (e.g. shoot is day-only).
+    // Non-playerInitiated events (e.g. investigate via clue) are not phase-gated here.
+    if (event.playerInitiated && event.phase && !event.phase.includes(this.phase)) {
       return { success: false, error: `Not available during ${this.phase} phase` };
     }
 
