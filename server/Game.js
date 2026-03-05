@@ -2171,7 +2171,7 @@ export class Game {
 
   _barricadeAbsorb(player) {
     player.removeItem(ItemId.BARRICADE);
-    player.lastEventResult = { message: 'BARRICADE BROKEN', detail: 'You are on your own now', critical: true };
+    player.lastEventResult = { message: str('feedback', 'barricade.broken'), detail: str('feedback', 'barricade.detail'), critical: true };
     this.addLog(str('log', 'barricadeAbsorbed', { name: player.getNameWithEmoji() }));
   }
 
@@ -2179,7 +2179,7 @@ export class Game {
     player.removeItem(ItemId.PROSPECT);
     player.assignRole(getRole(RoleId.WEREWOLF));
     this._invalidateWinCache(); // Team changed
-    player.lastEventResult = { message: 'TEAM CHANGED', detail: 'You were recruited by the wolves', critical: true };
+    player.lastEventResult = { message: str('feedback', 'prospect.changed'), detail: str('feedback', 'prospect.detail'), critical: true };
     this.addLog(str('log', 'playerRecruited', { name: player.getNameWithEmoji() }));
     this.broadcastPackState(); // syncs all wolves including the new recruit
   }

@@ -199,7 +199,6 @@ export const STRING_CATALOG = [
   { cat: "feedback", key: "prospect.changed", default: "TEAM CHANGED", tags: ["werewolf"], desc: "Line 2 on player terminal when Prospect item recruits them" },
   { cat: "feedback", key: "prospect.detail", default: "You were recruited by the wolves", tags: ["werewolf"], desc: "Line 3 on player terminal after recruitment" },
   { cat: "terminal", key: "connecting", default: "CONNECTING", desc: "Line 1 before WebSocket connects" },
-  { cat: "terminal", key: "pleaseWait", default: "Please wait", desc: "Line 3 while connecting" },
   { cat: "player", key: "online", default: "● ONLINE", desc: "Connection badge when connected" },
   { cat: "player", key: "offline", default: "○ OFFLINE", desc: "Connection badge when disconnected" },
   { cat: "player", key: "buttonYes", default: "YES", desc: "Primary confirm button label" },
