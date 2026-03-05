@@ -2,11 +2,12 @@
 // Master catalog of every user-visible string in the game.
 // Used by the String Sheets dev tool (/strings) for bulk export/import.
 //
-// Format per entry: { cat, key, default, tokens?, desc }
+// Format per entry: { cat, key, default, tokens?, tags?, desc }
 //   cat     — category for filtering (see STRING_CATEGORIES)
 //   key     — unique dot-key matching its use in the codebase
 //   default — the original hardcoded string
 //   tokens  — optional dynamic placeholders present in the string
+//   tags    — optional cross-cutting tag overrides (roles/events/items are auto-tagged by prefix)
 //   desc    — where/how the string appears
 
 export const STRING_CATALOG = [
@@ -57,7 +58,7 @@ export const STRING_CATALOG = [
   { cat: 'roles', key: 'cupid.description',    default: 'You bind two souls together in love.', desc: 'Role flavor text' },
   { cat: 'roles', key: 'cupid.tip',            default: 'Link two lovers',      desc: 'Short tip on player terminal' },
   { cat: 'roles', key: 'cupid.detailedTip',    default: 'At the start of the game, you link two players as lovers. If either dies, the other dies of heartbreak — regardless of team. Choose a pair that helps the village, or create chaos.', desc: 'Full tip on big-screen role slide' },
-  { cat: 'roles', key: 'cupid.loverMsg',       default: 'You are in love with {name}. If they die, you die of heartbreak.', tokens: ['{name}'], desc: 'Private message sent to each lover on linking' },
+  { cat: 'roles', key: 'cupid.loverMsg',       default: 'You are in love with {name}. If they die, you die of heartbreak.', tokens: ['{name}'], tags: ['link'], desc: 'Private message sent to each lover on linking' },
 
   { cat: 'roles', key: 'roleblocker.name',     default: 'Roleblocker',          desc: 'Role display name' },
   { cat: 'roles', key: 'roleblocker.description', default: "You silence the night. Block one player's ability.", desc: 'Role flavor text' },
@@ -87,7 +88,7 @@ export const STRING_CATALOG = [
   { cat: 'roles', key: 'drunk.tip',            default: 'Investigate each night', desc: 'Short tip on player terminal (disguised as Seer)' },
   { cat: 'roles', key: 'drunk.detailedTip',    default: 'Each night the Drunk picks a target, believing they are investigating. In reality their action is randomly one of: Investigate (accurate result), Kill, Protect, or Roleblock. The three non-investigate actions always show INNOCENT regardless of the target.', desc: 'Full tip on big-screen role slide' },
 
-  { cat: 'roles', key: 'alpha.promoteMsg',     default: '{name} becomes the new Alpha!', tokens: ['{name}'], desc: 'Host log when a werewolf is promoted to Alpha on death' },
+  { cat: 'roles', key: 'alpha.promoteMsg',     default: '{name} becomes the new Alpha!', tokens: ['{name}'], tags: ['werewolf'], desc: 'Host log when a werewolf is promoted to Alpha on death' },
 
   // ── Items ──────────────────────────────────────────────────────────────────
   // server/definitions/items.js
@@ -122,15 +123,15 @@ export const STRING_CATALOG = [
 
   { cat: 'events', key: 'investigate.name',    default: 'Investigate',          desc: 'Event name' },
   { cat: 'events', key: 'investigate.description', default: 'Choose someone to investigate.', desc: 'Prompt shown to Seer on terminal' },
-  { cat: 'events', key: 'investigate.resultEvil',   default: '{name} is EVIL',      tokens: ['{name}'], desc: 'Private result message to Seer — target is werewolf' },
-  { cat: 'events', key: 'investigate.resultInnocent', default: '{name} is INNOCENT', tokens: ['{name}'], desc: 'Private result message to Seer — target is innocent' },
+  { cat: 'events', key: 'investigate.resultEvil',   default: '{name} is EVIL',      tokens: ['{name}'], tags: ['seer'], desc: 'Private result message to Seer — target is werewolf' },
+  { cat: 'events', key: 'investigate.resultInnocent', default: '{name} is INNOCENT', tokens: ['{name}'], tags: ['seer'], desc: 'Private result message to Seer — target is innocent' },
 
   { cat: 'events', key: 'stumble.name',        default: 'Stumble',              desc: 'Event name (Drunk\'s investigate)' },
   { cat: 'events', key: 'stumble.description', default: 'Choose someone to investigate.', desc: 'Prompt shown to Drunk — they think they are a Seer' },
 
   { cat: 'events', key: 'protect.name',        default: 'Protect',              desc: 'Event name' },
   { cat: 'events', key: 'protect.description', default: 'Choose someone to protect tonight.', desc: 'Prompt shown to Doctor on terminal' },
-  { cat: 'events', key: 'protect.privateMsg',  default: 'You are protecting {name} tonight.', tokens: ['{name}'], desc: 'Private confirmation to Doctor after selection' },
+  { cat: 'events', key: 'protect.privateMsg',  default: 'You are protecting {name} tonight.', tokens: ['{name}'], tags: ['doctor'], desc: 'Private confirmation to Doctor after selection' },
 
   { cat: 'events', key: 'block.name',          default: 'Block',                desc: 'Event name' },
   { cat: 'events', key: 'block.description',   default: 'Choose a player to block tonight.', desc: 'Prompt shown to Roleblocker on terminal' },
@@ -194,25 +195,25 @@ export const STRING_CATALOG = [
   { cat: 'slides', key: 'death.subtitleHeartbreak', default: '{name} died of a broken heart', tokens: ['{name}'], desc: 'Death slide subtitle — heartbreak death' },
   { cat: 'slides', key: 'death.subtitleHost',   default: '{name} was removed by the host', tokens: ['{name}'], desc: 'Death slide subtitle — host removal' },
   { cat: 'slides', key: 'death.subtitlePoison', default: '{name} succumbed to poison', tokens: ['{name}'], desc: 'Death slide subtitle — poison death' },
-  { cat: 'slides', key: 'death.cowardTitle',    default: 'HAS TAKEN THE COWARD\'S WAY OUT', desc: 'Subtitle on coward slide (title is player name)' },
+  { cat: 'slides', key: 'death.cowardTitle',    default: 'HAS TAKEN THE COWARD\'S WAY OUT', tags: ['coward'], desc: 'Subtitle on coward slide (title is player name)' },
 
   // ── Slide strings — vote ───────────────────────────────────────────────────
 
-  { cat: 'slides', key: 'vote.slideTitle',       default: 'ELIMINATION VOTE',   desc: 'Gallery slide title when vote starts' },
-  { cat: 'slides', key: 'vote.slideSubtitle',    default: 'Choose who to eliminate', desc: 'Gallery slide subtitle when vote starts' },
-  { cat: 'slides', key: 'vote.tallyTitle',       default: 'VOTES',              desc: 'Vote tally slide title (clear winner)' },
-  { cat: 'slides', key: 'vote.tallyTitleTied',   default: 'VOTES TIED',         desc: 'Vote tally slide title (tie)' },
-  { cat: 'slides', key: 'vote.runoffTitle',      default: 'RUNOFF VOTE #{n}',   tokens: ['{n}'], desc: 'Gallery slide title during runoff vote' },
-  { cat: 'slides', key: 'vote.subtitleRunoff',   default: 'Tiebreaker vote starting soon', desc: 'Tally slide subtitle before runoff' },
-  { cat: 'slides', key: 'vote.subtitleRandom',   default: 'Selecting random frontrunner', desc: 'Tally slide subtitle on random tiebreak' },
-  { cat: 'slides', key: 'vote.noElimTitle',      default: 'NO ELIMINATION',     desc: 'Title slide when no votes cast' },
-  { cat: 'slides', key: 'vote.noElimSubtitle',   default: 'The village could not decide.', desc: 'Subtitle for no-elimination slide' },
-  { cat: 'slides', key: 'vote.customTitle',      default: 'CUSTOM VOTE',        desc: 'Gallery slide title for custom event vote' },
-  { cat: 'slides', key: 'vote.customResultTitle',default: 'CUSTOM EVENT RESULT', desc: 'Player reveal slide title for custom event winner' },
-  { cat: 'slides', key: 'vote.noWinnerTitle',    default: 'NO WINNER',          desc: 'Slide title when custom event gets no votes' },
-  { cat: 'slides', key: 'vote.subtitleSelected',   default: '{name} has been selected', tokens: ['{name}'], desc: 'Vote tally subtitle when a player is condemned/selected' },
-  { cat: 'slides', key: 'vote.subtitleNoSelection', default: 'No one was selected',    desc: 'Vote tally subtitle when no selection was made' },
-  { cat: 'slides', key: 'vote.subtitleDefault',    default: '{count} candidates received votes', tokens: ['{count}'], desc: 'Vote tally fallback subtitle' },
+  { cat: 'slides', key: 'vote.slideTitle',       default: 'ELIMINATION VOTE',   tags: ['vote'], desc: 'Gallery slide title when vote starts' },
+  { cat: 'slides', key: 'vote.slideSubtitle',    default: 'Choose who to eliminate', tags: ['vote'], desc: 'Gallery slide subtitle when vote starts' },
+  { cat: 'slides', key: 'vote.tallyTitle',       default: 'VOTES',              tags: ['vote'], desc: 'Vote tally slide title (clear winner)' },
+  { cat: 'slides', key: 'vote.tallyTitleTied',   default: 'VOTES TIED',         tags: ['vote'], desc: 'Vote tally slide title (tie)' },
+  { cat: 'slides', key: 'vote.runoffTitle',      default: 'RUNOFF VOTE #{n}',   tokens: ['{n}'], tags: ['vote'], desc: 'Gallery slide title during runoff vote' },
+  { cat: 'slides', key: 'vote.subtitleRunoff',   default: 'Tiebreaker vote starting soon', tags: ['vote'], desc: 'Tally slide subtitle before runoff' },
+  { cat: 'slides', key: 'vote.subtitleRandom',   default: 'Selecting random frontrunner', tags: ['vote'], desc: 'Tally slide subtitle on random tiebreak' },
+  { cat: 'slides', key: 'vote.noElimTitle',      default: 'NO ELIMINATION',     tags: ['vote'], desc: 'Title slide when no votes cast' },
+  { cat: 'slides', key: 'vote.noElimSubtitle',   default: 'The village could not decide.', tags: ['vote'], desc: 'Subtitle for no-elimination slide' },
+  { cat: 'slides', key: 'vote.customTitle',      default: 'CUSTOM VOTE',        tags: ['customEvent'], desc: 'Gallery slide title for custom event vote' },
+  { cat: 'slides', key: 'vote.customResultTitle',default: 'CUSTOM EVENT RESULT', tags: ['customEvent'], desc: 'Player reveal slide title for custom event winner' },
+  { cat: 'slides', key: 'vote.noWinnerTitle',    default: 'NO WINNER',          tags: ['customEvent'], desc: 'Slide title when custom event gets no votes' },
+  { cat: 'slides', key: 'vote.subtitleSelected',   default: '{name} has been selected', tokens: ['{name}'], tags: ['vote'], desc: 'Vote tally subtitle when a player is condemned/selected' },
+  { cat: 'slides', key: 'vote.subtitleNoSelection', default: 'No one was selected',    tags: ['vote'], desc: 'Vote tally subtitle when no selection was made' },
+  { cat: 'slides', key: 'vote.subtitleDefault',    default: '{count} candidates received votes', tokens: ['{count}'], tags: ['vote'], desc: 'Vote tally fallback subtitle' },
 
   // ── Slide strings — victory ────────────────────────────────────────────────
 
@@ -223,31 +224,31 @@ export const STRING_CATALOG = [
 
   // ── Slide strings — flows ──────────────────────────────────────────────────
 
-  { cat: 'slides', key: 'flow.hunterTitle',      default: "HUNTER'S REVENGE",   desc: 'Slide title when Hunter dies and picks revenge target' },
-  { cat: 'slides', key: 'flow.hunterSubtitle',   default: '{name} is choosing a target with their dying breath...', tokens: ['{name}'], desc: 'Subtitle on Hunter revenge slide' },
-  { cat: 'slides', key: 'flow.condemnedTitle',   default: 'CONDEMNED',          desc: 'Slide title shown while waiting for Governor' },
-  { cat: 'slides', key: 'flow.condemnedSubtitle',default: 'Calling the governor...', desc: 'Subtitle while Governor decides' },
-  { cat: 'slides', key: 'flow.pardonedTitle',    default: 'PARDONED',           desc: 'Slide title when Governor pardons condemned player' },
-  { cat: 'slides', key: 'flow.pardonedSubtitle', default: '{name} was not eliminated', tokens: ['{name}'], desc: 'Subtitle when player is pardoned' },
-  { cat: 'slides', key: 'flow.noPardonTitle',    default: 'NO PARDON',          desc: 'Slide title when Governor does not pardon' },
-  { cat: 'slides', key: 'flow.noPardonSubtitle', default: "{name}'s fate is sealed", tokens: ['{name}'], desc: 'Subtitle when Governor refuses pardon' },
+  { cat: 'slides', key: 'flow.hunterTitle',      default: "HUNTER'S REVENGE",   tags: ['hunter', 'hunterRevenge'], desc: 'Slide title when Hunter dies and picks revenge target' },
+  { cat: 'slides', key: 'flow.hunterSubtitle',   default: '{name} is choosing a target with their dying breath...', tokens: ['{name}'], tags: ['hunter', 'hunterRevenge'], desc: 'Subtitle on Hunter revenge slide' },
+  { cat: 'slides', key: 'flow.condemnedTitle',   default: 'CONDEMNED',          tags: ['governor', 'governorPardon', 'vote'], desc: 'Slide title shown while waiting for Governor' },
+  { cat: 'slides', key: 'flow.condemnedSubtitle',default: 'Calling the governor...', tags: ['governor', 'governorPardon'], desc: 'Subtitle while Governor decides' },
+  { cat: 'slides', key: 'flow.pardonedTitle',    default: 'PARDONED',           tags: ['governor', 'governorPardon'], desc: 'Slide title when Governor pardons condemned player' },
+  { cat: 'slides', key: 'flow.pardonedSubtitle', default: '{name} was not eliminated', tokens: ['{name}'], tags: ['governor', 'governorPardon'], desc: 'Subtitle when player is pardoned' },
+  { cat: 'slides', key: 'flow.noPardonTitle',    default: 'NO PARDON',          tags: ['governor', 'governorPardon'], desc: 'Slide title when Governor does not pardon' },
+  { cat: 'slides', key: 'flow.noPardonSubtitle', default: "{name}'s fate is sealed", tokens: ['{name}'], tags: ['governor', 'governorPardon'], desc: 'Subtitle when Governor refuses pardon' },
 
   // ── Slide strings — misc ───────────────────────────────────────────────────
 
-  { cat: 'slides', key: 'misc.drawTitle',        default: 'DRAW!',              desc: 'Slide title when player draws the pistol' },
-  { cat: 'slides', key: 'misc.drawSubtitle',     default: '{name} is searching for a target...', tokens: ['{name}'], desc: 'Subtitle while pistol holder picks target' },
-  { cat: 'slides', key: 'misc.noShotsTitle',     default: 'NO SHOTS FIRED',     desc: 'Slide title when pistol holder abstains' },
-  { cat: 'slides', key: 'misc.noShotsSubtitle',  default: '{name} is keeping their powder dry... for now.', tokens: ['{name}'], desc: 'Subtitle when pistol holder does not shoot' },
-  { cat: 'slides', key: 'misc.timesUpTitle',     default: "TIME'S UP",          desc: "Slide title when event timer expires" },
-  { cat: 'slides', key: 'misc.timesUpSubtitle',  default: "Confirm your selection before it's too late.", desc: 'Subtitle when timer expires' },
+  { cat: 'slides', key: 'misc.drawTitle',        default: 'DRAW!',              tags: ['shoot', 'pistol'], desc: 'Slide title when player draws the pistol' },
+  { cat: 'slides', key: 'misc.drawSubtitle',     default: '{name} is searching for a target...', tokens: ['{name}'], tags: ['shoot', 'pistol'], desc: 'Subtitle while pistol holder picks target' },
+  { cat: 'slides', key: 'misc.noShotsTitle',     default: 'NO SHOTS FIRED',     tags: ['shoot', 'pistol'], desc: 'Slide title when pistol holder abstains' },
+  { cat: 'slides', key: 'misc.noShotsSubtitle',  default: '{name} is keeping their powder dry... for now.', tokens: ['{name}'], tags: ['shoot', 'pistol'], desc: 'Subtitle when pistol holder does not shoot' },
+  { cat: 'slides', key: 'misc.timesUpTitle',     default: "TIME'S UP",          tags: ['timer'], desc: "Slide title when event timer expires" },
+  { cat: 'slides', key: 'misc.timesUpSubtitle',  default: "Confirm your selection before it's too late.", tags: ['timer'], desc: 'Subtitle when timer expires' },
   { cat: 'slides', key: 'misc.operatorTitle',    default: 'A MESSAGE FROM BEYOND...', desc: 'Eyebrow label on operator word-reveal slide' },
-  { cat: 'slides', key: 'misc.compositionTitle', default: 'ASSIGNED ROLES',     desc: 'Composition slide title shown after role assignment' },
+  { cat: 'slides', key: 'misc.compositionTitle', default: 'ASSIGNED ROLES',     tags: ['phase'], desc: 'Composition slide title shown after role assignment' },
   { cat: 'slides', key: 'misc.roleTipTitle',     default: 'NEW ROLE',           desc: 'Role tip slide title (pushed by host tutorials)' },
   { cat: 'slides', key: 'misc.itemTipTitle',     default: 'ITEM',               desc: 'Item tip slide title (pushed by host tutorials)' },
   { cat: 'slides', key: 'misc.scoreboardTitle',  default: 'SCOREBOARD',         desc: 'Scores slide title when pushed by host' },
-  { cat: 'slides', key: 'misc.bpmSpike.title',   default: '{name} CARES TOO MUCH', tokens: ['{name}'], desc: 'Heartbeat spike slide title — player loses vote' },
-  { cat: 'slides', key: 'misc.bpmSpike.subtitle',default: 'loses their vote till tomorrow', desc: 'Heartbeat spike slide subtitle' },
-  { cat: 'slides', key: 'misc.janitorReveal',    default: 'Good cleanup work',  desc: 'revealText shown on death slide when Janitor cleaned the kill' },
+  { cat: 'slides', key: 'misc.bpmSpike.title',   default: '{name} CARES TOO MUCH', tokens: ['{name}'], tags: ['heartbeat'], desc: 'Heartbeat spike slide title — player loses vote' },
+  { cat: 'slides', key: 'misc.bpmSpike.subtitle',default: 'loses their vote till tomorrow', tags: ['heartbeat'], desc: 'Heartbeat spike slide subtitle' },
+  { cat: 'slides', key: 'misc.janitorReveal',    default: 'Good cleanup work',  tags: ['janitor', 'clean'], desc: 'revealText shown on death slide when Janitor cleaned the kill' },
 
   // ── Slide labels — team/badge text on slides ───────────────────────────────
 
@@ -255,18 +256,18 @@ export const STRING_CATALOG = [
   { cat: 'screen', key: 'fallback.players',        default: '{n} players connected',  tokens: ['{n}'], desc: 'Player count line in lobby' },
   { cat: 'screen', key: 'fallback.day',            default: 'DAY',                    desc: 'Day phase label in fallback gallery (e.g. "DAY 2")' },
   { cat: 'screen', key: 'fallback.night',          default: 'NIGHT',                  desc: 'Night phase label in fallback gallery' },
-  { cat: 'screen', key: 'gallery.werewolf',        default: 'WEREWOLF',               desc: 'Anonymous werewolf placeholder in tracker' },
-  { cat: 'screen', key: 'gallery.coward',          default: 'COWARD',                 desc: 'Coward badge in player gallery' },
-  { cat: 'screen', key: 'gallery.mad',             default: 'MAD',                    desc: 'Mad badge (no-vote) in player gallery' },
+  { cat: 'screen', key: 'gallery.werewolf',        default: 'WEREWOLF',               tags: ['werewolf', 'hunt', 'kill'], desc: 'Anonymous werewolf placeholder in tracker' },
+  { cat: 'screen', key: 'gallery.coward',          default: 'COWARD',                 tags: ['coward'], desc: 'Coward badge in player gallery' },
+  { cat: 'screen', key: 'gallery.mad',             default: 'MAD',                    tags: ['heartbeat'], desc: 'Mad badge (no-vote) in player gallery' },
   { cat: 'screen', key: 'scores.title',            default: 'SCOREBOARD',             desc: 'Scores slide header title' },
   { cat: 'screen', key: 'scores.empty',            default: 'No scores yet',           desc: 'Scores slide empty state' },
   { cat: 'screen', key: 'death.eliminated',         default: 'ELIMINATED',             desc: 'Fallback title on death slide (when no slide.title set)' },
-  { cat: 'screen', key: 'death.coward',             default: 'COWARD',                 desc: 'Badge on coward variant death slide' },
-  { cat: 'screen', key: 'death.mad',                default: 'MAD',                    desc: 'No-vote badge on death slide' },
-  { cat: 'screen', key: 'heartbeat.bpm',           default: 'BPM',                    desc: 'BPM unit label on heartbeat slide' },
-  { cat: 'screen', key: 'heartbeat.signalLost',    default: 'SIGNAL LOST',            desc: 'Overlay text when heartbeat inactive' },
-  { cat: 'screen', key: 'heartbeat.debug',         default: 'DEBUG',                  desc: 'Badge on simulated heartbeat' },
-  { cat: 'screen', key: 'composition.unassigned',  default: 'Unassigned',             desc: 'Label for unassigned role slots in composition slide' },
+  { cat: 'screen', key: 'death.coward',             default: 'COWARD',                 tags: ['coward'], desc: 'Badge on coward variant death slide' },
+  { cat: 'screen', key: 'death.mad',                default: 'MAD',                    tags: ['heartbeat'], desc: 'No-vote badge on death slide' },
+  { cat: 'screen', key: 'heartbeat.bpm',           default: 'BPM',                    tags: ['heartbeat'], desc: 'BPM unit label on heartbeat slide' },
+  { cat: 'screen', key: 'heartbeat.signalLost',    default: 'SIGNAL LOST',            tags: ['heartbeat'], desc: 'Overlay text when heartbeat inactive' },
+  { cat: 'screen', key: 'heartbeat.debug',         default: 'DEBUG',                  tags: ['heartbeat'], desc: 'Badge on simulated heartbeat' },
+  { cat: 'screen', key: 'composition.unassigned',  default: 'Unassigned',             tags: ['phase'], desc: 'Label for unassigned role slots in composition slide' },
   { cat: 'screen', key: 'roleTip.werewolf',        default: 'WEREWOLF',               desc: 'Team badge label for werewolf roles on role tip slide' },
   { cat: 'screen', key: 'roleTip.independent',     default: 'INDEPENDENT',            desc: 'Team badge label for neutral/independent roles' },
   { cat: 'screen', key: 'roleTip.village',         default: 'VILLAGE',                desc: 'Team badge label for village roles' },
@@ -277,10 +278,10 @@ export const STRING_CATALOG = [
   // ── Player feedback (private terminal messages) ───────────────────────────
   // Strings sent back to individual player terminals after events resolve
 
-  { cat: 'feedback', key: 'barricade.broken',   default: 'BARRICADE BROKEN',    desc: 'Line 2 on player terminal when barricade absorbs an attack' },
-  { cat: 'feedback', key: 'barricade.detail',   default: 'You are on your own now', desc: 'Line 3 on player terminal after barricade breaks' },
-  { cat: 'feedback', key: 'prospect.changed',   default: 'TEAM CHANGED',        desc: 'Line 2 on player terminal when Prospect item recruits them' },
-  { cat: 'feedback', key: 'prospect.detail',    default: 'You were recruited by the wolves', desc: 'Line 3 on player terminal after recruitment' },
+  { cat: 'feedback', key: 'barricade.broken',   default: 'BARRICADE BROKEN',    tags: ['barricade'], desc: 'Line 2 on player terminal when barricade absorbs an attack' },
+  { cat: 'feedback', key: 'barricade.detail',   default: 'You are on your own now', tags: ['barricade'], desc: 'Line 3 on player terminal after barricade breaks' },
+  { cat: 'feedback', key: 'prospect.changed',   default: 'TEAM CHANGED',        tags: ['werewolf'], desc: 'Line 2 on player terminal when Prospect item recruits them' },
+  { cat: 'feedback', key: 'prospect.detail',    default: 'You were recruited by the wolves', tags: ['werewolf'], desc: 'Line 3 on player terminal after recruitment' },
 
   // ── Terminal (TinyScreen / ESP32 OLED) ─────────────────────────────────────
 
@@ -314,12 +315,12 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'playerLeft',              default: '{name} left',          tokens: ['{name}'], desc: 'Log entry when player disconnects' },
   { cat: 'log', key: 'playerReconnected',       default: '{name} reconnected via {via}', tokens: ['{name}', '{via}'], desc: 'Log entry on reconnect' },
   { cat: 'log', key: 'playerRevived',           default: '{name} revived',       tokens: ['{name}'], desc: 'Log entry when a player is revived' },
-  { cat: 'log', key: 'playerRecruited',         default: '{name} was recruited by the werewolves', tokens: ['{name}'], desc: 'Log entry when Prospect converts' },
-  { cat: 'log', key: 'playerDiedPoison',        default: '{name} died from poison', tokens: ['{name}'], desc: 'Log entry for poison death' },
-  { cat: 'log', key: 'playerDiedHeartbreak',    default: '{name} died of heartbreak', tokens: ['{name}'], desc: 'Log entry for heartbreak death' },
-  { cat: 'log', key: 'playerSavedPoison',       default: '{name} was saved from poison by the Doctor', tokens: ['{name}'], desc: 'Log when Doctor cures poison' },
-  { cat: 'log', key: 'barricadeAbsorbed',       default: "{name}'s barricade absorbed the attack", tokens: ['{name}'], desc: 'Log when barricade activates' },
-  { cat: 'log', key: 'bpmPanicked',             default: '{name} panicked! BPM {bpm} (threshold {threshold}) — vote lost', tokens: ['{name}', '{bpm}', '{threshold}'], desc: 'Log when heartbeat spike costs player their vote' },
+  { cat: 'log', key: 'playerRecruited',         default: '{name} was recruited by the werewolves', tokens: ['{name}'], tags: ['werewolf'], desc: 'Log entry when Prospect converts' },
+  { cat: 'log', key: 'playerDiedPoison',        default: '{name} died from poison', tokens: ['{name}'], tags: ['poisoner', 'poison'], desc: 'Log entry for poison death' },
+  { cat: 'log', key: 'playerDiedHeartbreak',    default: '{name} died of heartbreak', tokens: ['{name}'], tags: ['cupid', 'link'], desc: 'Log entry for heartbreak death' },
+  { cat: 'log', key: 'playerSavedPoison',       default: '{name} was saved from poison by the Doctor', tokens: ['{name}'], tags: ['poisoner', 'poison', 'protect', 'doctor'], desc: 'Log when Doctor cures poison' },
+  { cat: 'log', key: 'barricadeAbsorbed',       default: "{name}'s barricade absorbed the attack", tokens: ['{name}'], tags: ['barricade'], desc: 'Log when barricade activates' },
+  { cat: 'log', key: 'bpmPanicked',             default: '{name} panicked! BPM {bpm} (threshold {threshold}) — vote lost', tokens: ['{name}', '{bpm}', '{threshold}'], tags: ['heartbeat'], desc: 'Log when heartbeat spike costs player their vote' },
   { cat: 'log', key: 'gameOver',                default: 'Game over — {winners} win!', tokens: ['{winners}'], desc: 'Log entry when game ends' },
   { cat: 'log', key: 'nightBegins',             default: 'Night {n} begins',     tokens: ['{n}'], desc: 'Log entry for night start' },
   { cat: 'log', key: 'dayBegins',               default: 'Day {n} begins',       tokens: ['{n}'], desc: 'Log entry for day start' },
@@ -345,34 +346,34 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'stumbleCompleted',        default: 'Stumble investigation completed', desc: 'Log when drunk stumble-investigates' },
   { cat: 'log', key: 'roleTipPushed',           default: 'Role tip slide pushed: {role}', tokens: ['{role}'], desc: 'Log when host pushes a role tutorial slide' },
   { cat: 'log', key: 'itemTipPushed',           default: 'Item tip slide pushed: {item}', tokens: ['{item}'], desc: 'Log when host pushes an item tutorial slide' },
-  { cat: 'log', key: 'customEventStarted',      default: 'Custom event started — {description}', tokens: ['{description}'], desc: 'Log when host creates a custom vote' },
+  { cat: 'log', key: 'customEventStarted',      default: 'Custom event started — {description}', tokens: ['{description}'], tags: ['customEvent'], desc: 'Log when host creates a custom vote' },
 
   // Vote / runoff logs
-  { cat: 'log', key: 'voteEliminated',          default: '{name} was eliminated.', tokens: ['{name}'], desc: 'Log when vote removes a player' },
-  { cat: 'log', key: 'voteNoElimination',       default: 'No one was eliminated.', desc: 'Log when vote ends with no consensus' },
-  { cat: 'log', key: 'voteRunoffStarted',       default: '{event} tied. Starting runoff with {count} candidates.', tokens: ['{event}', '{count}'], desc: 'Log when a vote tie triggers a runoff round' },
-  { cat: 'log', key: 'voteRandomSelected',      default: 'After multiple runoffs, {name} was randomly selected for elimination.', tokens: ['{name}'], desc: 'Log when runoff ties are broken randomly' },
+  { cat: 'log', key: 'voteEliminated',          default: '{name} was eliminated.', tokens: ['{name}'], tags: ['vote'], desc: 'Log when vote removes a player' },
+  { cat: 'log', key: 'voteNoElimination',       default: 'No one was eliminated.', tags: ['vote'], desc: 'Log when vote ends with no consensus' },
+  { cat: 'log', key: 'voteRunoffStarted',       default: '{event} tied. Starting runoff with {count} candidates.', tokens: ['{event}', '{count}'], tags: ['vote'], desc: 'Log when a vote tie triggers a runoff round' },
+  { cat: 'log', key: 'voteRandomSelected',      default: 'After multiple runoffs, {name} was randomly selected for elimination.', tokens: ['{name}'], tags: ['vote'], desc: 'Log when runoff ties are broken randomly' },
 
   // Night action resolution logs
-  { cat: 'log', key: 'killedByWolves',          default: '{name} was killed by werewolves', tokens: ['{name}'], desc: 'Log when alpha kill succeeds' },
-  { cat: 'log', key: 'killProtected',           default: '{name} was protected', tokens: ['{name}'], desc: 'Log when alpha kill is blocked by doctor' },
-  { cat: 'log', key: 'poisonedPlayer',          default: '{name} was poisoned', tokens: ['{name}'], desc: 'Log when poisoner applies delayed kill' },
-  { cat: 'log', key: 'vigilanteShoots',         default: '{name} shot {target}', tokens: ['{name}', '{target}'], desc: 'Log when vigilante uses their kill' },
-  { cat: 'log', key: 'vigilanteProtected',      default: '{name} was protected', tokens: ['{name}'], desc: 'Log when vigilante kill is blocked by doctor' },
-  { cat: 'log', key: 'shooterShoots',           default: '{name} shot {target}', tokens: ['{name}', '{target}'], desc: 'Log when pistol holder fires' },
-  { cat: 'log', key: 'shooterAbstains',         default: '{name} chose not to shoot', tokens: ['{name}'], desc: 'Log when pistol holder abstains' },
-  { cat: 'log', key: 'doctorProtected',         default: '{doctor} protected {target}', tokens: ['{doctor}', '{target}'], desc: 'Log when doctor chooses a target' },
-  { cat: 'log', key: 'roleblockerBlocked',      default: '{blocker} blocked {target}',  tokens: ['{blocker}', '{target}'], desc: 'Log when roleblocker silences a player' },
-  { cat: 'log', key: 'seerInvestigated',        default: '{seer} learned {target} is {result}', tokens: ['{seer}', '{target}', '{result}'], desc: 'Log when seer investigates (host-visible)' },
-  { cat: 'log', key: 'drunkRolled',             default: '🥴 {name} (Drunk) rolled: {action} → {target}', tokens: ['{name}', '{action}', '{target}'], desc: 'Log for drunk\'s random night action' },
-  { cat: 'log', key: 'hunterSuspected',         default: '{name} suspects {target}', tokens: ['{name}', '{target}'], desc: 'Log when hunter/villager records a suspicion' },
-  { cat: 'log', key: 'werewolfSuggested',       default: '{name} suggested {target}', tokens: ['{name}', '{target}'], desc: 'Log when a werewolf suggests a kill target' },
+  { cat: 'log', key: 'killedByWolves',          default: '{name} was killed by werewolves', tokens: ['{name}'], tags: ['kill', 'alpha', 'werewolf'], desc: 'Log when alpha kill succeeds' },
+  { cat: 'log', key: 'killProtected',           default: '{name} was protected', tokens: ['{name}'], tags: ['kill', 'protect', 'doctor'], desc: 'Log when alpha kill is blocked by doctor' },
+  { cat: 'log', key: 'poisonedPlayer',          default: '{name} was poisoned', tokens: ['{name}'], tags: ['poisoner', 'poison'], desc: 'Log when poisoner applies delayed kill' },
+  { cat: 'log', key: 'vigilanteShoots',         default: '{name} shot {target}', tokens: ['{name}', '{target}'], tags: ['vigil', 'vigilante'], desc: 'Log when vigilante uses their kill' },
+  { cat: 'log', key: 'vigilanteProtected',      default: '{name} was protected', tokens: ['{name}'], tags: ['vigil', 'vigilante', 'protect', 'doctor'], desc: 'Log when vigilante kill is blocked by doctor' },
+  { cat: 'log', key: 'shooterShoots',           default: '{name} shot {target}', tokens: ['{name}', '{target}'], tags: ['shoot', 'pistol'], desc: 'Log when pistol holder fires' },
+  { cat: 'log', key: 'shooterAbstains',         default: '{name} chose not to shoot', tokens: ['{name}'], tags: ['shoot', 'pistol'], desc: 'Log when pistol holder abstains' },
+  { cat: 'log', key: 'doctorProtected',         default: '{doctor} protected {target}', tokens: ['{doctor}', '{target}'], tags: ['protect', 'doctor'], desc: 'Log when doctor chooses a target' },
+  { cat: 'log', key: 'roleblockerBlocked',      default: '{blocker} blocked {target}',  tokens: ['{blocker}', '{target}'], tags: ['block', 'roleblocker'], desc: 'Log when roleblocker silences a player' },
+  { cat: 'log', key: 'seerInvestigated',        default: '{seer} learned {target} is {result}', tokens: ['{seer}', '{target}', '{result}'], tags: ['investigate', 'seer'], desc: 'Log when seer investigates (host-visible)' },
+  { cat: 'log', key: 'drunkRolled',             default: '🥴 {name} (Drunk) rolled: {action} → {target}', tokens: ['{name}', '{action}', '{target}'], tags: ['stumble', 'drunk'], desc: 'Log for drunk\'s random night action' },
+  { cat: 'log', key: 'hunterSuspected',         default: '{name} suspects {target}', tokens: ['{name}', '{target}'], tags: ['suspect', 'hunter'], desc: 'Log when hunter/villager records a suspicion' },
+  { cat: 'log', key: 'werewolfSuggested',       default: '{name} suggested {target}', tokens: ['{name}', '{target}'], tags: ['hunt', 'werewolf'], desc: 'Log when a werewolf suggests a kill target' },
 
   // Custom event resolution logs
-  { cat: 'log', key: 'customReward',            default: '{name} received {reward}!',    tokens: ['{name}', '{reward}'], desc: 'Log when custom vote winner gets an item' },
-  { cat: 'log', key: 'customRoleChange',        default: '{name} became {role}!',        tokens: ['{name}', '{role}'],   desc: 'Log when custom vote changes winner\'s role' },
-  { cat: 'log', key: 'customRevived',           default: '{name} was resurrected!',      tokens: ['{name}'], desc: 'Log when custom vote revives a dead player' },
-  { cat: 'log', key: 'customNoVotes',           default: 'No votes were cast.',          desc: 'Log when custom vote gets no responses' },
+  { cat: 'log', key: 'customReward',            default: '{name} received {reward}!',    tokens: ['{name}', '{reward}'], tags: ['customEvent'], desc: 'Log when custom vote winner gets an item' },
+  { cat: 'log', key: 'customRoleChange',        default: '{name} became {role}!',        tokens: ['{name}', '{role}'],   tags: ['customEvent'], desc: 'Log when custom vote changes winner\'s role' },
+  { cat: 'log', key: 'customRevived',           default: '{name} was resurrected!',      tokens: ['{name}'], tags: ['customEvent'], desc: 'Log when custom vote revives a dead player' },
+  { cat: 'log', key: 'customNoVotes',           default: 'No votes were cast.',          tags: ['customEvent'], desc: 'Log when custom vote gets no responses' },
 
   // Host-action logs (server/handlers/index.js)
   { cat: 'log', key: 'roleChanged',             default: '{name} role changed: {old} → {new}', tokens: ['{name}', '{old}', '{new}'], desc: 'Log when host manually changes a player\'s role' },
@@ -381,18 +382,18 @@ export const STRING_CATALOG = [
   { cat: 'log', key: 'itemGiven',               default: '{name} received {item}',       tokens: ['{name}', '{item}'], desc: 'Log when host gives an item to a player' },
 
   // Role passive death logs
-  { cat: 'log', key: 'alphaPromoted',           default: '{name} becomes the new Alpha!', tokens: ['{name}'], desc: 'Log when a werewolf is promoted to Alpha on Alpha death' },
+  { cat: 'log', key: 'alphaPromoted',           default: '{name} becomes the new Alpha!', tokens: ['{name}'], tags: ['alpha', 'werewolf'], desc: 'Log when a werewolf is promoted to Alpha on Alpha death' },
   { cat: 'log', key: 'jesterWins',              default: '{name} was the Jester — they win!', tokens: ['{name}'], desc: 'Log when Jester gets eliminated (wins)' },
 
   // Flow logs (HunterRevengeFlow, GovernorPardonFlow)
-  { cat: 'log', key: 'hunterRevenge',            default: '{name} gets a revenge shot',   tokens: ['{name}'], desc: 'Log when hunter dies and revenge flow starts' },
-  { cat: 'log', key: 'hunterRevengeKill',        default: '{hunter} took {victim} down with them', tokens: ['{hunter}', '{victim}'], desc: 'Log when hunter revenge kill lands' },
-  { cat: 'log', key: 'hunterDisconnected',       default: '{name} disconnected — revenge cancelled', tokens: ['{name}'], desc: 'Log when hunter disconnects with no targets' },
-  { cat: 'log', key: 'hunterAutoResolved',      default: '{name} disconnected — revenge auto-resolved', tokens: ['{name}'], desc: 'Log when hunter disconnects and revenge auto-fires' },
-  { cat: 'log', key: 'governorDecision',        default: '{name} awaits the Governor\'s decision', tokens: ['{name}'], desc: 'Log while governor pardon flow is pending' },
-  { cat: 'log', key: 'governorDisconnected',    default: '{name} disconnected — pardon cancelled', tokens: ['{name}'], desc: 'Log when governor disconnects during pardon flow' },
-  { cat: 'log', key: 'pardoned',                default: '{governor} pardoned {victim}',  tokens: ['{governor}', '{victim}'], desc: 'Log when governor grants a pardon' },
-  { cat: 'log', key: 'notPardoned',             default: '{governor} condemned {victim}', tokens: ['{governor}', '{victim}'], desc: 'Log when governor denies a pardon' },
+  { cat: 'log', key: 'hunterRevenge',            default: '{name} gets a revenge shot',   tokens: ['{name}'], tags: ['hunter', 'hunterRevenge'], desc: 'Log when hunter dies and revenge flow starts' },
+  { cat: 'log', key: 'hunterRevengeKill',        default: '{hunter} took {victim} down with them', tokens: ['{hunter}', '{victim}'], tags: ['hunter', 'hunterRevenge'], desc: 'Log when hunter revenge kill lands' },
+  { cat: 'log', key: 'hunterDisconnected',       default: '{name} disconnected — revenge cancelled', tokens: ['{name}'], tags: ['hunter', 'hunterRevenge'], desc: 'Log when hunter disconnects with no targets' },
+  { cat: 'log', key: 'hunterAutoResolved',      default: '{name} disconnected — revenge auto-resolved', tokens: ['{name}'], tags: ['hunter', 'hunterRevenge'], desc: 'Log when hunter disconnects and revenge auto-fires' },
+  { cat: 'log', key: 'governorDecision',        default: '{name} awaits the Governor\'s decision', tokens: ['{name}'], tags: ['governor', 'governorPardon'], desc: 'Log while governor pardon flow is pending' },
+  { cat: 'log', key: 'governorDisconnected',    default: '{name} disconnected — pardon cancelled', tokens: ['{name}'], tags: ['governor', 'governorPardon'], desc: 'Log when governor disconnects during pardon flow' },
+  { cat: 'log', key: 'pardoned',                default: '{governor} pardoned {victim}',  tokens: ['{governor}', '{victim}'], tags: ['governor', 'governorPardon'], desc: 'Log when governor grants a pardon' },
+  { cat: 'log', key: 'notPardoned',             default: '{governor} condemned {victim}', tokens: ['{governor}', '{victim}'], tags: ['governor', 'governorPardon'], desc: 'Log when governor denies a pardon' },
 
   // ── Host dashboard UI labels ────────────────────────────────────────────────
 
@@ -431,8 +432,8 @@ export const STRING_CATEGORIES = [
 
 // ── Tag taxonomy ────────────────────────────────────────────────────────────
 // Used by String Sheets for cross-category filtering.
-// Entries in roles/events/items categories are auto-tagged by key prefix.
-// TAG_ASSIGNMENTS handles cross-cutting entries (log, slides, screen, feedback).
+// Entries in roles/events/items categories are auto-tagged by key prefix at display time.
+// Cross-cutting entries carry inline `tags: [...]` on the entry itself.
 
 export const TAG_GROUPS = [
   {
@@ -488,115 +489,3 @@ export const TAG_GROUPS = [
   },
 ]
 
-// Maps entry IDs (cat.key) → tag array for entries that don't auto-tag from key prefix.
-// Roles/events/items entries are auto-tagged by their key prefix in StringSheets.
-export const TAG_ASSIGNMENTS = {
-  // ── Roles — special messages ─────────────────────────────────────────────
-  'roles.alpha.promoteMsg':       ['alpha', 'werewolf'],
-  'roles.jester.winMsg':          ['jester'],
-  'roles.cupid.loverMsg':         ['cupid', 'link'],
-
-  // ── Slides — flow ────────────────────────────────────────────────────────
-  'slides.flow.hunterTitle':      ['hunter', 'hunterRevenge'],
-  'slides.flow.hunterSubtitle':   ['hunter', 'hunterRevenge'],
-  'slides.flow.condemnedTitle':   ['governor', 'governorPardon', 'vote'],
-  'slides.flow.condemnedSubtitle':['governor', 'governorPardon'],
-  'slides.flow.pardonedTitle':    ['governor', 'governorPardon'],
-  'slides.flow.pardonedSubtitle': ['governor', 'governorPardon'],
-  'slides.flow.noPardonTitle':    ['governor', 'governorPardon'],
-  'slides.flow.noPardonSubtitle': ['governor', 'governorPardon'],
-
-  // ── Slides — misc ────────────────────────────────────────────────────────
-  'slides.misc.drawTitle':        ['shoot', 'pistol'],
-  'slides.misc.drawSubtitle':     ['shoot', 'pistol'],
-  'slides.misc.noShotsTitle':     ['shoot', 'pistol'],
-  'slides.misc.noShotsSubtitle':  ['shoot', 'pistol'],
-  'slides.misc.bpmSpike.title':   ['heartbeat'],
-  'slides.misc.bpmSpike.subtitle':['heartbeat'],
-  'slides.misc.janitorReveal':    ['janitor', 'clean'],
-  'slides.misc.compositionTitle': ['phase'],
-  'slides.misc.timesUpTitle':     ['timer'],
-  'slides.misc.timesUpSubtitle':  ['timer'],
-
-  // ── Slides — deaths ──────────────────────────────────────────────────────
-  'slides.death.cowardTitle':     ['coward'],
-
-  // ── Slides — vote ────────────────────────────────────────────────────────
-  'slides.vote.slideTitle':       ['vote'],
-  'slides.vote.slideSubtitle':    ['vote'],
-  'slides.vote.tallyTitle':       ['vote'],
-  'slides.vote.tallyTitleTied':   ['vote'],
-  'slides.vote.runoffTitle':      ['vote'],
-  'slides.vote.subtitleRunoff':   ['vote'],
-  'slides.vote.subtitleRandom':   ['vote'],
-  'slides.vote.noElimTitle':      ['vote'],
-  'slides.vote.noElimSubtitle':   ['vote'],
-  'slides.vote.customTitle':      ['customEvent'],
-  'slides.vote.customResultTitle':['customEvent'],
-  'slides.vote.noWinnerTitle':    ['customEvent'],
-
-  // ── Screen labels ────────────────────────────────────────────────────────
-  'screen.gallery.werewolf':      ['werewolf', 'hunt', 'kill'],
-  'screen.gallery.coward':        ['coward'],
-  'screen.gallery.mad':           ['heartbeat'],
-  'screen.heartbeat.bpm':         ['heartbeat'],
-  'screen.heartbeat.signalLost':  ['heartbeat'],
-  'screen.heartbeat.debug':       ['heartbeat'],
-  'screen.composition.unassigned':['phase'],
-
-  // ── Feedback ─────────────────────────────────────────────────────────────
-  'feedback.barricade.broken':    ['barricade'],
-  'feedback.barricade.detail':    ['barricade'],
-  'feedback.prospect.changed':    ['werewolf'],
-  'feedback.prospect.detail':     ['werewolf'],
-
-  // ── Events — investigate results ─────────────────────────────────────────
-  'events.investigate.resultEvil':    ['investigate', 'seer'],
-  'events.investigate.resultInnocent':['investigate', 'seer'],
-  'events.protect.privateMsg':        ['protect', 'doctor'],
-
-  // ── Log — vote ───────────────────────────────────────────────────────────
-  'log.voteEliminated':     ['vote'],
-  'log.voteNoElimination':  ['vote'],
-  'log.voteRunoffStarted':  ['vote'],
-  'log.voteRandomSelected': ['vote'],
-
-  // ── Log — night actions ──────────────────────────────────────────────────
-  'log.killedByWolves':     ['kill', 'alpha', 'werewolf'],
-  'log.killProtected':      ['kill', 'protect', 'doctor'],
-  'log.poisonedPlayer':     ['poisoner', 'poison'],
-  'log.vigilanteShoots':    ['vigil', 'vigilante'],
-  'log.vigilanteProtected': ['vigil', 'vigilante', 'protect', 'doctor'],
-  'log.shooterShoots':      ['shoot', 'pistol'],
-  'log.shooterAbstains':    ['shoot', 'pistol'],
-  'log.doctorProtected':    ['protect', 'doctor'],
-  'log.roleblockerBlocked': ['block', 'roleblocker'],
-  'log.seerInvestigated':   ['investigate', 'seer'],
-  'log.drunkRolled':        ['stumble', 'drunk'],
-  'log.hunterSuspected':    ['suspect', 'hunter'],
-  'log.werewolfSuggested':  ['hunt', 'werewolf'],
-
-  // ── Log — deaths & status ────────────────────────────────────────────────
-  'log.playerDiedPoison':    ['poisoner', 'poison'],
-  'log.playerDiedHeartbreak':['cupid', 'link'],
-  'log.playerSavedPoison':   ['poisoner', 'poison', 'protect', 'doctor'],
-  'log.barricadeAbsorbed':   ['barricade'],
-  'log.bpmPanicked':         ['heartbeat'],
-  'log.playerRecruited':     ['werewolf'],
-  'log.alphaPromoted':       ['alpha', 'werewolf'],
-  'log.heartbreakDeath':     ['cupid', 'link'],
-
-  // ── Log — custom event ───────────────────────────────────────────────────
-  'log.customEventStarted': ['customEvent'],
-  'log.customReward':        ['customEvent'],
-  'log.customRoleChange':    ['customEvent'],
-  'log.customRevived':       ['customEvent'],
-  'log.customNoVotes':       ['customEvent'],
-
-  // ── Log — flows ──────────────────────────────────────────────────────────
-  'log.hunterRevenge':      ['hunter', 'hunterRevenge'],
-  'log.hunterRevengeKill':  ['hunter', 'hunterRevenge'],
-  'log.governorDecision':   ['governor', 'governorPardon'],
-  'log.pardoned':           ['governor', 'governorPardon'],
-  'log.notPardoned':        ['governor', 'governorPardon'],
-}

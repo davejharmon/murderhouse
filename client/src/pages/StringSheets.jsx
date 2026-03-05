@@ -1,7 +1,7 @@
 // client/src/pages/StringSheets.jsx
 // Dev tool: export/import all game strings as CSV, edit inline with localStorage persistence.
 import { useRef, useState } from 'react'
-import { STRING_CATALOG, STRING_CATEGORIES, TAG_GROUPS, TAG_ASSIGNMENTS } from '@shared/strings/gameStrings.js'
+import { STRING_CATALOG, STRING_CATEGORIES, TAG_GROUPS } from '@shared/strings/gameStrings.js'
 import styles from './StringSheets.module.css'
 
 const LS_KEY = 'game_strings_overrides'
@@ -102,12 +102,14 @@ function buildJsFile(catalog, overrides) {
   for (const entry of catalog) {
     const value = overrides[`${entry.cat}.${entry.key}`] ?? entry.default
     const tokens = entry.tokens ? `, tokens: ${JSON.stringify(entry.tokens)}` : ''
+    const tags = entry.tags?.length ? `, tags: ${JSON.stringify(entry.tags)}` : ''
     lines.push(
-      `  { cat: ${JSON.stringify(entry.cat)}, key: ${JSON.stringify(entry.key)}, default: ${JSON.stringify(value)}${tokens}, desc: ${JSON.stringify(entry.desc || '')} },`
+      `  { cat: ${JSON.stringify(entry.cat)}, key: ${JSON.stringify(entry.key)}, default: ${JSON.stringify(value)}${tokens}${tags}, desc: ${JSON.stringify(entry.desc || '')} },`
     )
   }
   const catsJs = STRING_CATEGORIES.map(c => `  { id: ${JSON.stringify(c.id)}, label: ${JSON.stringify(c.label)} }`).join(',\n')
   lines.push(']', '', `export const STRING_CATEGORIES = [\n${catsJs},\n]`, '')
+  lines.push('export const TAG_GROUPS = ' + JSON.stringify(TAG_GROUPS, null, 2), '')
   return lines.join('\n')
 }
 
@@ -239,10 +241,9 @@ export default function StringSheets() {
 
   // ── Tag helpers ────────────────────────────────────────────────────────────
   // For roles/events/items entries, auto-derive the tag from the key prefix.
-  // For all others, check TAG_ASSIGNMENTS.
+  // Cross-cutting tags are stored inline as entry.tags.
   function getEntryTags(entry) {
-    const id = `${entry.cat}.${entry.key}`
-    const explicit = TAG_ASSIGNMENTS[id] || []
+    const explicit = entry.tags || []
     // Auto-tag: key prefix matches a known tag id within its category group
     const autoGroup = TAG_GROUPS.find(g => g.id === entry.cat)
     const prefix = entry.key.split('.')[0]
