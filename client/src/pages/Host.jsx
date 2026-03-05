@@ -361,6 +361,9 @@ export default function Host() {
           )}
         </div>
         <div className={styles.navLinks}>
+          {import.meta.env.DEV && (
+            <Link to='/strings' className={styles.navIcon} title='String Sheets'>🧵</Link>
+          )}
           <Link to='/screen' className={styles.navIcon} title='Screen'>🖥️</Link>
           <Link to='/debug' className={styles.navIcon} title='Debug'>🐛</Link>
           <Link to='/operator' className={styles.navIcon} title='Operator'>👻</Link>
