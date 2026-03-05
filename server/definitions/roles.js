@@ -39,13 +39,13 @@ import { str } from '../strings.js';
 const roles = {
   villager: {
     id: 'villager',
-    name: 'Villager',
+    get name() { return str('roles', 'villager.name') },
     team: Team.VILLAGE,
-    description: 'A simple villager trying to survive.',
+    get description() { return str('roles', 'villager.description') },
     color: '#7eb8da',
     emoji: '👨‍🌾',
-    tip: 'Good luck!',
-    detailedTip: 'You have no special abilities. Good luck!',
+    get tip() { return str('roles', 'villager.tip') },
+    get detailedTip() { return str('roles', 'villager.detailedTip') },
     events: {
       vote: {},
       suspect: {},
@@ -55,15 +55,14 @@ const roles = {
 
   alpha: {
     id: 'alpha',
-    name: 'Alpha Werewolf',
-    shortName: 'Alpha',
+    get name() { return str('roles', 'alpha.name') },
+    get shortName() { return str('roles', 'alpha.shortName') },
     team: Team.WEREWOLF,
-    description: 'The pack leader who makes the final kill.',
+    get description() { return str('roles', 'alpha.description') },
     color: '#f02121',
     emoji: '👑',
     tip: null, // Dynamic: shows packmate name
-    detailedTip:
-      'You are the pack leader. Each night, you choose who the wolves kill.',
+    get detailedTip() { return str('roles', 'alpha.detailedTip') },
     events: {
       vote: {},
       kill: {
@@ -100,14 +99,13 @@ const roles = {
 
   werewolf: {
     id: 'werewolf',
-    name: 'Werewolf',
+    get name() { return str('roles', 'werewolf.name') },
     team: Team.WEREWOLF,
-    description: 'A member of the pack who hunts for the Alpha.',
+    get description() { return str('roles', 'werewolf.description') },
     color: '#c94c4c',
     emoji: '🐺',
     tip: null, // Dynamic: shows packmate name
-    detailedTip:
-      'You hunt with the pack. Each night, suggest a target — the Alpha makes the final call.',
+    get detailedTip() { return str('roles', 'werewolf.detailedTip') },
     events: {
       vote: {},
       hunt: {
@@ -123,14 +121,13 @@ const roles = {
 
   seer: {
     id: 'seer',
-    name: 'Seer',
+    get name() { return str('roles', 'seer.name') },
     team: Team.VILLAGE,
-    description: 'Blessed with visions, you can peer into souls.',
+    get description() { return str('roles', 'seer.description') },
     color: '#9b7ed9',
     emoji: '🔮',
-    tip: 'Investigate each night',
-    detailedTip:
-      'Each night, investigate one player to learn if they are a werewolf.',
+    get tip() { return str('roles', 'seer.tip') },
+    get detailedTip() { return str('roles', 'seer.detailedTip') },
     events: {
       vote: {},
       investigate: {
@@ -155,14 +152,13 @@ const roles = {
 
   doctor: {
     id: 'doctor',
-    name: 'Doctor',
+    get name() { return str('roles', 'doctor.name') },
     team: Team.VILLAGE,
-    description: 'Your medical expertise can save lives.',
+    get description() { return str('roles', 'doctor.description') },
     color: '#7ed9a6',
     emoji: '🧑‍⚕️',
-    tip: 'Protect someone each night',
-    detailedTip:
-      'Each night, choose one player to protect. You cannot choose the same target twice in a row.',
+    get tip() { return str('roles', 'doctor.tip') },
+    get detailedTip() { return str('roles', 'doctor.detailedTip') },
     events: {
       vote: {},
       protect: {
@@ -188,14 +184,13 @@ const roles = {
 
   hunter: {
     id: 'hunter',
-    name: 'Hunter',
+    get name() { return str('roles', 'hunter.name') },
     team: Team.VILLAGE,
-    description: 'When you die, you take someone with you.',
+    get description() { return str('roles', 'hunter.description') },
     color: '#d9a67e',
     emoji: '🔫',
-    tip: 'Revenge shot on death',
-    detailedTip:
-      'You have no night action, but when you die — by any cause — you take a revenge shot, killing one player of your choice. This trigger is automatic and cannot be prevented.',
+    get tip() { return str('roles', 'hunter.tip') },
+    get detailedTip() { return str('roles', 'hunter.detailedTip') },
     events: {
       vote: {},
       suspect: {},
@@ -212,14 +207,13 @@ const roles = {
 
   vigilante: {
     id: 'vigilante',
-    name: 'Vigilante',
+    get name() { return str('roles', 'vigilante.name') },
     team: Team.VILLAGE,
-    description: 'You can kill one person during the night. Choose wisely.',
+    get description() { return str('roles', 'vigilante.description') },
     color: '#8b7355',
     emoji: '🤠',
-    tip: 'One kill per game',
-    detailedTip:
-      'Once per game, you may kill a player at night. Use your one shot wisely.',
+    get tip() { return str('roles', 'vigilante.tip') },
+    get detailedTip() { return str('roles', 'vigilante.detailedTip') },
     events: {
       vote: {},
       vigil: {
@@ -232,15 +226,13 @@ const roles = {
 
   governor: {
     id: 'governor',
-    name: 'Governor',
+    get name() { return str('roles', 'governor.name') },
     team: Team.VILLAGE,
-    description:
-      'You can pardon someone from elimination after votes are cast.',
+    get description() { return str('roles', 'governor.description') },
     color: '#d4af37',
     emoji: '🎩',
-    tip: 'Pardon the condemned',
-    detailedTip:
-      'After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. Use it wiseley.',
+    get tip() { return str('roles', 'governor.tip') },
+    get detailedTip() { return str('roles', 'governor.detailedTip') },
     events: {
       vote: {},
     },
@@ -249,14 +241,13 @@ const roles = {
 
   cupid: {
     id: 'cupid',
-    name: 'Cupid',
+    get name() { return str('roles', 'cupid.name') },
     team: Team.VILLAGE,
-    description: 'You bind two souls together in love.',
+    get description() { return str('roles', 'cupid.description') },
     color: '#e991c9',
     emoji: '💘',
-    tip: 'Link two lovers',
-    detailedTip:
-      'At the start of the game, you link two players as lovers. If either dies, the other dies of heartbreak — regardless of team. Choose a pair that helps the village, or create chaos.',
+    get tip() { return str('roles', 'cupid.tip') },
+    get detailedTip() { return str('roles', 'cupid.detailedTip') },
     companions: [RoleId.CUPID], // Needs a second cupid for two lover pairs
     events: {
       vote: {},
@@ -291,15 +282,13 @@ const roles = {
 
   roleblocker: {
     id: 'roleblocker',
-    name: 'Roleblocker',
+    get name() { return str('roles', 'roleblocker.name') },
     team: Team.WEREWOLF,
-    description: "You silence the night. Block one player's ability.",
+    get description() { return str('roles', 'roleblocker.description') },
     color: '#c94c4c',
-
     emoji: '🚫',
     tip: null, // Dynamic: shows packmate names
-    detailedTip:
-      "Each night, choose a player to silence. Their night ability fails — and they won't know they were blocked. Neutralize the Doctor, Seer, or Vigilante at critical moments.",
+    get detailedTip() { return str('roles', 'roleblocker.detailedTip') },
     events: {
       vote: {},
       block: {
@@ -314,14 +303,13 @@ const roles = {
 
   poisoner: {
     id: 'poisoner',
-    name: 'Poisoner',
+    get name() { return str('roles', 'poisoner.name') },
     team: Team.WEREWOLF,
-    description: "You replace the alpha's kill with a slow-acting poison.",
+    get description() { return str('roles', 'poisoner.description') },
     color: '#c94c4c',
     emoji: '🧪',
     tip: null, // Dynamic: shows packmate names
-    detailedTip:
-      "Each night, choose YES to poison the alpha's target instead of killing them outright. They will die at the end of the following night. The doctor can cure them if they act in time.",
+    get detailedTip() { return str('roles', 'poisoner.detailedTip') },
     events: {
       vote: {},
       poison: { priority: 59 },
@@ -331,14 +319,13 @@ const roles = {
 
   janitor: {
     id: 'janitor',
-    name: 'Janitor',
+    get name() { return str('roles', 'janitor.name') },
     team: Team.WEREWOLF,
-    description: "You clean up after the kill. The victim's role stays hidden.",
+    get description() { return str('roles', 'janitor.description') },
     color: '#c94c4c',
     emoji: '🧹',
     tip: null, // Dynamic: shows packmate names
-    detailedTip:
-      "Each night, choose whether to clean up. If you say YES and the Alpha kills, the victim's role stays hidden from everyone until the game ends. Use this to protect your pack from the Seer's deductions.",
+    get detailedTip() { return str('roles', 'janitor.detailedTip') },
     events: {
       vote: {},
       clean: { priority: 58 },
@@ -348,22 +335,21 @@ const roles = {
 
   tanner: {
     id: 'tanner',
-    name: 'Tanner',
+    get name() { return str('roles', 'tanner.name') },
     team: Team.VILLAGE,
-    description: 'A simple villager... or so you think.',
+    get description() { return str('roles', 'tanner.description') },
     color: '#7eb8da',
     emoji: '🪡',
-    tip: 'Good luck!',
-    detailedTip:
-      'You appear as a Villager to everyone — even yourself. But the Seer sees you as evil. Win with the village anyway.',
+    get tip() { return str('roles', 'tanner.tip') },
+    get detailedTip() { return str('roles', 'tanner.detailedTip') },
     appearsGuilty: true, // Seer (and Clue) report this player as EVIL
     // What the Tanner sees on their own terminal — identical to the Villager
     disguiseAs: {
       id: 'villager',
-      name: 'Villager',
+      get name() { return str('roles', 'villager.name') },
       color: '#7eb8da',
       emoji: '👨‍🌾',
-      description: 'A simple villager trying to survive.',
+      get description() { return str('roles', 'villager.description') },
     },
     events: {
       vote: {},
@@ -374,14 +360,13 @@ const roles = {
 
   jester: {
     id: 'jester',
-    name: 'Jester',
+    get name() { return str('roles', 'jester.name') },
     team: Team.NEUTRAL,
-    description: 'Make them vote you out. Win by being eliminated.',
+    get description() { return str('roles', 'jester.description') },
     color: '#e8a020',
     emoji: '🃏',
-    tip: 'Get voted out to win',
-    detailedTip:
-      'You win if the village eliminates you by vote. Death by any other means is a loss. If you win, the game continues without you.',
+    get tip() { return str('roles', 'jester.tip') },
+    get detailedTip() { return str('roles', 'jester.detailedTip') },
     events: {
       vote: {},
     },
@@ -396,21 +381,20 @@ const roles = {
 
   drunk: {
     id: 'drunk',
-    name: 'Drunk',
+    get name() { return str('roles', 'drunk.name') },
     team: Team.VILLAGE,
-    description: 'You think you can see the truth — but you are just drunk.',
+    get description() { return str('roles', 'drunk.description') },
     color: '#9b7ed9',
     emoji: '🥴',
-    tip: 'Investigate each night', // Shown on player terminal — they think they're a seer
-    detailedTip:
-      'Each night the Drunk picks a target, believing they are investigating. In reality their action is randomly one of: Investigate (accurate result), Kill, Protect, or Roleblock. The three non-investigate actions always show INNOCENT regardless of the target.',
+    get tip() { return str('roles', 'drunk.tip') },
+    get detailedTip() { return str('roles', 'drunk.detailedTip') },
     // What the drunk player sees on their own terminal — identical to the Seer
     disguiseAs: {
       id: 'seer',
-      name: 'Seer',
+      get name() { return str('roles', 'seer.name') },
       color: '#9b7ed9',
       emoji: '🔮',
-      description: 'Blessed with visions, you can peer into souls.',
+      get description() { return str('roles', 'seer.description') },
     },
     events: {
       vote: {},
