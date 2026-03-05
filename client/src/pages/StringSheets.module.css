@@ -586,9 +586,11 @@
 
 /* Tags */
 .tdTags {
-  white-space: nowrap;
+  white-space: normal;
   padding-top: 3px;
   padding-bottom: 3px;
+  position: relative;
+  min-width: 120px;
 }
 
 .rowTag {
@@ -617,6 +619,95 @@
   background: #0e1820;
 }
 
+/* Auto-tag chip — greyed out, indicates derived-from-prefix tag */
+.autoTagChip {
+  border-color: #1e2530 !important;
+  color: #334 !important;
+  font-style: italic;
+}
+.autoTagChip:hover {
+  border-color: #7eb8da !important;
+  color: #7eb8da !important;
+}
+.rowTagActive.autoTagChip {
+  border-color: #7eb8da !important;
+  color: #7eb8da !important;
+  background: #0e1820;
+}
+
+/* × remove button inside a tag chip */
+.tagRemoveBtn {
+  display: inline-block;
+  margin-left: 4px;
+  color: #445;
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.1s;
+}
+.tagRemoveBtn:hover {
+  color: #c94c4c;
+}
+
+/* + add tag button */
+.addTagBtn {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 11px;
+  background: none;
+  border: 1px dashed #222a38;
+  color: #334;
+  padding: 1px 5px;
+  margin-right: 3px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+}
+.addTagBtn:hover {
+  border-color: #7ed9a6;
+  color: #7ed9a6;
+}
+
+/* Tag picker popover */
+.tagPicker {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2px);
+  background: #0d1017;
+  border: 1px solid #2a3040;
+  z-index: 200;
+  width: 360px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tagPickerSection {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #445;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.tagPickerInput {
+  background: #141820;
+  border: 1px solid #2a3040;
+  color: #ccd;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  margin-top: 2px;
+  transition: border-color 0.1s;
+}
+.tagPickerInput:focus {
+  border-color: #7eb8da;
+}
+.tagPickerInput::placeholder {
+  color: #334;
+}
+
 .pageLight .rowTag {
   border-color: #d8dde6;
   color: #b0bac6;
@@ -631,6 +722,46 @@
   border-color: #2a7ab0;
   color: #2a7ab0;
   background: #e8f0fa;
+}
+
+.pageLight .autoTagChip {
+  border-color: #e0e4ec !important;
+  color: #c8d0dc !important;
+}
+.pageLight .autoTagChip:hover,
+.pageLight .rowTagActive.autoTagChip {
+  border-color: #4a9eff !important;
+  color: #2a7ab0 !important;
+}
+
+.pageLight .addTagBtn {
+  border-color: #d0d5de;
+  color: #b0bac6;
+}
+.pageLight .addTagBtn:hover {
+  border-color: #2a9a60;
+  color: #2a9a60;
+}
+
+.pageLight .tagPicker {
+  background: #f5f6f8;
+  border-color: #d0d5de;
+}
+
+.pageLight .tagPickerSection {
+  color: #b0bac6;
+}
+
+.pageLight .tagPickerInput {
+  background: #fff;
+  border-color: #c8d0dc;
+  color: #1a1e26;
+}
+.pageLight .tagPickerInput:focus {
+  border-color: #4a9eff;
+}
+.pageLight .tagPickerInput::placeholder {
+  color: #b0bac6;
 }
 
 /* Empty state */
