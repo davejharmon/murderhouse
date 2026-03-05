@@ -349,6 +349,12 @@ export default function StringSheets() {
     })
   }
 
+  // ── Custom tags (not in any TAG_GROUP) ────────────────────────────────────
+  const knownTagIds = new Set(TAG_GROUPS.flatMap(g => g.tags.map(t => t.id)))
+  const customTags = [...new Set(
+    STRING_CATALOG.flatMap(entry => getEntryTags(entry).filter(t => !knownTagIds.has(t)))
+  )].sort()
+
   // ── Filtered rows ─────────────────────────────────────────────────────────
   const searchLower = search.toLowerCase()
   const rows = STRING_CATALOG.filter(entry => {
@@ -465,6 +471,22 @@ export default function StringSheets() {
                     </div>
                   </div>
                 ))}
+                {customTags.length > 0 && (
+                  <div className={styles.tagGroup}>
+                    <div className={styles.tagGroupLabel}>Other</div>
+                    <div className={styles.tagChips}>
+                      {customTags.map(tag => (
+                        <button
+                          key={tag}
+                          className={styles.tagChip}
+                          onClick={() => { setActiveTag(tag); setTagDropdownOpen(false) }}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
