@@ -112,7 +112,8 @@
         "7": "villager",
         "8": "villager",
         "9": "villager"
-      }
+      },
+      "fakeHeartbeats": false
     }
   ]
 }
