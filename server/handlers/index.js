@@ -478,8 +478,8 @@ export function createHandlers(game) {
     }),
 
     [ClientMsg.SAVE_GAME_PRESET]: requireHost((ws, payload) => {
-      const { name, timerDuration, autoAdvanceEnabled, overwriteId } = payload;
-      game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, overwriteId);
+      const { name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId } = payload;
+      game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId);
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
       return { success: true };
     }),

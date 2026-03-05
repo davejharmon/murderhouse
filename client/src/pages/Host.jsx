@@ -103,6 +103,7 @@ export default function Host() {
     if (!loadedPreset) return false;
     if (timerDuration !== loadedPreset.timerDuration) return true;
     if (autoAdvanceEnabled !== loadedPreset.autoAdvanceEnabled) return true;
+    if ((gameState?.fakeHeartbeats ?? false) !== (loadedPreset.fakeHeartbeats ?? false)) return true;
     const players = gameState?.players ?? [];
     for (const [seatId, saved] of Object.entries(loadedPreset.players ?? {})) {
       const current = players.find((p) => p.id === seatId);
@@ -121,7 +122,7 @@ export default function Host() {
       if (players.some((p) => p.preAssignedRole)) return true;
     }
     return false;
-  }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.players]);
+  }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.fakeHeartbeats, gameState?.players]);
 
   // Auto-advance logic
   useEffect(() => {
@@ -280,6 +281,7 @@ export default function Host() {
       name,
       timerDuration,
       autoAdvanceEnabled,
+      fakeHeartbeats: gameState?.fakeHeartbeats ?? false,
       overwriteId,
     });
   const handleLoadGamePreset = (id) => {

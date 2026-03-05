@@ -306,7 +306,7 @@ export class Game {
     return { presets: this._gamePresets };
   }
 
-  saveGamePreset(name, timerDuration, autoAdvanceEnabled, overwriteId = null) {
+  saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats = false, overwriteId = null) {
     // Capture current player customizations (names + portraits)
     const players = {};
     for (const [id, cust] of this.playerCustomizations) {
@@ -342,7 +342,7 @@ export class Game {
     if (overwriteId) {
       const index = this._gamePresets.findIndex(p => p.id === overwriteId);
       if (index !== -1) {
-        this._gamePresets[index] = { ...this._gamePresets[index], name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled };
+        this._gamePresets[index] = { ...this._gamePresets[index], name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled, fakeHeartbeats };
         this._saveGamePresetsToDisk();
         this.addLog(str('log', 'presetUpdated', { name }));
         return this._gamePresets[index];
@@ -359,6 +359,7 @@ export class Game {
       roleAssignments,
       timerDuration,
       autoAdvanceEnabled,
+      fakeHeartbeats,
     };
 
     this._gamePresets.push(preset);
@@ -414,6 +415,25 @@ export class Game {
       autoAdvanceEnabled: preset.autoAdvanceEnabled,
       lastLoadedPresetId: preset.id,
     });
+
+    // Apply fake heartbeats setting
+    const wantFake = preset.fakeHeartbeats ?? false;
+    if (wantFake !== this._fakeHeartbeats) {
+      if (wantFake) {
+        this._fakeHeartbeats = true;
+        this._fakeHeartbeatSimState = {};
+        this._fakeHeartbeatTimer = setInterval(() => this._tickFakeHeartbeats(), 1500);
+      } else {
+        this._fakeHeartbeats = false;
+        clearInterval(this._fakeHeartbeatTimer);
+        this._fakeHeartbeatTimer = null;
+        for (const player of this.players.values()) {
+          if (player.heartbeat?.fake) {
+            player.heartbeat = { bpm: 0, active: false, fake: false, lastUpdate: Date.now() };
+          }
+        }
+      }
+    }
 
     if (this.players.size > 0) {
       this.broadcastPlayerList();
