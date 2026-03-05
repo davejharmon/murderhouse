@@ -9,7 +9,7 @@ export default function VoteTallySlide({ slide, players }) {
 
   const sorted = Object.entries(tally || {})
     .map(([id, count]) => ({
-      player: getPlayer(Number(id)),
+      player: getPlayer(id),
       count,
       voterIds: voters?.[id] || [],
       isFrontrunner: frontrunners?.includes(id) || frontrunners?.includes(Number(id)) || false,

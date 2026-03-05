@@ -1369,12 +1369,21 @@ export class Game {
 
   // Nullify selections from roleblocked players (treat as abstain).
   // The block event itself is exempt — roleblocking a roleblocker is intentional.
+  // Returns an array of { actorId, originalTargetId } for non-null selections that were blocked.
   _applyRoleblocks(results, eventId) {
-    if (eventId === EventId.BLOCK) return;
+    if (eventId === EventId.BLOCK) return [];
+    const blocked = [];
     for (const actorId of Object.keys(results)) {
       const actor = this.getPlayer(actorId);
-      if (actor?.isRoleblocked) results[actorId] = null;
+      if (actor?.isRoleblocked) {
+        const originalTargetId = results[actorId];
+        if (originalTargetId !== null) {
+          blocked.push({ actorId, originalTargetId });
+        }
+        results[actorId] = null;
+      }
     }
+    return blocked;
   }
 
   // Sync player display state, remove them from the event, and consume any
@@ -1447,7 +1456,27 @@ export class Game {
       return this.showTallyAndDeferResolution(eventId, instance);
     }
 
-    this._applyRoleblocks(results, eventId);
+    const blockedPairs = this._applyRoleblocks(results, eventId);
+
+    // Log roleblock failures for events where the blocked action is meaningful
+    const ROLEBLOCK_VERBS = {
+      [EventId.KILL]: 'kill',
+      [EventId.VIGIL]: 'shoot',
+      [EventId.PROTECT]: 'protect',
+      [EventId.INVESTIGATE]: 'investigate',
+      [EventId.CLEAN]: 'clean',
+      [EventId.POISON]: 'poison',
+    };
+    const roleblockVerb = ROLEBLOCK_VERBS[eventId];
+    if (roleblockVerb && blockedPairs.length > 0) {
+      for (const { actorId, originalTargetId } of blockedPairs) {
+        const actor = this.getPlayer(actorId);
+        const target = this.getPlayer(originalTargetId);
+        if (actor && target) {
+          this.addLog(str('log', 'roleblockFailed', { name: actor.getNameWithEmoji(), verb: roleblockVerb, target: target.getNameWithEmoji() }));
+        }
+      }
+    }
 
     const resolution = event.resolve(results, this);
 

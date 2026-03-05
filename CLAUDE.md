@@ -96,6 +96,34 @@ Events resolve by priority order. Each returns `{ success, outcome, victim?, sli
 - **ESP32**: PlatformIO, Arduino framework, ESP32-S3, SSD1322 OLED (U8g2), WS2811 neopixel
 - **No linter or test framework configured**
 
+## String Catalog
+
+All user-visible strings (log messages, slide text, UI labels) must be added to `shared/strings/gameStrings.js` as entries in `STRING_CATALOG`. This makes every string editable at runtime via the `/strings` dev tool and persistent via `data/string-overrides.json`.
+
+**Entry format:**
+```js
+{ cat: "log", key: "myNewString", default: "{name} did {action}", tokens: ["{name}", "{action}"], tags: ["tagA"], desc: "Human-readable description" }
+```
+
+- `cat`: category — `"log"`, `"slides"`, `"events"`, `"screen"`, `"host"`, `"player"`
+- `key`: unique within the category
+- `tokens`: list of `{placeholder}` tokens that appear in `default`
+- `tags`: used for filtering in the `/strings` UI
+
+**Server usage** (`server/strings.js`):
+```js
+import { str } from './strings.js';
+this.addLog(str('log', 'myNewString', { name: actor.name, action: 'did something' }));
+```
+
+**Client usage** (`client/src/strings/index.js`):
+```js
+import { getStr } from '../strings/index.js';
+getStr('host', 'myLabel')
+```
+
+**Never** hardcode user-visible strings as template literals or plain string literals in server/client code. Always go through `str()` / `getStr()` so the string appears in the catalog and can be overridden.
+
 ## Conventions
 
 - ES6 `import`/`export` everywhere (both server and client)

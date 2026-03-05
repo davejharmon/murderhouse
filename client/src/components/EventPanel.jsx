@@ -1,6 +1,6 @@
 // client/src/components/EventPanel.jsx
 import { useState } from 'react';
-import { DEBUG_MODE, AVAILABLE_ITEMS } from '@shared/constants.js';
+import { AVAILABLE_ITEMS } from '@shared/constants.js';
 import CustomEventModal from './CustomEventModal';
 import styles from './EventPanel.module.css';
 
@@ -26,6 +26,20 @@ export default function EventPanel({
   const hasPending = pendingEvents.length > 0;
   const hasActive = activeEvents.length > 0;
   const isDayPhase = currentPhase === 'day';
+
+  const anyUncommitted = activeEvents.some((eventId) => {
+    const progress = eventProgress[eventId] || {};
+    return (progress.total || 0) > (progress.responded || 0);
+  });
+
+  const handleAutoSelectAllEvents = () => {
+    activeEvents.forEach((eventId) => {
+      const progress = eventProgress[eventId] || {};
+      if ((progress.total || 0) > (progress.responded || 0)) {
+        onDebugAutoSelectAll(eventId);
+      }
+    });
+  };
 
   // Convert AVAILABLE_ITEMS to object format for UI
   const availableItems = AVAILABLE_ITEMS.map((id) => ({
@@ -111,7 +125,7 @@ export default function EventPanel({
                       {progress.responded || 0}/{progress.total || 0}
                     </div>
                     <div className={styles.eventActions}>
-                      {DEBUG_MODE && hasUncommitted && onDebugAutoSelectAll && (
+                      {hasUncommitted && onDebugAutoSelectAll && (
                         <button
                           className={`${styles.debugBtn}`}
                           onClick={() => onDebugAutoSelectAll(eventId)}
@@ -159,12 +173,27 @@ export default function EventPanel({
               </button>
             )}
             {activeEvents.length > 1 && (
-              <button
-                className={`${styles.eventBtn} success`}
-                onClick={onResolveAllEvents}
-              >
-                Resolve All
-              </button>
+              <div className={styles.resolveRow}>
+                {anyUncommitted && onDebugAutoSelectAll && (
+                  <button
+                    className={styles.debugBtn}
+                    style={{ flex: 'none' }}
+                    onClick={handleAutoSelectAllEvents}
+                    title='Auto-select all remaining players'
+                  >
+                    🎲
+                  </button>
+                )}
+                {activeEvents.length > 1 && (
+                  <button
+                    className={`${styles.eventBtn} success`}
+                    style={{ flex: 1 }}
+                    onClick={onResolveAllEvents}
+                  >
+                    Resolve All
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}

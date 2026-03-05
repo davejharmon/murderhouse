@@ -291,7 +291,7 @@ const events = {
         return {
           success: true,
           outcome: 'protected',
-          message: str('log', 'vigilanteProtected', { name: kill.target.getNameWithEmoji() }),
+          message: str('log', 'vigilanteProtected', { name: kill.vigilante.getNameWithEmoji(), target: kill.target.getNameWithEmoji() }),
         };
       }
 
@@ -496,21 +496,31 @@ const events = {
         // Apply poison state — victim dies at end of next night
         victim.isPoisoned = true;
         victim.poisonedAt = game.dayCount;
+        const poisoner = [...game.players.values()].find((p) => p.role?.id === RoleId.POISONER && p.isAlive);
         return {
           success: true,
           outcome: 'poisoned',
-          message: str('log', 'poisonedPlayer', { name: victim.getNameWithEmoji() }),
+          message: poisoner
+            ? str('log', 'poisonerPoisoned', { actor: poisoner.getNameWithEmoji(), name: victim.getNameWithEmoji() })
+            : str('log', 'poisonedPlayer', { name: victim.getNameWithEmoji() }),
         };
       }
 
       // Check protection (normal kill path)
       if (victim.isProtected) {
         victim.isProtected = false;
+        const attackers = Object.entries(results)
+          .filter(([, tid]) => tid !== null)
+          .map(([aid]) => game.getPlayer(aid))
+          .filter(Boolean);
+        const actorStr = attackers.length === 1
+          ? attackers[0].getNameWithEmoji()
+          : 'The pack';
         return {
           success: true,
           outcome: 'protected',
           targetId: victimId,
-          message: str('log', 'killProtected', { name: victim.getNameWithEmoji() }),
+          message: str('log', 'killProtected', { actor: actorStr, name: victim.getNameWithEmoji() }),
         };
       }
 

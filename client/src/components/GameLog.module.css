@@ -7,6 +7,9 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: var(--space-md);
   border-bottom: 1px solid var(--border-color);
 }
@@ -15,6 +18,22 @@
   font-size: 0.75rem;
   color: var(--color-text-muted);
   letter-spacing: 0.15em;
+}
+
+.clearBtn {
+  font-size: 0.625rem;
+  padding: 2px var(--space-xs);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+.clearBtn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-muted);
 }
 
 .entries {

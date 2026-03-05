@@ -81,6 +81,12 @@
   transform: scale(1.1);
 }
 
+.resolveRow {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
 .resolveBtn {
   padding: var(--space-xs) var(--space-sm);
   font-size: 0.75rem;
