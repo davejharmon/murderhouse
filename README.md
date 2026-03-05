@@ -252,7 +252,7 @@ Checklist for adding a new role to the game:
 
 ## Debug Mode
 
-Set `DEBUG_MODE = true` in `shared/constants.js`:
+Enabled automatically outside production (`process.env.NODE_ENV !== 'production'`). Set `NODE_ENV=production` to disable.
 
 - Access `/debug` for 9-player grid view
 - Auto-select buttons on host dashboard
@@ -276,31 +276,14 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### Medium Impact
 
-2. **Interrupt flows don't handle player disconnect** (`server/flows/HunterRevengeFlow.js`, `GovernorPardonFlow.js`) — If the hunter or governor disconnects before selecting, the pending event hangs indefinitely. The `on('close')` handler already calls `removeConnection`, but flows are never notified. Needs an auto-abstain hook wired to the player `close` event.
 
-3. **Host-auth check repeated 40+ times** (`server/handlers/index.js`) — Every host-only handler contains `if (ws.clientType !== 'host') return { success: false, error: 'Not host' }`. Easy to accidentally omit on a new handler. Wrap registration in a `requireHost(fn)` decorator that applies the guard automatically.
 
-4. **`resolveEvent()` does too much** (`server/Game.js` ~115 lines) — Validation, tally/runoff, roleblock nullification, event resolution, participant cleanup, item consumption, slide queueing, and win checks all live in one method. Hard to test in isolation. Extract into focused private helpers.
-
-5. **No event definition validation** — `resolveEvent()` has no runtime schema check that the event definition is well-formed (participants populated, valid aggregation type, etc.). A silent misconfiguration produces unexpected results with no error.
-
-6. **No WebSocket reconnect backoff** (`client/src/context/GameContext.jsx`) — Reconnect is a flat 2-second retry with no cap. On a prolonged disconnection this hammers the server indefinitely. Implement exponential backoff (e.g. 2 s → 4 s → 8 s → 30 s max).
-
-7. **`DEBUG_MODE` hardcoded to `true`** (`shared/constants.js`) — Debug routes and auto-select buttons are always on. Note: `shared/constants.js` is imported by both Vite and Node, so a single `process.env.NODE_ENV !== 'production'` check works in both environments. Low urgency for a local game; important before any networked deployment.
 
 ### Low Impact
 
-8. **Duplicate event startup code** (`server/Game.js`) — `startEvent()`, `_startFlowEvent()`, and `_startCustomEvent()` each independently collect participants, clear selections, send prompts, and push slides. A shared `_startEventCore()` helper would remove ~60 lines of duplication.
+1. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
 
-9. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
-
-10. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
-
-11. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
-
-12. **Flow result shape undocumented** (`server/flows/`) — `HunterRevengeFlow` and `GovernorPardonFlow` both return `{ kills, slides, consumeItems, log }` but with subtly different field usage. A `FlowResult` shape comment at the top of `InterruptFlow.js` would help future flows conform.
-
-13. **Magic numbers in BPM colour function** (`client/src/pages/Screen.jsx`) — Thresholds `0.7`, hue `55`, saturation `80`, and lightness values are inline literals with no explanation. Extract to named constants.
+2. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
 
 ### Fixed
 
@@ -309,6 +292,16 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**ABSTAINED state lost on fast event resolve**~~ — `player.syncState()` now called before `player.clearFromEvent()` in `resolveEvent` so `getActiveResult()` can read the null result and display ABSTAINED correctly.
 - ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`.
 - ~~**No error handling around file I/O**~~ — Read paths have try/catch with safe fallbacks; write failures are caught by the top-level handler try/catch in `handleMessage`.
+- ~~**`DEBUG_MODE` hardcoded to `true`**~~ — Now reads `process.env.NODE_ENV !== 'production'`; set `NODE_ENV=production` to disable debug routes and auto-select buttons.
+- ~~**Host-auth check repeated 40+ times**~~ — Replaced with `requireHost(fn)` decorator in `server/handlers/index.js`; all 40 host handlers wrapped.
+- ~~**No WebSocket reconnect backoff**~~ — Exponential backoff in `GameContext.jsx`: 2 s → 4 s → 8 s → 30 s max; resets to 2 s on successful reconnect.
+- ~~**`resolveEvent()` does too much**~~ — Extracted into `_checkResponsesComplete`, `_applyRoleblocks`, `_cleanupParticipants`, `_commitResolution`, `_dispatchPrivateResults`; `resolveEvent` is now a ~20-line orchestration shell.
+- ~~**Interrupt flows don't handle player disconnect**~~ — Added `onPlayerDisconnect(player)` hook to `InterruptFlow` base class. Hunter auto-resolves with a random target; Governor auto-executes when all governors disconnect. Wired via `game.notifyFlowsOfDisconnect()` called from `server/index.js` on last-connection close.
+- ~~**No event definition validation**~~ — `_assertValidEventDef(event, eventId)` validates `resolve`, `participants`, `validTargets`, and `aggregation` at `startEvent()` time; throws with a clear message on misconfiguration.
+- ~~**Duplicate event startup code**~~ — Extracted `_notifyEventParticipants()` shared by `startEvent`, `_startFlowEvent`, and `_startCustomEvent`; removed ~40 lines of duplication.
+- ~~**Magic numbers in BPM colour function**~~ — Extracted `BPM_COLOR` constants in `slideUtils.js` with explanatory names.
+- ~~**Flow result shape undocumented**~~ — Added `@typedef FlowResult` JSDoc at the top of `InterruptFlow.js` documenting all fields and their semantics.
+- ~~**Item consumption rules are implicit**~~ — Documented `IMMEDIATE / ON_RESOLVE / ON_TRIGGER` consumption timing in `server/definitions/items.js` schema comment with concrete examples per item type.
 
 ## Improvements
 

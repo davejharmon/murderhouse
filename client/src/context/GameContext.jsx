@@ -29,6 +29,7 @@ export function GameProvider({ children }) {
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const reconnectDelayRef = useRef(2000); // Exponential backoff: 2s → 4s → 8s → 30s max
 
   // Connect to WebSocket
   const connect = useCallback(() => {
@@ -39,14 +40,17 @@ export function GameProvider({ children }) {
 
     ws.onopen = () => {
       console.log('[WS] Connected');
+      reconnectDelayRef.current = 2000; // Reset backoff on successful connection
       setConnected(true);
     };
 
     ws.onclose = () => {
       console.log('[WS] Disconnected');
       setConnected(false);
-      // Attempt reconnect
-      reconnectTimeoutRef.current = setTimeout(connect, 2000);
+      const delay = reconnectDelayRef.current;
+      reconnectDelayRef.current = Math.min(delay * 2, 30000);
+      console.log(`[WS] Reconnecting in ${delay / 1000}s`);
+      reconnectTimeoutRef.current = setTimeout(connect, delay);
     };
 
     ws.onerror = (err) => {

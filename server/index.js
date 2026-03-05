@@ -85,6 +85,11 @@ wss.on('connection', (ws) => {
         player.removeConnection(ws);
         // Broadcast updated player list (connected status may have changed)
         game.broadcastPlayerList();
+        // If the player has no connections left, notify flows so they can
+        // auto-resolve rather than hanging indefinitely.
+        if (player.connections.length === 0) {
+          game.notifyFlowsOfDisconnect(player);
+        }
       }
     }
 

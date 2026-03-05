@@ -28,6 +28,14 @@ import { EventId } from '../../shared/constants.js';
  *   - Don't appear in idle ability selector
  *   - Flows/events check if player has the ability
  *   - Example: phone -> grants 'pardon' ability, checked by GovernorPardonFlow
+ *
+ * Item consumption timing:
+ *   IMMEDIATE  — consumed as soon as the player activates/selects
+ *                (player-initiated items like pistol: consumeItem called inside the event's resolve)
+ *   ON_RESOLVE — consumed when the event resolves via _cleanupParticipants
+ *                (participation-granting items like clue: item.startsEvent === eventId && uses > 0)
+ *   ON_TRIGGER — consumed when a passive condition fires, regardless of the event lifecycle
+ *                (passive items like coward, barricade, novote: consumed inside killPlayer / vote logic)
  */
 
 const items = {

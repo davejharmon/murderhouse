@@ -2,6 +2,24 @@
 // Base class for complex interrupt-based game flows
 
 /**
+ * FlowResult — shape returned by flow resolve/onSelection methods.
+ * Processed uniformly by Game._executeFlowResult(); flows must NOT mutate Game state directly.
+ *
+ * @typedef {Object} FlowResult
+ * @property {boolean}  [success=true]      - False aborts processing (no kills/slides/log applied)
+ * @property {string}   [error]             - Human-readable error when success is false
+ * @property {Array<{playerId: string, cause: string}>} [kills]
+ *   Players to kill, in order. Each kill may trigger nested flows (e.g. hunter revenge).
+ * @property {Array<{slide: Object, jumpTo: boolean, isDeath: boolean}>} [slides]
+ *   Slides to push. isDeath=true means the slide is processed via queueDeathSlide().
+ * @property {Array<{playerId: string, itemId: string}>} [consumeItems]
+ *   Items to consume before kills (so hasItem() checks inside kills see correct state).
+ * @property {number}   [jumpToSlide]       - Index offset into newly pushed slides to jump to.
+ * @property {string}   [log]               - Message passed to game.addLog().
+ * @property {boolean}  [pardoned]          - GovernorPardonFlow: true if player was spared.
+ */
+
+/**
  * InterruptFlow - Base class for complex multi-step game flows
  *
  * Flows encapsulate logic that would otherwise be scattered across multiple files.
@@ -142,5 +160,15 @@ export class InterruptFlow {
    */
   isActive() {
     return this.phase === 'active' || this.phase === 'resolving';
+  }
+
+  /**
+   * Called when a participant disconnects with no remaining connections.
+   * Subclasses may override to auto-resolve or auto-abstain rather than hanging.
+   * @param {Player} player - The player who disconnected
+   * @returns {Object|null} Flow result to execute, or null to take no action
+   */
+  onPlayerDisconnect(player) {
+    return null;
   }
 }

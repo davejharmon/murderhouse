@@ -865,6 +865,8 @@ export class Game {
       return { success: false, error: 'Event not found' };
     }
 
+    this._assertValidEventDef(event, eventId);
+
     // Check phase restriction for player-initiated events
     if (
       event.playerInitiated &&
@@ -893,30 +895,12 @@ export class Game {
     this.activeEvents.set(eventId, eventInstance);
     this.pendingEvents = this.pendingEvents.filter((id) => id !== eventId);
 
-    // Notify participants
-    for (const player of participants) {
-      player.pendingEvents.add(eventId);
-      player.clearSelection();
-      player.lastEventResult = null;
-
-      const targets = event.validTargets(player, this);
-
-      // Auto-select if only one target (e.g., governor pardon)
-      if (targets.length === 1) {
-        player.currentSelection = targets[0].id;
-      }
-
-      // Send updated player state so client clears abstained/confirmed flags
-      player.syncState(this);
-
-      player.send(ServerMsg.EVENT_PROMPT, {
-        eventId,
-        eventName: event.name,
-        description: event.description,
-        targets: targets.map((t) => t.getPublicState()),
-        allowAbstain: event.allowAbstain !== false,
-      });
-    }
+    this._notifyEventParticipants(
+      eventId,
+      participants.map(p => p.id),
+      player => event.validTargets(player, this),
+      { eventName: event.name, description: event.description, allowAbstain: event.allowAbstain !== false },
+    );
 
     this.addLog(`${event.name} started`);
 
@@ -1012,34 +996,12 @@ export class Game {
 
     this.activeEvents.set(eventId, eventInstance);
 
-    // Notify participants
-    for (const playerId of participants) {
-      const player = this.getPlayer(playerId);
-      if (!player) continue;
-
-      player.pendingEvents.add(eventId);
-      player.clearSelection();
-      player.lastEventResult = null;
-
-      const targets = getValidTargets(playerId);
-
-      // Auto-select if only one target
-      if (targets.length === 1) {
-        player.currentSelection = targets[0].id;
-      }
-
-      // Send updated player state
-      player.syncState(this);
-
-      // Send event prompt
-      player.send(ServerMsg.EVENT_PROMPT, {
-        eventId,
-        eventName: name,
-        description,
-        targets: targets.map((t) => t.getPublicState()),
-        allowAbstain,
-      });
-    }
+    this._notifyEventParticipants(
+      eventId,
+      participants,
+      player => getValidTargets(player.id),
+      { eventName: name, description, allowAbstain },
+    );
 
     this.addLog(`${name} started`);
     this.broadcastGameState();
@@ -1125,25 +1087,12 @@ export class Game {
       (id) => id !== EventId.CUSTOM_EVENT,
     );
 
-    // Notify participants with custom description
-    for (const player of participants) {
-      player.pendingEvents.add(EventId.CUSTOM_EVENT);
-      player.clearSelection();
-      player.lastEventResult = null;
-
-      const targets = event.validTargets(player, this);
-
-      // Send updated player state so client clears abstained/confirmed flags
-      player.syncState(this);
-
-      player.send(ServerMsg.EVENT_PROMPT, {
-        eventId: EventId.CUSTOM_EVENT,
-        eventName: event.name,
-        description: config.description,
-        targets: targets.map((t) => t.getPublicState()),
-        allowAbstain: event.allowAbstain !== false,
-      });
-    }
+    this._notifyEventParticipants(
+      EventId.CUSTOM_EVENT,
+      participants.map(p => p.id),
+      player => event.validTargets(player, this),
+      { eventName: event.name, description: config.description, allowAbstain: event.allowAbstain !== false },
+    );
 
     this.addLog(`Custom event started — ${config.description}`);
 
@@ -1359,120 +1308,158 @@ export class Game {
     }
   }
 
-  resolveEvent(eventId, { force = false } = {}) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) {
-      return { success: false, error: 'Event not active' };
-    }
+  // ── Shared event startup helper ──────────────────────────────────────────
 
-    const { event, results, participants } = instance;
-
-    // Check if all required responses are in (skip when force-resolving via timer)
-    if (!force && !event.allowAbstain) {
-      const responded = Object.keys(results).length;
-      if (responded < participants.length) {
-        return {
-          success: false,
-          error: `Waiting for ${
-            participants.length - responded
-          } more responses`,
-        };
+  // Registers each participant into the event, sends them an EVENT_PROMPT,
+  // and auto-selects when only a single target is available.
+  // getTargets(player) → Player[]   prompt → { eventName, description, allowAbstain }
+  _notifyEventParticipants(eventId, participantIds, getTargets, prompt) {
+    for (const pid of participantIds) {
+      const player = this.getPlayer(pid);
+      if (!player) continue;
+      player.pendingEvents.add(eventId);
+      player.clearSelection();
+      player.lastEventResult = null;
+      const targets = getTargets(player);
+      if (targets.length === 1) {
+        player.currentSelection = targets[0].id;
       }
+      player.syncState(this);
+      player.send(ServerMsg.EVENT_PROMPT, {
+        eventId,
+        targets: targets.map(t => t.getPublicState()),
+        ...prompt,
+      });
     }
+  }
 
-    // For vote/customEvent events, show tally slide first and defer resolution
-    if (eventId === EventId.VOTE || eventId === EventId.CUSTOM_EVENT) {
-      return this.showTallyAndDeferResolution(eventId, instance);
+  // ── Event definition validation ──────────────────────────────────────────
+
+  // Validates that an event definition has all required fields with correct types.
+  // Throws on misconfiguration so silent bugs are caught at start time, not resolve time.
+  _assertValidEventDef(event, eventId) {
+    const VALID_AGGREGATIONS = new Set(['majority', 'individual', 'all']);
+    const errors = [];
+    if (typeof event.resolve !== 'function')     errors.push('resolve must be a function');
+    if (typeof event.participants !== 'function') errors.push('participants must be a function');
+    if (typeof event.validTargets !== 'function') errors.push('validTargets must be a function');
+    if (!VALID_AGGREGATIONS.has(event.aggregation)) {
+      errors.push(`aggregation must be one of: ${[...VALID_AGGREGATIONS].join(', ')} (got: ${event.aggregation})`);
     }
-
-    // Nullify roleblocked players' selections (treat as abstain)
-    if (eventId !== EventId.BLOCK) {
-      for (const actorId of Object.keys(results)) {
-        const actor = this.getPlayer(actorId);
-        if (actor && actor.isRoleblocked) {
-          results[actorId] = null;
-        }
-      }
+    if (errors.length > 0) {
+      throw new Error(`[Game] Invalid event definition for "${eventId}": ${errors.join('; ')}`);
     }
+  }
 
-    // Resolve the event
-    const resolution = event.resolve(results, this);
+  // ── resolveEvent helpers ────────────────────────────────────────────────
 
-    // Check if this is a runoff situation
-    if (resolution.runoff === true) {
-      // Don't clear event or player states - trigger runoff instead
-      this.addLog(resolution.message);
-      return this.triggerRunoff(eventId, resolution.frontrunners);
+  // Returns an error string if responses are incomplete, null if ready to resolve.
+  _checkResponsesComplete(force, event, results, participants) {
+    if (force || event.allowAbstain) return null;
+    const pending = participants.length - Object.keys(results).length;
+    return pending > 0 ? `Waiting for ${pending} more responses` : null;
+  }
+
+  // Nullify selections from roleblocked players (treat as abstain).
+  // The block event itself is exempt — roleblocking a roleblocker is intentional.
+  _applyRoleblocks(results, eventId) {
+    if (eventId === EventId.BLOCK) return;
+    for (const actorId of Object.keys(results)) {
+      const actor = this.getPlayer(actorId);
+      if (actor?.isRoleblocked) results[actorId] = null;
     }
+  }
 
-    // Note: Governor pardon is now handled by GovernorPardonFlow
-
-    // Clear player event state and consume items that granted event participation
+  // Sync player display state, remove them from the event, and consume any
+  // item that granted their participation (only on a non-abstain result).
+  // Sync must happen BEFORE clearFromEvent so getActiveResult() can still read
+  // the final selection; clearing first would flip the display to WAITING.
+  _cleanupParticipants(participants, eventId, results) {
     for (const pid of participants) {
       const player = this.getPlayer(pid);
-      if (player) {
-        // Sync before clearing so getActiveResult() can still read the final result
-        // (confirmed target or null for abstain). Clearing first would cause the
-        // player to display WAITING instead of ABSTAINED/CONFIRMED.
-        player.syncState(this);
-        player.clearFromEvent(eventId);
-
-        // Check if player participated via an item (not just their role)
-        // Only consume if they actually submitted a result (not abstained)
-        if (results[pid] !== undefined && results[pid] !== null) {
-          const grantingItem = player.inventory.find(
-            (item) => item.startsEvent === eventId && item.uses > 0,
-          );
-          if (grantingItem) {
-            this.consumeItem(pid, grantingItem.id);
-          }
-        }
+      if (!player) continue;
+      player.syncState(this);
+      player.clearFromEvent(eventId);
+      if (results[pid] !== undefined && results[pid] !== null) {
+        const grantingItem = player.inventory.find(
+          item => item.startsEvent === eventId && item.uses > 0,
+        );
+        if (grantingItem) this.consumeItem(pid, grantingItem.id);
       }
     }
+  }
 
-    // Handle resolution
+  // Finalise a successful resolution: remove the event, log, and push its slide.
+  _commitResolution(eventId, resolution) {
     this.activeEvents.delete(eventId);
     this.clearEventTimer(eventId);
-
     if (!resolution.silent) {
       this.eventResults.push(resolution);
       this.addLog(resolution.message);
     }
-
-    // Push result slide if defined
     if (resolution.slide) {
       const jumpTo = resolution.immediateSlide !== false;
-      // Use queueDeathSlide for death slides (handles hunter revenge automatically)
+      // Use queueDeathSlide for death slides — handles hunter revenge automatically.
       if (resolution.slide.type === 'death') {
         this.queueDeathSlide(resolution.slide, jumpTo);
       } else {
         this.pushSlide(resolution.slide, jumpTo);
       }
     }
+  }
 
-    // Send private results (e.g., seer investigations)
-    if (resolution.investigations) {
-      for (const inv of resolution.investigations) {
-        const seer = this.getPlayer(inv.seerId);
-        if (seer) {
-          seer.lastEventResult = { message: inv.privateMessage, critical: true };
-          seer.send(ServerMsg.EVENT_RESULT, {
-            eventId: EventId.INVESTIGATE,
-            message: inv.privateMessage,
-            data: inv,
-          });
-        }
+  // Deliver private investigation results to individual seers.
+  _dispatchPrivateResults(resolution) {
+    if (!resolution.investigations) return;
+    for (const inv of resolution.investigations) {
+      const seer = this.getPlayer(inv.seerId);
+      if (seer) {
+        seer.lastEventResult = { message: inv.privateMessage, critical: true };
+        seer.send(ServerMsg.EVENT_RESULT, {
+          eventId: EventId.INVESTIGATE,
+          message: inv.privateMessage,
+          data: inv,
+        });
       }
     }
+  }
 
-    // Check win condition
-    const winner = this.checkWinCondition();
-    if (winner) {
-      this.endGame(winner);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  resolveEvent(eventId, { force = false } = {}) {
+    const instance = this.activeEvents.get(eventId);
+    if (!instance) return { success: false, error: 'Event not active' };
+
+    const { event, results, participants } = instance;
+
+    const responseError = this._checkResponsesComplete(force, event, results, participants);
+    if (responseError) return { success: false, error: responseError };
+
+    // Vote/customEvent show tally slide first; resolution is deferred to _onSlideActivated.
+    if (eventId === EventId.VOTE || eventId === EventId.CUSTOM_EVENT) {
+      return this.showTallyAndDeferResolution(eventId, instance);
     }
 
-    this.broadcastGameState();
+    this._applyRoleblocks(results, eventId);
 
+    const resolution = event.resolve(results, this);
+
+    // Runoff: don't clear player state — event stays active with new candidates.
+    if (resolution.runoff === true) {
+      this.addLog(resolution.message);
+      return this.triggerRunoff(eventId, resolution.frontrunners);
+    }
+
+    // Note: Governor pardon is handled by GovernorPardonFlow.
+
+    this._cleanupParticipants(participants, eventId, results);
+    this._commitResolution(eventId, resolution);
+    this._dispatchPrivateResults(resolution);
+
+    const winner = this.checkWinCondition();
+    if (winner) this.endGame(winner);
+
+    this.broadcastGameState();
     return { success: true, resolution };
   }
 
@@ -1917,6 +1904,23 @@ export class Game {
       }
     }
     return null;
+  }
+
+  /**
+   * Called when a player's last connection closes.
+   * Gives active flows a chance to auto-resolve rather than hanging indefinitely.
+   * @param {Player} player
+   */
+  notifyFlowsOfDisconnect(player) {
+    for (const flow of this.flows.values()) {
+      if (!flow.isActive()) continue;
+      const result = flow.onPlayerDisconnect(player);
+      if (result) {
+        this._executeFlowResult(result);
+        this.broadcastGameState();
+        break; // Only one flow can be active at a time
+      }
+    }
   }
 
   /**

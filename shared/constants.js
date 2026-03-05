@@ -232,7 +232,8 @@ export const MAX_PLAYERS = 10;
 export const AUTO_ADVANCE_DELAY = 3000; // 3 seconds
 
 // Debug mode - enables testing tools
-export const DEBUG_MODE = true;
+// Auto-enabled outside production; set NODE_ENV=production to disable
+export const DEBUG_MODE = process.env.NODE_ENV !== 'production';
 
 // Use pixel glyph icons instead of native emoji on Screen slides
 export const USE_PIXEL_GLYPHS = true;

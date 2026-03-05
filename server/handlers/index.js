@@ -13,6 +13,14 @@ import { getEvent } from '../definitions/events.js';
 import { getItem } from '../definitions/items.js';
 import { getRole } from '../definitions/roles.js';
 
+// Wraps a handler so it only runs when the connection is authenticated as host.
+function requireHost(fn) {
+  return (ws, payload) => {
+    if (ws.clientType !== 'host') return { success: false, error: 'Not host' }
+    return fn(ws, payload)
+  }
+}
+
 export function createHandlers(game) {
   const handlers = {
     // === Connection Handlers ===
@@ -283,96 +291,40 @@ export function createHandlers(game) {
 
     // === Host Actions ===
 
-    [ClientMsg.START_GAME]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.startGame();
-    },
+    [ClientMsg.START_GAME]: requireHost(() => game.startGame()),
 
-    [ClientMsg.START_EVENT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.startEvent(payload.eventId);
-    },
+    [ClientMsg.START_EVENT]: requireHost((ws, payload) => game.startEvent(payload.eventId)),
 
-    [ClientMsg.START_ALL_EVENTS]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.startAllEvents();
-    },
+    [ClientMsg.START_ALL_EVENTS]: requireHost(() => game.startAllEvents()),
 
-    [ClientMsg.CREATE_CUSTOM_EVENT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-
+    [ClientMsg.CREATE_CUSTOM_EVENT]: requireHost((ws, payload) => {
       const { mechanism, rewardType, rewardParam, description } = payload;
-
       return game.createCustomEvent({
         mechanism: mechanism || 'vote',
         rewardType,
         rewardParam,
         description,
       });
-    },
+    }),
 
-    [ClientMsg.RESOLVE_EVENT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.resolveEvent(payload.eventId);
-    },
+    [ClientMsg.RESOLVE_EVENT]: requireHost((ws, payload) => game.resolveEvent(payload.eventId)),
 
-    [ClientMsg.RESOLVE_ALL_EVENTS]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.resolveAllEvents();
-    },
+    [ClientMsg.RESOLVE_ALL_EVENTS]: requireHost(() => game.resolveAllEvents()),
 
-    [ClientMsg.SKIP_EVENT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.skipEvent(payload.eventId);
-    },
+    [ClientMsg.SKIP_EVENT]: requireHost((ws, payload) => game.skipEvent(payload.eventId)),
 
-    [ClientMsg.RESET_EVENT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.resetEvent(payload.eventId);
-    },
+    [ClientMsg.RESET_EVENT]: requireHost((ws, payload) => game.resetEvent(payload.eventId)),
 
-    [ClientMsg.START_EVENT_TIMER]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.startAllEventTimers(payload.duration);
-    },
+    [ClientMsg.START_EVENT_TIMER]: requireHost((ws, payload) => game.startAllEventTimers(payload.duration)),
 
-    [ClientMsg.NEXT_PHASE]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.nextPhase();
-    },
+    [ClientMsg.NEXT_PHASE]: requireHost(() => game.nextPhase()),
 
-    [ClientMsg.END_GAME]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.END_GAME]: requireHost((ws, payload) => {
       game.endGame(payload?.winner || null);
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.RESET_GAME]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.RESET_GAME]: requireHost(() => {
       game.reset();
       // Broadcast to ALL clients so orphaned player connections clear stale state
       game.broadcast(ServerMsg.PLAYER_STATE, null);
@@ -381,106 +333,63 @@ export function createHandlers(game) {
       game.broadcastGameState();
       game.broadcastSlides();
       return { success: true };
-    },
+    }),
 
     // === Slide Controls ===
 
-    [ClientMsg.NEXT_SLIDE]: (ws) => {
-      // Only host can advance slides (screens no longer auto-advance)
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-
+    // Only host can advance slides (screens no longer auto-advance)
+    [ClientMsg.NEXT_SLIDE]: requireHost(() => {
       game.nextSlide();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.PREV_SLIDE]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.PREV_SLIDE]: requireHost(() => {
       game.prevSlide();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.PUSH_SLIDE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.PUSH_SLIDE]: requireHost((ws, payload) => {
       game.pushSlide(payload.slide, payload.jumpTo);
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.CLEAR_SLIDES]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.CLEAR_SLIDES]: requireHost(() => {
       game.clearSlides();
       return { success: true };
-    },
+    }),
 
     // === Player Management ===
 
-    [ClientMsg.CHANGE_ROLE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.CHANGE_ROLE]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
       const role = getRole(payload.roleId);
-      if (!role) {
-        return { success: false, error: 'Role not found' };
-      }
+      if (!role) return { success: false, error: 'Role not found' };
       const oldRoleName = player.role?.name || 'None';
       player.assignRole(role);
       game.addLog(`${player.getNameWithEmoji()} role changed: ${oldRoleName} → ${role.name}`);
       game.broadcastGameState();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.PRE_ASSIGN_ROLE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.preAssignRole(payload.playerId, payload.roleId);
-    },
+    [ClientMsg.PRE_ASSIGN_ROLE]: requireHost((ws, payload) => game.preAssignRole(payload.playerId, payload.roleId)),
 
-    [ClientMsg.RANDOMIZE_ROLES]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.randomizeRoles();
-    },
+    [ClientMsg.RANDOMIZE_ROLES]: requireHost(() => game.randomizeRoles()),
 
-    [ClientMsg.KICK_PLAYER]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.removePlayer(payload.playerId);
-    },
+    [ClientMsg.KICK_PLAYER]: requireHost((ws, payload) => game.removePlayer(payload.playerId)),
 
-    [ClientMsg.KILL_PLAYER]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.KILL_PLAYER]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
       game.killPlayer(payload.playerId, 'host');
       game.addLog(`${player.getNameWithEmoji()} killed by host`);
       // Queue death slide (queueDeathSlide handles hunter revenge automatically)
       game.queueDeathSlide(game.createDeathSlide(player, 'host'), true);
       game.broadcastGameState();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.REVIVE_PLAYER]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.REVIVE_PLAYER]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
       if (player) {
         game.revivePlayer(payload.playerId, 'host');
@@ -488,48 +397,34 @@ export function createHandlers(game) {
         return { success: true };
       }
       return { success: false, error: 'Player not found' };
-    },
+    }),
 
-    [ClientMsg.SET_PLAYER_PORTRAIT]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-
+    [ClientMsg.SET_PLAYER_PORTRAIT]: requireHost((ws, payload) => {
       // Validate portrait filename (alphanumeric + .png, no path traversal)
       if (!/^[a-zA-Z0-9_-]+\.png$/.test(payload.portrait)) {
         return { success: false, error: 'Invalid portrait' };
       }
 
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
 
       player.portrait = payload.portrait;
       game.persistPlayerCustomization(player);
       game.broadcastPlayerList();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.GIVE_ITEM]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.GIVE_ITEM]: requireHost((ws, payload) => {
       const result = game.giveItem(payload.playerId, payload.itemId);
       if (result.success) {
         game.broadcastGameState();
       }
       return result;
-    },
+    }),
 
-    [ClientMsg.REMOVE_ITEM]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.REMOVE_ITEM]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
       const removed = player.removeItem(payload.itemId);
       if (removed) {
         game.addLog(`${player.getNameWithEmoji()} lost ${payload.itemId}`);
@@ -537,91 +432,56 @@ export function createHandlers(game) {
         return { success: true };
       }
       return { success: false, error: 'Item not found in inventory' };
-    },
+    }),
 
     // === Lobby Tutorial Slides ===
 
-    [ClientMsg.PUSH_COMP_SLIDE]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.pushCompSlide();
-    },
+    [ClientMsg.PUSH_COMP_SLIDE]: requireHost(() => game.pushCompSlide()),
 
-    [ClientMsg.PUSH_ROLE_TIP_SLIDE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.pushRoleTipSlide(payload.roleId);
-    },
+    [ClientMsg.PUSH_ROLE_TIP_SLIDE]: requireHost((ws, payload) => game.pushRoleTipSlide(payload.roleId)),
 
-    [ClientMsg.PUSH_ITEM_TIP_SLIDE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
-      return game.pushItemTipSlide(payload.itemId);
-    },
+    [ClientMsg.PUSH_ITEM_TIP_SLIDE]: requireHost((ws, payload) => game.pushItemTipSlide(payload.itemId)),
 
     // === Game Presets ===
 
-    [ClientMsg.LIST_GAME_PRESETS]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.LIST_GAME_PRESETS]: requireHost((ws) => {
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.SAVE_GAME_PRESET]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.SAVE_GAME_PRESET]: requireHost((ws, payload) => {
       const { name, timerDuration, autoAdvanceEnabled, overwriteId } = payload;
       game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, overwriteId);
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.LOAD_GAME_PRESET]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.LOAD_GAME_PRESET]: requireHost((ws, payload) => {
       const result = game.loadGamePreset(payload.id);
-      if (!result) {
-        return { success: false, error: 'Preset not found' };
-      }
+      if (!result) return { success: false, error: 'Preset not found' };
       send(ws, ServerMsg.GAME_PRESET_LOADED, result);
       game.broadcastGameState();
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.DELETE_GAME_PRESET]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.DELETE_GAME_PRESET]: requireHost((ws, payload) => {
       game.deleteGamePreset(payload.id);
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets());
       return { success: true };
-    },
+    }),
 
     // === Host Settings ===
 
-    [ClientMsg.SAVE_HOST_SETTINGS]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.SAVE_HOST_SETTINGS]: requireHost((ws, payload) => {
       game.saveHostSettings(payload);
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.SET_DEFAULT_PRESET]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.SET_DEFAULT_PRESET]: requireHost((ws, payload) => {
       game.setDefaultPreset(payload.id);
       send(ws, ServerMsg.HOST_SETTINGS, game.getHostSettings());
       return { success: true };
-    },
+    }),
 
     // === Heartbeat ===
 
@@ -640,19 +500,11 @@ export function createHandlers(game) {
       return { success: true };
     },
 
-    [ClientMsg.TOGGLE_HEARTBEAT_MODE]: (ws) => {
-      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
-      return game.toggleHeartbeatMode();
-    },
+    [ClientMsg.TOGGLE_HEARTBEAT_MODE]: requireHost(() => game.toggleHeartbeatMode()),
 
-    [ClientMsg.PUSH_HEARTBEAT_SLIDE]: (ws, payload) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.PUSH_HEARTBEAT_SLIDE]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
       const bpm = player.heartbeat?.bpm || 0;
       const fake = player.heartbeat?.fake ?? false;
       game.pushSlide({
@@ -665,7 +517,7 @@ export function createHandlers(game) {
         style: SlideStyle.HOSTILE,
       }, true);
       return { success: true };
-    },
+    }),
 
     // === Operator Terminal ===
 
@@ -704,45 +556,33 @@ export function createHandlers(game) {
       return { success: true };
     },
 
-    [ClientMsg.OPERATOR_SEND]: (ws) => {
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.OPERATOR_SEND]: requireHost(() => {
       game.operatorSend();
       return { success: true };
-    },
+    }),
 
     // === Scores ===
 
-    [ClientMsg.SET_SCORE]: (ws, payload) => {
-      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
+    [ClientMsg.SET_SCORE]: requireHost((ws, payload) => {
       if (typeof payload.name !== 'string' || typeof payload.score !== 'number') {
         return { success: false, error: 'Invalid payload' };
       }
       game.setScore(payload.name, payload.score);
       return { success: true };
-    },
+    }),
 
-    [ClientMsg.PUSH_SCORE_SLIDE]: (ws) => {
-      if (ws.clientType !== 'host') return { success: false, error: 'Not host' };
+    [ClientMsg.PUSH_SCORE_SLIDE]: requireHost(() => {
       game.pushScoreSlide();
       return { success: true };
-    },
+    }),
 
     // === Debug Actions ===
 
-    [ClientMsg.DEBUG_AUTO_SELECT]: (ws, payload) => {
-      if (!DEBUG_MODE) {
-        return { success: false, error: 'Debug mode not enabled' };
-      }
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.DEBUG_AUTO_SELECT]: requireHost((ws, payload) => {
+      if (!DEBUG_MODE) return { success: false, error: 'Debug mode not enabled' };
 
       const player = game.getPlayer(payload.playerId);
-      if (!player) {
-        return { success: false, error: 'Player not found' };
-      }
+      if (!player) return { success: false, error: 'Player not found' };
 
       // Find active event for this player
       let eventId = null;
@@ -753,9 +593,7 @@ export function createHandlers(game) {
         }
       }
 
-      if (!eventId) {
-        return { success: false, error: 'Player has no active event' };
-      }
+      if (!eventId) return { success: false, error: 'Player has no active event' };
 
       const instance = game.activeEvents.get(eventId);
       const event = instance.event;
@@ -775,21 +613,14 @@ export function createHandlers(game) {
       game.recordSelection(player.id, randomTarget.id);
 
       return { success: true, action: 'selected', targetId: randomTarget.id };
-    },
+    }),
 
-    [ClientMsg.DEBUG_AUTO_SELECT_ALL]: (ws, payload) => {
-      if (!DEBUG_MODE) {
-        return { success: false, error: 'Debug mode not enabled' };
-      }
-      if (ws.clientType !== 'host') {
-        return { success: false, error: 'Not host' };
-      }
+    [ClientMsg.DEBUG_AUTO_SELECT_ALL]: requireHost((ws, payload) => {
+      if (!DEBUG_MODE) return { success: false, error: 'Debug mode not enabled' };
 
       const { eventId } = payload;
       const instance = game.activeEvents.get(eventId);
-      if (!instance) {
-        return { success: false, error: 'Event not active' };
-      }
+      if (!instance) return { success: false, error: 'Event not active' };
 
       const { event, participants, results } = instance;
       let autoSelectedCount = 0;
@@ -821,7 +652,7 @@ export function createHandlers(game) {
       }
 
       return { success: true, autoSelectedCount };
-    },
+    }),
   };
 
   return handlers;

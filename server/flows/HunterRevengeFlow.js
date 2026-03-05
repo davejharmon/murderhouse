@@ -199,6 +199,25 @@ export class HunterRevengeFlow extends InterruptFlow {
   }
 
   /**
+   * Hunter disconnected with no remaining connections.
+   * Auto-resolve with a random target so the game doesn't hang.
+   * @param {Player} player
+   * @returns {Object|null}
+   */
+  onPlayerDisconnect(player) {
+    if (!this.state || player.id !== this.state.hunterId) return null;
+    const targets = this.getValidTargets(player.id);
+    if (targets.length === 0) {
+      // No valid targets — skip the revenge quietly.
+      this.cleanup();
+      return { success: true, kills: [], slides: [], log: `${player.getNameWithEmoji()} disconnected — revenge cancelled` };
+    }
+    const target = targets[Math.floor(Math.random() * targets.length)];
+    this.game.addLog(`${player.getNameWithEmoji()} disconnected — revenge auto-resolved`);
+    return this.resolve(target.id);
+  }
+
+  /**
    * Clean up flow state
    */
   cleanup() {

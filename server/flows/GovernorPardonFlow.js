@@ -280,6 +280,28 @@ export class GovernorPardonFlow extends InterruptFlow {
   }
 
   /**
+   * A governor disconnected with no remaining connections.
+   * If ALL governors are now disconnected, auto-execute (treat as abstain).
+   * @param {Player} player
+   * @returns {Object|null}
+   */
+  onPlayerDisconnect(player) {
+    if (!this.state || !this.state.governorIds.includes(player.id)) return null;
+    // Only auto-execute if every governor has fully disconnected
+    const anyStillConnected = this.state.governorIds.some(gid => {
+      if (gid === player.id) return false; // this one just disconnected
+      const g = this.game.getPlayer(gid);
+      return g && g.connections.length > 0;
+    });
+    if (anyStillConnected) return null;
+    const condemned = this.game.getPlayer(this.state.condemnedId);
+    const governor = player; // use disconnecting player as the "decider" for logging
+    if (!condemned) { this.cleanup(); return null; }
+    this.game.addLog(`${player.getNameWithEmoji()} disconnected — pardon cancelled`);
+    return this.resolveExecution(governor, condemned);
+  }
+
+  /**
    * Clean up flow state
    */
   cleanup() {
