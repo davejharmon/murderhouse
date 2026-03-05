@@ -1,6 +1,9 @@
 // server/Game.js
 // Core game state machine and logic
 
+// Sentinel value that distinguishes "cache empty" from "no winner (null)".
+const WIN_CACHE_EMPTY = Symbol('WIN_CACHE_EMPTY');
+
 import {
   GamePhase,
   Team,
@@ -137,6 +140,9 @@ export class Game {
 
     // Log
     this.log = [];
+
+    // Win condition cache — invalidated by killPlayer, revivePlayer, role/item changes
+    this._winCache = WIN_CACHE_EMPTY;
 
     // Operator terminal
     this.operatorWords = [];
@@ -1827,7 +1833,13 @@ export class Game {
 
   // === Win Conditions ===
 
+  _invalidateWinCache() {
+    this._winCache = WIN_CACHE_EMPTY;
+  }
+
   checkWinCondition() {
+    if (this._winCache !== WIN_CACHE_EMPTY) return this._winCache;
+
     const alive = this.getAlivePlayers();
     const werewolves = alive.filter((p) => p.role.team === Team.WEREWOLF);
     // Cowards can't vote, so they provide no effective voting power to the village.
@@ -1835,15 +1847,12 @@ export class Game {
     // blocked by unvotable village members.
     const villagers = alive.filter((p) => p.role.team === Team.VILLAGE && !p.hasItem('coward'));
 
-    if (werewolves.length === 0) {
-      return Team.VILLAGE;
-    }
+    let result = null;
+    if (werewolves.length === 0) result = Team.VILLAGE;
+    else if (werewolves.length >= villagers.length) result = Team.WEREWOLF;
 
-    if (werewolves.length >= villagers.length) {
-      return Team.WEREWOLF;
-    }
-
-    return null;
+    this._winCache = result;
+    return result;
   }
 
   endGame(winner) {
@@ -2038,6 +2047,7 @@ export class Game {
     }
 
     player.kill(cause);
+    this._invalidateWinCache();
     this._deathQueue.push({ player, cause });
 
     // Re-entrant call (from linked death or flow): just queue, don't process
@@ -2061,6 +2071,7 @@ export class Game {
   _recruitProspect(player) {
     player.removeItem(ItemId.PROSPECT);
     player.assignRole(getRole(RoleId.WEREWOLF));
+    this._invalidateWinCache(); // Team changed
     player.lastEventResult = { message: 'TEAM CHANGED', detail: 'You were recruited by the wolves', critical: true };
     this.addLog(`${player.getNameWithEmoji()} was recruited by the werewolves`);
     this.broadcastPackState(); // syncs all wolves including the new recruit
@@ -2099,6 +2110,7 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player) return false;
     player.revive(cause);
+    this._invalidateWinCache();
     this.addLog(`${player.getNameWithEmoji()} revived`);
     return true;
   }
@@ -2115,6 +2127,7 @@ export class Game {
     }
 
     player.addItem(itemDef);
+    if (itemId === ItemId.COWARD) this._invalidateWinCache();
     this.addLog(`${player.getNameWithEmoji()} received ${itemDef.name}`);
 
     if (itemId === 'coward') {
@@ -2133,6 +2146,16 @@ export class Game {
     return { success: true };
   }
 
+  // Host-initiated item removal (invalidates win cache for coward).
+  // Returns true if item was found and removed.
+  removeItem(playerId, itemId) {
+    const player = this.getPlayer(playerId);
+    if (!player) return false;
+    const removed = player.removeItem(itemId);
+    if (removed && itemId === ItemId.COWARD) this._invalidateWinCache();
+    return removed;
+  }
+
   consumeItem(playerId, itemId) {
     const player = this.getPlayer(playerId);
     if (!player) return false;
@@ -2140,6 +2163,7 @@ export class Game {
     const depleted = player.useItem(itemId);
     if (depleted) {
       player.removeItem(itemId);
+      if (itemId === ItemId.COWARD) this._invalidateWinCache();
     }
     return true;
   }
@@ -2711,11 +2735,11 @@ export class Game {
   // === Logging ===
 
   addLog(message) {
-    const entry = {
-      timestamp: Date.now(),
-      message,
-    };
+    const entry = { timestamp: Date.now(), message };
     this.log.push(entry);
-    this.broadcast(ServerMsg.LOG, this.log.slice(-50)); // Last 50 entries
+    // Trim server-side log to prevent unbounded growth (keep last 500)
+    if (this.log.length > 500) this.log.splice(0, this.log.length - 500);
+    // Send only the new entry — clients append. Full snapshot sent on HOST_CONNECT.
+    this.broadcast(ServerMsg.LOG_APPEND, [entry]);
   }
 }

@@ -279,12 +279,6 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 
 
-### Low Impact
-
-1. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
-
-2. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
-
 ### Fixed
 
 - ~~**`Screen.jsx` is a 1200-line monolith**~~ — All 14 slide types extracted into individual components under `client/src/components/slides/`. `Screen.jsx` is now ~145 lines. A `/slides` dev tool at `/slides` lets you preview all slide types with mock data and edit strings live.
@@ -302,6 +296,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**Magic numbers in BPM colour function**~~ — Extracted `BPM_COLOR` constants in `slideUtils.js` with explanatory names.
 - ~~**Flow result shape undocumented**~~ — Added `@typedef FlowResult` JSDoc at the top of `InterruptFlow.js` documenting all fields and their semantics.
 - ~~**Item consumption rules are implicit**~~ — Documented `IMMEDIATE / ON_RESOLVE / ON_TRIGGER` consumption timing in `server/definitions/items.js` schema comment with concrete examples per item type.
+- ~~**Win condition polling**~~ — `checkWinCondition()` now caches its result via a `Symbol` sentinel; cache invalidates on kill, revive, role change, and coward item give/remove. `removeItem()` promoted to a game-level method so removal always flows through a single invalidating path.
+- ~~**Log broadcasting**~~ — Server `addLog()` broadcasts `LOG_APPEND` with a single entry array (instead of full log on every state change); client appends to local log state. Full `LOG` snapshot still sent on initial connect. Server trims log to 500 entries; client trims to 200.
 
 ## Improvements
 

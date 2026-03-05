@@ -111,6 +111,13 @@ export function GameProvider({ children }) {
         setLog(payload);
         break;
 
+      case ServerMsg.LOG_APPEND:
+        setLog(prev => {
+          const next = [...prev, ...payload];
+          return next.length > 200 ? next.slice(-200) : next;
+        });
+        break;
+
       case ServerMsg.EVENT_TIMER:
         if (payload.duration != null) {
           setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration, duration: payload.duration } }));

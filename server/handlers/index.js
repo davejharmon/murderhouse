@@ -367,6 +367,7 @@ export function createHandlers(game) {
       if (!role) return { success: false, error: 'Role not found' };
       const oldRoleName = player.role?.name || 'None';
       player.assignRole(role);
+      game._invalidateWinCache(); // Team may have changed
       game.addLog(`${player.getNameWithEmoji()} role changed: ${oldRoleName} → ${role.name}`);
       game.broadcastGameState();
       return { success: true };
@@ -425,7 +426,7 @@ export function createHandlers(game) {
     [ClientMsg.REMOVE_ITEM]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);
       if (!player) return { success: false, error: 'Player not found' };
-      const removed = player.removeItem(payload.itemId);
+      const removed = game.removeItem(payload.playerId, payload.itemId);
       if (removed) {
         game.addLog(`${player.getNameWithEmoji()} lost ${payload.itemId}`);
         game.broadcastGameState();

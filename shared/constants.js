@@ -33,7 +33,8 @@ export const ServerMsg = {
   EVENT_PROMPT: 'eventPrompt',
   EVENT_RESULT: 'eventResult',
   PHASE_CHANGE: 'phaseChange',
-  LOG: 'log',
+  LOG: 'log',           // Full snapshot (sent on initial connect)
+  LOG_APPEND: 'logAppend', // Incremental — one or more new entries
   GAME_PRESETS: 'gamePresets',
   GAME_PRESET_LOADED: 'gamePresetLoaded',
   HOST_SETTINGS: 'hostSettings',
