@@ -310,9 +310,9 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ## Bugs
 
-- VILLAGER/WEREWOLF should have different colours to kill/hunt actions
+- ~~**Role tip slide: team badge colours clash with action badge colours**~~ — Fixed: team badge now has a subtle background fill (`teamColor + '28'` alpha), making it visually distinct from the outline-only ability badges even when they share the same hue.
+- ~~**Poison death slide uses 'POISONED' suffix — should use 'KILLED'**~~ — Fixed: `createDeathSlide` now maps cause `'poison'` to `death.suffixKilled`, hiding the kill mechanism.
+- ~~**Death slides can be auto-advanced past**~~ — Fixed: `createDeathSlide` now sets `skipProtected: true`; the auto-advance logic in `Host.jsx` skips slides with that flag.
+- ~~**Operator slide auto-advances before animation completes**~~ — Fixed: auto-advance delay for operator slides is computed as `max(AUTO_ADVANCE_DELAY, START_DELAY + (N-1)*WORD_INTERVAL + 180 + 1000ms grace)`.
 - replace emojis with fancy pixel art - in progress could look better
 - janitor is missing a glyph
-- Poisoned victim should not say 'poisoned' on death - more generic
-- poison death will be skipped if you go next phase
-- Scrubbing back / auto advance broken on ghost message

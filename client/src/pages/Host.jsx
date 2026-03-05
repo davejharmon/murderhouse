@@ -10,6 +10,7 @@ import {
   AUTO_ADVANCE_DELAY,
 } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
+import ScreenPreview from '../components/ScreenPreview';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
 import GameLog from '../components/GameLog';
@@ -54,6 +55,7 @@ export default function Host() {
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
   const [showHeartbeat, setShowHeartbeat] = useState(false);
+  const [showScreenPreview, setShowScreenPreview] = useState(false);
 
   // Mobile tab navigation
   const [mobileTab, setMobileTab] = useState(TAB_PLAYERS);
@@ -130,11 +132,19 @@ export default function Host() {
     prevQueueLengthRef.current = queue.length;
 
     const canAdvance = currentIndex < queue.length - 1;
+    const currentSlide = queue[currentIndex];
 
-    if (canAdvance && !autoAdvancePausedRef.current) {
+    if (canAdvance && !autoAdvancePausedRef.current && !currentSlide?.skipProtected) {
+      // For operator slides, wait until the word-reveal animation finishes
+      let delay = AUTO_ADVANCE_DELAY;
+      if (currentSlide?.type === 'operator') {
+        const words = currentSlide.words ?? [];
+        const animDone = 1600 + Math.max(0, words.length - 1) * 1100 + 180;
+        delay = Math.max(delay, animDone + 1000);
+      }
       autoAdvanceTimerRef.current = setTimeout(() => {
         send(ClientMsg.NEXT_SLIDE);
-      }, AUTO_ADVANCE_DELAY);
+      }, delay);
     }
 
     return () => {
@@ -552,7 +562,18 @@ export default function Host() {
       {/* Desktop layout (3-column grid) */}
       <div className={styles.layout}>
         <aside className={styles.sidebar}>{controlsPanel}</aside>
-        <main className={styles.main}>{playersPanel}</main>
+        <main className={styles.main}>
+          <div className={styles.screenPreviewBar}>
+            <button
+              className={styles.screenPreviewToggle}
+              onClick={() => setShowScreenPreview((v) => !v)}
+            >
+              {showScreenPreview ? '▲' : '▼'} SCREEN
+            </button>
+          </div>
+          {showScreenPreview && <ScreenPreview />}
+          {playersPanel}
+        </main>
         <aside className={styles.logPanel}>
           <GameLog entries={log} />
         </aside>

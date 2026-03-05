@@ -2244,7 +2244,7 @@ export class Game {
       hunter:     `${teamName} ${killed}`,
       heartbreak: `${teamName} ${str('slides', 'death.suffixHeartbroken')}`,
       host:       `${teamName} ${str('slides', 'death.suffixRemoved')}`,
-      poison:     `${teamName} ${str('slides', 'death.suffixPoisoned')}`,
+      poison:     `${teamName} ${killed}`,
     };
 
     const subtitles = {
@@ -2266,6 +2266,7 @@ export class Game {
       revealRole: true,
       hostKill: cause === 'host',
       style: SlideStyle.HOSTILE,
+      skipProtected: true,
     };
   }
 

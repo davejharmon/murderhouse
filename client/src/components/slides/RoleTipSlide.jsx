@@ -30,7 +30,7 @@ export default function RoleTipSlide({ slide, strings = SLIDE_STRINGS.roleTip })
       <div className={styles.badgeRow}>
         <div
           className={styles.teamBadge}
-          style={{ borderColor: teamColor, color: teamColor }}
+          style={{ borderColor: teamColor, color: teamColor, backgroundColor: teamColor + '28' }}
         >
           {teamLabel}
         </div>
