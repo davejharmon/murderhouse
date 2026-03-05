@@ -529,6 +529,7 @@ export function createHandlers(game) {
     },
 
     [ClientMsg.TOGGLE_HEARTBEAT_MODE]: requireHost(() => game.toggleHeartbeatMode()),
+    [ClientMsg.TOGGLE_FAKE_HEARTBEATS]: requireHost(() => game.toggleFakeHeartbeats()),
 
     [ClientMsg.PUSH_HEARTBEAT_SLIDE]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);

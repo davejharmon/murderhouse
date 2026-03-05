@@ -152,6 +152,11 @@ export class Game {
     // Heartbeat mode
     this.heartbeatMode = false;
     this.heartbeatSpikesThisDay = new Set();
+
+    // Fake heartbeat simulation
+    this._fakeHeartbeats = false;
+    this._fakeHeartbeatTimer = null;
+    this._fakeHeartbeatSimState = {};
   }
 
   // === Player Management ===
@@ -2429,6 +2434,69 @@ export class Game {
     return { success: true, heartbeatMode: this.heartbeatMode };
   }
 
+  toggleFakeHeartbeats() {
+    this._fakeHeartbeats = !this._fakeHeartbeats;
+    if (this._fakeHeartbeats) {
+      this._fakeHeartbeatSimState = {};
+      this._fakeHeartbeatTimer = setInterval(() => this._tickFakeHeartbeats(), 1500);
+    } else {
+      clearInterval(this._fakeHeartbeatTimer);
+      this._fakeHeartbeatTimer = null;
+      // Zero out fake heartbeats on all players
+      for (const player of this.players.values()) {
+        if (player.heartbeat?.fake) {
+          player.heartbeat = { bpm: 0, active: false, fake: false, lastUpdate: Date.now() };
+        }
+      }
+      this.broadcastGameState();
+    }
+    return { success: true, fakeHeartbeats: this._fakeHeartbeats };
+  }
+
+  _initFakeSimState() {
+    const base = 60 + Math.random() * 20;
+    return { base, current: base, mode: 'normal', spikeTarget: 0, spikeTicks: 0 };
+  }
+
+  _tickFakeSimState(s) {
+    if (s.mode === 'normal') {
+      if (Math.random() < 0.005) {
+        s.mode = 'spiking';
+        s.spikeTarget = 112 + Math.random() * 20;
+        s.spikeTicks = 5 + Math.floor(Math.random() * 5);
+      } else {
+        const drift = (s.base - s.current) * 0.15;
+        s.current = Math.round(s.current + drift + (Math.random() * 6 - 3));
+        s.current = Math.max(54, Math.min(100, s.current));
+      }
+    } else if (s.mode === 'spiking') {
+      s.current = Math.round(s.current + (s.spikeTarget - s.current) * 0.5);
+      s.spikeTicks--;
+      if (s.spikeTicks <= 0) s.mode = 'recovering';
+    } else if (s.mode === 'recovering') {
+      s.current = Math.round(s.current + (s.base - s.current) * 0.15);
+      if (Math.abs(s.current - s.base) < 3) {
+        s.current = Math.round(s.base);
+        s.mode = 'normal';
+      }
+    }
+    return s;
+  }
+
+  _tickFakeHeartbeats() {
+    for (const player of this.players.values()) {
+      // Don't override real heartbeats
+      if (player.heartbeat?.active && !player.heartbeat?.fake) continue;
+      if (!this._fakeHeartbeatSimState[player.id]) {
+        this._fakeHeartbeatSimState[player.id] = this._initFakeSimState();
+      }
+      const s = this._tickFakeSimState(this._fakeHeartbeatSimState[player.id]);
+      player.heartbeat = { bpm: s.current, active: true, fake: true, lastUpdate: Date.now() };
+      this._checkHeartbeatModeSpike(player);
+    }
+    this.broadcastGameState();
+  }
+
   _checkHeartbeatModeSpike(player) {
     if (!this.heartbeatMode) return;
     if (this.phase !== GamePhase.DAY) return;
@@ -2596,6 +2664,7 @@ export class Game {
       eventRespondents: this.getEventRespondentsMap(),
       heartbeatMode: this.heartbeatMode,
       heartbeatThreshold: this._hostSettings.heartbeatThreshold ?? 110,
+      fakeHeartbeats: this._fakeHeartbeats,
     };
   }
 

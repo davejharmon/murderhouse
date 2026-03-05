@@ -112,6 +112,7 @@ export const ClientMsg = {
   HEARTBEAT: 'heartbeat',
   PUSH_HEARTBEAT_SLIDE: 'pushHeartbeatSlide',
   TOGGLE_HEARTBEAT_MODE: 'toggleHeartbeatMode',
+  TOGGLE_FAKE_HEARTBEATS: 'toggleFakeHeartbeats',
 
   // Operator terminal
   OPERATOR_JOIN: 'operatorJoin',

@@ -34,6 +34,8 @@ export default function SettingsModal({
   onToggleAutoAdvance,
   heartbeatThreshold,
   onHeartbeatThresholdChange,
+  fakeHeartbeats = false,
+  onToggleFakeHeartbeats,
   connectedPlayers = [],
   scores = {},
   onSetScore,
@@ -142,6 +144,16 @@ export default function SettingsModal({
               title='BPM above this value triggers the panic vote-loss effect'
             />
             <span className={styles.timerUnit}>BPM</span>
+          </div>
+          <div className={styles.toggle}>
+            <label>
+              <input
+                type='checkbox'
+                checked={fakeHeartbeats}
+                onChange={(e) => onToggleFakeHeartbeats(e.target.checked)}
+              />
+              <span>FAKE HEARTBEATS</span>
+            </label>
           </div>
         </section>
 

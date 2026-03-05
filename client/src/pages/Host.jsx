@@ -530,6 +530,8 @@ export default function Host() {
         onToggleAutoAdvance={handleToggleAutoAdvance}
         heartbeatThreshold={heartbeatThreshold}
         onHeartbeatThresholdChange={handleHeartbeatThresholdChange}
+        fakeHeartbeats={gameState?.fakeHeartbeats ?? false}
+        onToggleFakeHeartbeats={() => send(ClientMsg.TOGGLE_FAKE_HEARTBEATS)}
         connectedPlayers={gameState?.players ?? []}
         scores={scores}
         onSetScore={handleSetScore}
