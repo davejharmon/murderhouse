@@ -334,7 +334,7 @@ function renderDisplay(ctx, display, color, line2Color = null, iconColors = null
 export default function TinyScreen({ display, compact = false }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
-  const criticalPlayedRef = useRef(false)
+  const criticalSeenRef = useRef(new Set()) // keys of critical content already flashed
   const prevIconsRef = useRef(null)   // previous icon state for change detection
   const iconBlinkRef = useRef({})     // { slotIndex: startTimestamp } for active blinks
 
@@ -442,14 +442,13 @@ export default function TinyScreen({ display, compact = false }) {
     }
 
     // Determine what needs animating
-    const needsLineBlink = style === 'critical' && !criticalPlayedRef.current
+    const criticalKey = display?.line2?.text || ''
+    const needsLineBlink = style === 'critical' && !criticalSeenRef.current.has(criticalKey)
     const hasIconBlinks = Object.keys(iconBlinkRef.current).length > 0
 
-    // Update critical tracking
-    if (style !== 'critical') {
-      criticalPlayedRef.current = false
-    } else if (needsLineBlink) {
-      criticalPlayedRef.current = true
+    // Mark this critical content as seen so re-visits don't re-flash
+    if (needsLineBlink) {
+      criticalSeenRef.current.add(criticalKey)
     }
 
     if (!needsLineBlink && !hasIconBlinks) {

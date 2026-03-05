@@ -261,7 +261,14 @@ void displayRender(const DisplayState& state) {
         return;
     }
 
-    int blinkCycles = (state.line2.style == DisplayStyle::CRITICAL) ? 3 : 1;
+    // Critical content only flashes on first display — track seen text so
+    // scrolling away and back does not re-trigger the blink animation.
+    static std::string lastCriticalText = "";
+    bool isCritical = state.line2.style == DisplayStyle::CRITICAL;
+    bool isNewCritical = isCritical && state.line2.text != lastCriticalText;
+    if (isCritical) lastCriticalText = state.line2.text;
+
+    int blinkCycles = isNewCritical ? 3 : 1;
 
     for (int blink = 0; blink < blinkCycles; blink++) {
         if (blink > 0) {
