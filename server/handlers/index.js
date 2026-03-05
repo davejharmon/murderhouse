@@ -311,8 +311,8 @@ export function createHandlers(game) {
         return { success: false, error: 'Item cannot be activated' };
       }
 
-      // Start the event (this will check phase, participants, etc.)
-      const result = game.startEvent(itemDef.startsEvent);
+      // Start the event for this player only — not all eligible participants
+      const result = game.startEventForPlayer(itemDef.startsEvent, player.id);
       return result;
     },
 

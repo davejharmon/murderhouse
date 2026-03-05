@@ -973,6 +973,58 @@ export class Game {
     return { success: true };
   }
 
+  // Start (or join) an event on behalf of a single player activating an item.
+  // Unlike startEvent(), this does NOT sweep in all eligible participants — only the
+  // activating player is added.  If the event is already active (e.g. the seer's
+  // INVESTIGATE is running), the player is appended to its participant list and
+  // notified without restarting the event.
+  startEventForPlayer(eventId, playerId) {
+    const event = getEvent(eventId);
+    if (!event) return { success: false, error: 'Event not found' };
+
+    const player = this.getPlayer(playerId);
+    if (!player || !player.isAlive) return { success: false, error: 'Player not eligible' };
+
+    // Enforce phase restriction
+    if (event.phase && !event.phase.includes(this.phase)) {
+      return { success: false, error: `Not available during ${this.phase} phase` };
+    }
+
+    const notify = () => {
+      this._notifyEventParticipants(
+        eventId,
+        [playerId],
+        p => event.validTargets(p, this),
+        { eventName: event.name, description: event.description, allowAbstain: event.allowAbstain !== false },
+      );
+      this.broadcastGameState();
+    };
+
+    if (this.activeEvents.has(eventId)) {
+      // Event already running — add this player if not already in it
+      const instance = this.activeEvents.get(eventId);
+      if (!instance.participants.includes(playerId)) {
+        instance.participants.push(playerId);
+      }
+      notify();
+      return { success: true };
+    }
+
+    // Start a fresh event with only this player
+    this._assertValidEventDef(event, eventId);
+    const eventInstance = {
+      event,
+      results: {},
+      participants: [playerId],
+      startedAt: Date.now(),
+    };
+    this.activeEvents.set(eventId, eventInstance);
+    this.pendingEvents = this.pendingEvents.filter(id => id !== eventId);
+    notify();
+    this.addLog(str('log', 'eventStarted', { name: event.name }));
+    return { success: true };
+  }
+
   startAllEvents() {
     const started = [];
     for (const eventId of [...this.pendingEvents]) {
