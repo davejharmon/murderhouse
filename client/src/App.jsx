@@ -7,6 +7,8 @@ import Host from './pages/Host';
 import Screen from './pages/Screen';
 import DebugGrid from './pages/DebugGrid';
 import Operator from './pages/Operator';
+import SlideEditor from './pages/SlideEditor';
+import StringSheets from './pages/StringSheets';
 import './styles/global.css';
 
 export default function App() {
@@ -20,6 +22,8 @@ export default function App() {
           <Route path="/screen" element={<Screen />} />
           <Route path="/debug" element={<DebugGrid />} />
           <Route path="/operator" element={<Operator />} />
+          <Route path="/slides" element={<SlideEditor />} />
+          <Route path="/strings" element={<StringSheets />} />
         </Routes>
       </BrowserRouter>
     </GameProvider>

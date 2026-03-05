@@ -1,0 +1,216 @@
+/* client/src/pages/SlideEditor.module.css */
+
+.editor {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #0a0c0f;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+.sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid #1e2530;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebarHeader {
+  padding: 12px 14px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: #556;
+  border-bottom: 1px solid #1e2530;
+}
+
+.sidebarItem {
+  background: none;
+  border: none;
+  border-bottom: 1px solid #1a1e26;
+  color: #8899aa;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.sidebarItem:hover {
+  background: #141820;
+  color: #ccd;
+}
+
+.sidebarItemActive {
+  background: #111520;
+  color: #7eb8da;
+  border-left: 2px solid #7eb8da;
+}
+
+/* ── Preview ──────────────────────────────────────────────────────── */
+.preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid #1e2530;
+}
+
+/* Replicates slideWrapper without position:absolute — contained in flex layout */
+.previewFrame {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0a0c0f 0%, #141820 100%);
+}
+
+.werewolfBg {
+  background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
+}
+
+.heartbeatBg {
+  background: linear-gradient(180deg, #1a0808 0%, #0a0c0f 100%);
+}
+
+.variantTabs {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #1e2530;
+  flex-shrink: 0;
+}
+
+.variantTab {
+  background: #0d1017;
+  border: none;
+  border-right: 1px solid #1e2530;
+  color: #667;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.variantTab:hover {
+  background: #141820;
+  color: #aab;
+}
+
+.variantTabActive {
+  background: #111520;
+  color: #7eb8da;
+  border-bottom: 2px solid #7eb8da;
+}
+
+/* ── String panel ─────────────────────────────────────────────────── */
+.stringPanel {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.stringPanelHeader {
+  padding: 12px 14px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: #556;
+  border-bottom: 1px solid #1e2530;
+  flex-shrink: 0;
+}
+
+.noStrings {
+  padding: 16px 14px;
+  font-size: 11px;
+  color: #445;
+  font-style: italic;
+}
+
+.stringGroup {
+  padding: 10px 0;
+  border-bottom: 1px solid #1a1e26;
+}
+
+.stringGroupLabel {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: #445;
+  text-transform: uppercase;
+  padding: 0 14px 6px;
+}
+
+.stringField {
+  padding: 3px 14px;
+}
+
+.stringLabel {
+  display: block;
+  font-size: 10px;
+  color: #667;
+  margin-bottom: 2px;
+}
+
+.stringInput {
+  width: 100%;
+  background: #0d1017;
+  border: 1px solid #2a3040;
+  color: #ccd;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.1s;
+}
+
+.stringInput:focus {
+  border-color: #7eb8da;
+}
+
+.stringActions {
+  margin-top: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #1e2530;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  background: #141820;
+  border: 1px solid #2a3040;
+  color: #8899aa;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.actionBtn:hover {
+  background: #1a2030;
+  color: #ccd;
+  border-color: #7eb8da;
+}
+
+.actionBtnReset:hover {
+  border-color: #c94c4c;
+  color: #c94c4c;
+}
+
+.unknown {
+  padding: 20px;
+  color: #c94c4c;
+  font-size: 14px;
+}

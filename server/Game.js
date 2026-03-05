@@ -56,6 +56,10 @@ export class Game {
     // Debounced broadcast for rapid dial input (selection changes)
     this._broadcastDebounceTimer = null;
 
+    // Microtask coalescing: multiple broadcastGameState() calls in the same
+    // synchronous tick schedule a single actual send on the next microtask.
+    this._broadcastScheduled = false;
+
     this.presetRolePool = null;
 
     this.reset();
@@ -1407,6 +1411,10 @@ export class Game {
     for (const pid of participants) {
       const player = this.getPlayer(pid);
       if (player) {
+        // Sync before clearing so getActiveResult() can still read the final result
+        // (confirmed target or null for abstain). Clearing first would cause the
+        // player to display WAITING instead of ABSTAINED/CONFIRMED.
+        player.syncState(this);
         player.clearFromEvent(eventId);
 
         // Check if player participated via an item (not just their role)
@@ -1419,9 +1427,6 @@ export class Game {
             this.consumeItem(pid, grantingItem.id);
           }
         }
-
-        // Send updated player state so UI refreshes
-        player.syncState(this);
       }
     }
 
@@ -2398,7 +2403,20 @@ export class Game {
 
   // === Broadcasting ===
 
+  // Schedule a game state broadcast. Multiple calls within the same synchronous
+  // execution context are coalesced into a single send on the next microtask,
+  // avoiding redundant serialisation when one handler path calls several
+  // state-mutating methods that each broadcast.
   broadcastGameState() {
+    if (this._broadcastScheduled) return;
+    this._broadcastScheduled = true;
+    queueMicrotask(() => {
+      this._broadcastScheduled = false;
+      this._executeBroadcast();
+    });
+  }
+
+  _executeBroadcast() {
     // Send public state to each player (not host - they get host state below)
     const publicState = this.getGameState({ audience: 'public' });
     for (const player of this.players.values()) {
@@ -2420,9 +2438,8 @@ export class Game {
     this.sendToScreen(ServerMsg.GAME_STATE, publicState);
   }
 
-  // Debounced version of broadcastGameState for rapid dial input.
-  // Fires immediately on first call, then coalesces subsequent calls
-  // within the debounce window into a single trailing broadcast.
+  // Debounced version for rapid dial input: coalesces calls within a 120 ms
+  // window so the host panel doesn't flicker on every encoder tick.
   debouncedBroadcastGameState(delayMs = 120) {
     if (this._broadcastDebounceTimer) {
       clearTimeout(this._broadcastDebounceTimer)

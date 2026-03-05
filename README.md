@@ -270,19 +270,45 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### High Impact
 
-_(none currently)_
+1. **String catalog coverage is incomplete on the server side** — `client/src/strings/gameStrings.js` catalogs ~200 user-visible strings, and `client/src/strings/index.js` provides `getStr(cat, key)` for runtime lookup from localStorage overrides. However, server-side strings (all `addLog()` calls, event resolution messages, slide text built in `events.js` and flows) are still hardcoded template literals. There is no server-side analogue of `getStr()`. A `str(cat, key, tokens)` helper in `server/strings.js` that reads from a shared JSON catalog (or the same `gameStrings.js` via `@shared`) would make the catalog complete and auditable with a single grep. Without this, the `/strings` tool can display server-side strings but cannot apply edits back to running game logic.
+
+2. **Most client pages still hardcode strings** — Only `Landing.jsx` currently reads strings via `getStr()`. `Host.jsx`, `Player.jsx`, `PlayerConsole.jsx`, and the slide components in `client/src/components/slides/` all still hardcode their display text. Wiring these to the catalog is mechanical but has not been done.
 
 ### Medium Impact
 
-5. **No event definition validation** — `resolveEvent()` doesn't validate that all required participants have responded before resolving. Missing a required response silently produces unexpected results. Runtime schema validation on event definitions would catch misconfigurations early.
+2. **Interrupt flows don't handle player disconnect** (`server/flows/HunterRevengeFlow.js`, `GovernorPardonFlow.js`) — If the hunter or governor disconnects before selecting, the pending event hangs indefinitely. The `on('close')` handler already calls `removeConnection`, but flows are never notified. Needs an auto-abstain hook wired to the player `close` event.
+
+3. **Host-auth check repeated 40+ times** (`server/handlers/index.js`) — Every host-only handler contains `if (ws.clientType !== 'host') return { success: false, error: 'Not host' }`. Easy to accidentally omit on a new handler. Wrap registration in a `requireHost(fn)` decorator that applies the guard automatically.
+
+4. **`resolveEvent()` does too much** (`server/Game.js` ~115 lines) — Validation, tally/runoff, roleblock nullification, event resolution, participant cleanup, item consumption, slide queueing, and win checks all live in one method. Hard to test in isolation. Extract into focused private helpers.
+
+5. **No event definition validation** — `resolveEvent()` has no runtime schema check that the event definition is well-formed (participants populated, valid aggregation type, etc.). A silent misconfiguration produces unexpected results with no error.
+
+6. **No WebSocket reconnect backoff** (`client/src/context/GameContext.jsx`) — Reconnect is a flat 2-second retry with no cap. On a prolonged disconnection this hammers the server indefinitely. Implement exponential backoff (e.g. 2 s → 4 s → 8 s → 30 s max).
+
+7. **`DEBUG_MODE` hardcoded to `true`** (`shared/constants.js`) — Debug routes and auto-select buttons are always on. Note: `shared/constants.js` is imported by both Vite and Node, so a single `process.env.NODE_ENV !== 'production'` check works in both environments. Low urgency for a local game; important before any networked deployment.
 
 ### Low Impact
 
-6. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
+8. **Duplicate event startup code** (`server/Game.js`) — `startEvent()`, `_startFlowEvent()`, and `_startCustomEvent()` each independently collect participants, clear selections, send prompts, and push slides. A shared `_startEventCore()` helper would remove ~60 lines of duplication.
 
-7. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
+9. **Win condition polling** — `checkWinConditions()` runs after every kill, phase transition, and vote resolution. It re-scans all players each time. Could cache the result and only invalidate on death/resurrection.
 
-8. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
+10. **Log broadcasting** — The server broadcasts the last 50 log entries to all clients on every state change. Append-only log streaming would reduce payload size.
+
+11. **Item consumption rules are implicit** — Different events consume items at different points (on resolution vs. on selection for player-initiated events). An explicit `ItemConsumption` policy (IMMEDIATE, ON_RESOLVE, NEVER) on event definitions would make this clearer.
+
+12. **Flow result shape undocumented** (`server/flows/`) — `HunterRevengeFlow` and `GovernorPardonFlow` both return `{ kills, slides, consumeItems, log }` but with subtly different field usage. A `FlowResult` shape comment at the top of `InterruptFlow.js` would help future flows conform.
+
+13. **Magic numbers in BPM colour function** (`client/src/pages/Screen.jsx`) — Thresholds `0.7`, hue `55`, saturation `80`, and lightness values are inline literals with no explanation. Extract to named constants.
+
+### Fixed
+
+- ~~**`Screen.jsx` is a 1200-line monolith**~~ — All 14 slide types extracted into individual components under `client/src/components/slides/`. `Screen.jsx` is now ~145 lines. A `/slides` dev tool at `/slides` lets you preview all slide types with mock data and edit strings live.
+- ~~**`broadcastGameState()` called excessively**~~ — Schedules via `queueMicrotask()` with a `_broadcastScheduled` flag; multiple calls per synchronous handler now coalesce into one send.
+- ~~**ABSTAINED state lost on fast event resolve**~~ — `player.syncState()` now called before `player.clearFromEvent()` in `resolveEvent` so `getActiveResult()` can read the null result and display ABSTAINED correctly.
+- ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`.
+- ~~**No error handling around file I/O**~~ — Read paths have try/catch with safe fallbacks; write failures are caught by the top-level handler try/catch in `handleMessage`.
 
 ## Improvements
 

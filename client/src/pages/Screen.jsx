@@ -1,344 +1,25 @@
 // client/src/pages/Screen.jsx
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useGame } from '../context/GameContext';
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import { useGame } from '../context/GameContext'
+import { SlideType } from '@shared/constants.js'
 import {
-  SlideType,
-  SlideStyle,
-  SlideStyleColors,
-  GamePhase,
-  PlayerStatus,
-  USE_PIXEL_GLYPHS,
-} from '@shared/constants.js';
-import PixelGlyph from '../components/PixelGlyph';
-import styles from './Screen.module.css';
-
-// BPM colour: neutral white below 80% of threshold, ramps yellow→orange→red up to threshold,
-// solid danger red above it.
-function bpmColor(bpm, threshold) {
-  if (bpm >= threshold) return '#ff3333';
-  const start = threshold * 0.7;
-  if (bpm <= start) return 'rgba(255,255,255,0.75)';
-  const t = (bpm - start) / (threshold - start); // 0 → 1
-  const hue = Math.round(55 * (1 - t));           // 55° yellow → 0° red
-  const sat = Math.round(80 + t * 20);
-  const lit = Math.round(65 - t * 15);
-  return `hsl(${hue}, ${sat}%, ${lit}%)`;
-}
-
-// Animated BPM counter — ticks one integer at a time toward the target value,
-// showing every intermediate number so jumps look like an analog needle sweep.
-function AnimatedBpm({ value, threshold }) {
-  const [displayed, setDisplayed] = useState(value);
-  const displayedRef = useRef(value);
-  const targetRef = useRef(value);
-
-  targetRef.current = value;
-
-  useEffect(() => {
-    const tick = setInterval(() => {
-      const target = targetRef.current;
-      const current = displayedRef.current;
-      if (current === target) return;
-      const next = current + Math.sign(target - current);
-      displayedRef.current = next;
-      setDisplayed(next);
-    }, 30);
-    return () => clearInterval(tick);
-  }, []);
-
-  return (
-    <span
-      className={`${styles.thumbBpm} ${displayed >= threshold ? styles.thumbBpmDanger : ''}`}
-      style={{ color: bpmColor(displayed, threshold) }}
-    >{displayed}</span>
-  );
-}
-
-// Compute font-size so a title string never wraps. .slide has 5vw side padding
-// → 90vw available. Monospace + letter-spacing:0.1em ≈ 0.65× font-size per char.
-function fitFontSize(text, maxVw = 8) {
-  if (!text) return `${maxVw}vw`;
-  const sized = 90 / (String(text).length * 0.65);
-  return `${Math.min(maxVw, sized).toFixed(2)}vw`;
-}
-
-// BPM history ring buffer — stores {time, bpm} samples for the trend graph
-const BPM_HISTORY_DURATION = 30000; // 30 seconds visible on graph
-const BPM_SAMPLE_INTERVAL = 200;    // Record a point every 200ms
-
-function HeartbeatGraph({ bpm, active }) {
-  const canvasRef = useRef(null);
-  const animRef = useRef(null);
-  const bpmRef = useRef(bpm || 72);
-  const activeRef = useRef(active);
-  const historyRef = useRef([]);
-  const lastSampleRef = useRef(0);
-
-  bpmRef.current = bpm;
-  activeRef.current = active;
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
-    const PAD_TOP = 30;
-    const PAD_BOT = 20;
-    const graphH = H - PAD_TOP - PAD_BOT;
-
-    const startTime = performance.now();
-    historyRef.current = [{ time: startTime, bpm: bpmRef.current }];
-    lastSampleRef.current = startTime;
-
-    const draw = (now) => {
-      const currentBpm = bpmRef.current;
-      const isActive = activeRef.current;
-
-      if (now - lastSampleRef.current >= BPM_SAMPLE_INTERVAL) {
-        historyRef.current.push({ time: now, bpm: isActive ? currentBpm : -1 });
-        lastSampleRef.current = now;
-        const cutoff = now - BPM_HISTORY_DURATION - 2000;
-        while (historyRef.current.length > 2 && historyRef.current[0].time < cutoff) {
-          historyRef.current.shift();
-        }
-      }
-
-      const history = historyRef.current;
-      const yMin = 50;
-      const yMax = 180;
-      const yRange = yMax - yMin;
-      const bpmToY = (v) => PAD_TOP + graphH - ((v - yMin) / yRange) * graphH;
-      const timeToX = (t) => ((t - (now - BPM_HISTORY_DURATION)) / BPM_HISTORY_DURATION) * W;
-
-      ctx.fillStyle = 'rgba(10, 12, 15, 1)';
-      ctx.fillRect(0, 0, W, H);
-
-      // Grid lines
-      ctx.strokeStyle = 'rgba(201, 76, 76, 0.08)';
-      ctx.lineWidth = 1;
-      const gridStep = 20;
-      const gridStart = Math.ceil(yMin / gridStep) * gridStep;
-      ctx.font = '16px monospace';
-      ctx.fillStyle = 'rgba(201, 76, 76, 0.25)';
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      for (let v = gridStart; v <= yMax; v += gridStep) {
-        const gy = bpmToY(v);
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(W, gy);
-        ctx.stroke();
-        ctx.fillText(String(v), W - 8, gy);
-      }
-
-      // Trend line
-      ctx.lineWidth = 4;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-
-      let inSegment = false;
-      let lastActiveY = bpmToY(currentBpm > 0 ? currentBpm : (yMin + yMax) / 2);
-
-      for (let i = 0; i < history.length; i++) {
-        const pt = history[i];
-        const x = timeToX(pt.time);
-        if (x < -20) continue;
-        if (pt.bpm < 0) {
-          if (inSegment) { ctx.stroke(); ctx.shadowBlur = 0; inSegment = false; }
-          continue;
-        }
-        const y = bpmToY(pt.bpm);
-        lastActiveY = y;
-        if (!inSegment) {
-          ctx.beginPath();
-          ctx.strokeStyle = '#c94c4c';
-          ctx.shadowColor = '#c94c4c';
-          ctx.shadowBlur = 16;
-          ctx.moveTo(x, y);
-          inSegment = true;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      if (inSegment) { ctx.stroke(); ctx.shadowBlur = 0; }
-
-      // Leading dot
-      if (isActive && history.length > 0) {
-        const lastPt = history[history.length - 1];
-        const x = timeToX(lastPt.time);
-        const y = lastPt.bpm > 0 ? bpmToY(lastPt.bpm) : lastActiveY;
-        ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fillStyle = '#ff6b6b';
-        ctx.shadowColor = '#ff6b6b';
-        ctx.shadowBlur = 24;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      // SIGNAL LOST overlay
-      if (!isActive) {
-        const flatY = H / 2;
-        ctx.strokeStyle = 'rgba(201, 76, 76, 0.3)';
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([12, 8]);
-        ctx.beginPath();
-        ctx.moveTo(0, flatY);
-        ctx.lineTo(W, flatY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        const blink = Math.sin(now / 500) > 0;
-        if (blink) {
-          ctx.font = 'bold 40px monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(201, 76, 76, 0.8)';
-          ctx.fillText('SIGNAL LOST', W / 2, H / 2);
-        }
-      }
-
-      animRef.current = requestAnimationFrame(draw);
-    };
-
-    animRef.current = requestAnimationFrame(draw);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={1200}
-      height={300}
-      className={styles.heartbeatCanvas}
-    />
-  );
-}
-
-function HeartbeatSlide({ slide, gameState }) {
-  // Live data from gameState
-  const livePlayer = gameState?.players?.find(p => p.id === slide.playerId);
-  const liveActive = livePlayer?.heartbeat?.active ?? true;
-  const liveBpm = liveActive ? (livePlayer?.heartbeat?.bpm || slide.bpm || 72) : 0;
-  const isDebug = livePlayer?.heartbeat?.fake ?? slide.fake ?? false;
-
-  return (
-    <div className={`${styles.slide} ${styles.heartbeatSlide}`}>
-      <div className={styles.heartbeatHeader}>
-        <div className={styles.portraitWrap}>
-          <img
-            src={`/images/players/${slide.portrait}`}
-            alt={slide.playerName}
-            className={styles.heartbeatPortrait}
-          />
-          {livePlayer?.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
-        </div>
-        <span className={styles.heartbeatName}>{slide.playerName}</span>
-        {isDebug && <span className={styles.heartbeatDebugBadge}>DEBUG</span>}
-      </div>
-      {slide.title && (
-        <p className={styles.heartbeatSlideTitle}>{slide.title}</p>
-      )}
-      <HeartbeatGraph bpm={liveBpm} active={liveActive} />
-      <div className={styles.heartbeatBpmRow}>
-        <span className={`${styles.heartbeatBpm} ${!liveActive ? styles.heartbeatBpmLost : ''}`}>
-          {liveActive ? liveBpm : '—'}
-        </span>
-        <span className={styles.heartbeatLabel}>BPM</span>
-      </div>
-      {slide.subtitle && (
-        <p className={styles.heartbeatSlideSubtitle}>{slide.subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-// Glitch characters — box-drawing + punctuation noise
-const GLITCH_CHARS = '#@$!?%/\\|=~░▒▓╬╪';
-
-function OperatorReveal({ words, slideId }) {
-  const WORD_INTERVAL  = 1100;  // ms between word reveals
-  const GLITCH_DURATION = 480;  // ms of glitch before each word settles
-  const FLICKER_MS     = 65;    // ms between glitch text redraws
-  const START_DELAY    = 1600;  // wait for eyebrow to appear
-
-  const [phases, setPhases]           = useState(() => words.map(() => 'hidden'));
-  const [glitchTexts, setGlitchTexts] = useState(() => words.map(() => ''));
-  const [glitchStyles, setGlitchStyles] = useState(() => words.map(() => ({})));
-
-  useEffect(() => {
-    // Reset on new slide
-    setPhases(words.map(() => 'hidden'));
-    setGlitchTexts(words.map(() => ''));
-    setGlitchStyles(words.map(() => ({})));
-
-    const clearFns = [];
-
-    words.forEach((word, i) => {
-      // Slight per-word jitter so it doesn't feel metronomic
-      const jitter = Math.floor(Math.random() * 180);
-      const glitchAt = START_DELAY + i * WORD_INTERVAL + jitter - GLITCH_DURATION;
-      const revealAt = START_DELAY + i * WORD_INTERVAL + jitter;
-
-      // Begin glitch phase
-      const glitchTimer = setTimeout(() => {
-        setPhases(prev => { const n = [...prev]; n[i] = 'glitch'; return n; });
-
-        const iid = setInterval(() => {
-          // Random-length noise string
-          const len = Math.max(1, word.length + Math.floor(Math.random() * 5) - 2);
-          let g = '';
-          for (let j = 0; j < len; j++) {
-            g += GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
-          }
-          // Chromatic aberration shift — RGB split, randomised direction each frame
-          const dx = Math.floor(Math.random() * 5 - 2);
-          const rgbShadow = Math.random() > 0.35
-            ? `${dx}px 0 rgba(255,30,80,0.85), ${-dx}px 0 rgba(0,255,190,0.85)`
-            : `0 0 10px rgba(120,255,150,0.9)`;
-          const ty = (Math.random() * 6 - 3).toFixed(1);
-
-          setGlitchTexts(prev  => { const n = [...prev]; n[i] = g; return n; });
-          setGlitchStyles(prev => {
-            const n = [...prev];
-            n[i] = { textShadow: rgbShadow, transform: `translateY(${ty}px)` };
-            return n;
-          });
-        }, FLICKER_MS);
-        clearFns.push(() => clearInterval(iid));
-      }, glitchAt);
-      clearFns.push(() => clearTimeout(glitchTimer));
-
-      // Settle to real word
-      const revealTimer = setTimeout(() => {
-        setPhases(prev => { const n = [...prev]; n[i] = 'revealed'; return n; });
-      }, revealAt);
-      clearFns.push(() => clearTimeout(revealTimer));
-    });
-
-    return () => clearFns.forEach(fn => fn());
-  }, [slideId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className={styles.operatorMessage}>
-      {words.map((word, i) => {
-        const phase = phases[i];
-        return (
-          <span
-            key={i}
-            className={`${styles.operatorWord} ${phase === 'glitch' ? styles.operatorWordGlitch : ''} ${phase === 'revealed' ? styles.operatorWordRevealed : ''}`}
-            style={phase === 'glitch' ? glitchStyles[i] : undefined}
-          >
-            {phase === 'glitch' ? glitchTexts[i] : word}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
+  FallbackSlide,
+  TitleSlide,
+  PlayerRevealSlide,
+  VoteTallySlide,
+  GallerySlide,
+  CountdownSlide,
+  DeathSlide,
+  VictorySlide,
+  CompositionSlide,
+  RoleTipSlide,
+  ItemTipSlide,
+  OperatorSlide,
+  ScoresSlide,
+  HeartbeatSlide,
+} from '../components/slides/index.js'
+import styles from './Screen.module.css'
 
 export default function Screen() {
   const {
@@ -348,843 +29,103 @@ export default function Screen() {
     slideQueue,
     eventTimers,
     connectAsScreen,
-  } = useGame();
+  } = useGame()
 
-  // Use currentSlide if available, otherwise fall back to slideQueue.current
-  // This handles timing gaps where SLIDE_QUEUE arrives but SLIDE hasn't yet
-  const effectiveSlide = currentSlide || slideQueue?.current;
+  const effectiveSlide = currentSlide || slideQueue?.current
 
-  // Debug logging
   useEffect(() => {
     console.log('[Screen] State update:', {
       connected,
       phase: gameState?.phase,
       playerCount: gameState?.players?.length,
-      currentSlide: currentSlide
-        ? { type: currentSlide.type, id: currentSlide.id }
-        : null,
-      slideQueueCurrent: slideQueue?.current
-        ? { type: slideQueue.current.type, id: slideQueue.current.id }
-        : null,
-      effectiveSlide: effectiveSlide
-        ? { type: effectiveSlide.type, id: effectiveSlide.id }
-        : null,
+      currentSlide: currentSlide ? { type: currentSlide.type, id: currentSlide.id } : null,
+      slideQueueCurrent: slideQueue?.current ? { type: slideQueue.current.type, id: slideQueue.current.id } : null,
+      effectiveSlide: effectiveSlide ? { type: effectiveSlide.type, id: effectiveSlide.id } : null,
       slideQueueLen: slideQueue?.queue?.length,
-    });
-  }, [connected, gameState, currentSlide, slideQueue, effectiveSlide]);
+    })
+  }, [connected, gameState, currentSlide, slideQueue, effectiveSlide])
 
-  // Set page title
   useEffect(() => {
-    document.title = 'Screen - MURDERHOUSE';
-  }, []);
+    document.title = 'Screen - MURDERHOUSE'
+  }, [])
 
-  // Connect as screen on mount
   useEffect(() => {
-    if (connected) {
-      connectAsScreen();
-    }
-  }, [connected, connectAsScreen]);
+    if (connected) connectAsScreen()
+  }, [connected, connectAsScreen])
 
-  // Auto-advance is now controlled by host, no per-slide auto-advance
-
-  // Get player by ID
-  const getPlayer = (id) => gameState?.players?.find((p) => p.id === id);
-
-  // Get title color from slide style
-  const getSlideColor = (slide, defaultStyle = SlideStyle.NEUTRAL) => {
-    const slideStyle = slide.style || defaultStyle;
-    return SlideStyleColors[slideStyle];
-  };
-
-  // Render slide based on type
   const renderSlide = () => {
+    const players = gameState?.players
+
     if (!effectiveSlide) {
-      console.log(
-        '[Screen] renderSlide: no effectiveSlide, rendering fallback',
-      );
-      return renderFallback();
+      console.log('[Screen] renderSlide: no effectiveSlide, rendering fallback')
+      return <FallbackSlide gameState={gameState} />
     }
-    console.log('[Screen] renderSlide:', effectiveSlide.type);
+    console.log('[Screen] renderSlide:', effectiveSlide.type)
 
     switch (effectiveSlide.type) {
       case SlideType.TITLE:
-        return renderTitle(effectiveSlide);
+        return <TitleSlide slide={effectiveSlide} players={players} />
 
-      case SlideType.PLAYER_REVEAL:
-        return renderPlayerReveal(effectiveSlide);
+      case SlideType.PLAYER_REVEAL: {
+        const player = players?.find(p => p.id === effectiveSlide.playerId)
+        if (!player) return <FallbackSlide gameState={gameState} />
+        return <PlayerRevealSlide slide={effectiveSlide} players={players} />
+      }
 
       case SlideType.VOTE_TALLY:
-        return renderVoteTally(effectiveSlide);
+        return <VoteTallySlide slide={effectiveSlide} players={players} />
 
       case SlideType.GALLERY:
-        if (effectiveSlide.timerEventId)
-          return renderTimerGallery(effectiveSlide);
-        return renderGallery(effectiveSlide);
+        return <GallerySlide slide={effectiveSlide} players={players} gameState={gameState} eventTimers={eventTimers} />
 
       case SlideType.COUNTDOWN:
-        return renderCountdown(effectiveSlide);
+        return <CountdownSlide slide={effectiveSlide} />
 
-      case SlideType.DEATH:
-        return renderDeath(effectiveSlide);
+      case SlideType.DEATH: {
+        const player = players?.find(p => p.id === effectiveSlide.playerId)
+        if (!player) return <FallbackSlide gameState={gameState} />
+        return <DeathSlide slide={effectiveSlide} players={players} />
+      }
 
       case SlideType.VICTORY:
-        return renderVictory(effectiveSlide);
+        return <VictorySlide slide={effectiveSlide} />
 
       case SlideType.COMPOSITION:
-        return renderComposition(effectiveSlide);
+        return <CompositionSlide slide={effectiveSlide} />
 
       case SlideType.ROLE_TIP:
-        return renderRoleTip(effectiveSlide);
+        return <RoleTipSlide slide={effectiveSlide} />
 
       case SlideType.ITEM_TIP:
-        return renderItemTip(effectiveSlide);
+        return <ItemTipSlide slide={effectiveSlide} />
 
       case SlideType.HEARTBEAT:
-        return <HeartbeatSlide slide={effectiveSlide} gameState={gameState} />;
+        return <HeartbeatSlide slide={effectiveSlide} gameState={gameState} />
 
       case SlideType.OPERATOR:
-        return renderOperator(effectiveSlide);
+        return <OperatorSlide slide={effectiveSlide} />
 
       case SlideType.SCORES:
-        return renderScores(effectiveSlide);
+        return <ScoresSlide slide={effectiveSlide} players={players} />
 
       default:
-        return renderTitle(effectiveSlide);
+        return <TitleSlide slide={effectiveSlide} players={players} />
     }
-  };
-
-  const renderFallback = () => {
-    const phase = gameState?.phase;
-
-    if (!phase || phase === GamePhase.LOBBY) {
-      return (
-        <div className={styles.slide}>
-          <h1 className={styles.title}>MURDERHOUSE</h1>
-          <p className={styles.subtitle}>
-            {gameState?.players?.length || 0} players connected
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className={styles.slide}>
-        <h1 className={styles.title}>
-          {phase === GamePhase.DAY
-            ? `DAY ${gameState.dayCount}`
-            : `NIGHT ${gameState.dayCount}`}
-        </h1>
-        <div className={styles.gallery}>
-          {gameState?.players?.map((p) => {
-            const isDead = p.status !== PlayerStatus.ALIVE;
-            return (
-              <div
-                key={p.id}
-                className={`${styles.playerThumb} ${isDead ? styles.dead : ''} ${p.isCowering && !isDead ? styles.cowering : ''}`}
-              >
-                <img src={`/images/players/${p.portrait}`} alt={p.name} />
-                {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
-                {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>MAD</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTitle = (slide) => {
-    const player = slide.playerId ? getPlayer(slide.playerId) : null;
-
-    return (
-      <div className={styles.slide}>
-        {player && (
-          <div className={styles.portraitWrap}>
-            <img
-              src={`/images/players/${player.portrait}`}
-              alt={player.name}
-              className={styles.largePortrait}
-            />
-            {player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
-            {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
-          </div>
-        )}
-        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
-        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-      </div>
-    );
-  };
-
-  const renderPlayerReveal = (slide) => {
-    const player = getPlayer(slide.playerId);
-    if (!player) {
-      // Player data not yet synced - show fallback
-      return renderFallback();
-    }
-
-    // Get voters who voted for this player (for vote elimination slides)
-    const voters = (slide.voterIds || []).map(getPlayer).filter(Boolean);
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        {slide.title && (
-          <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide) }}>
-            {slide.title}
-          </h1>
-        )}
-        <div className={styles.playerReveal}>
-          <div className={styles.portraitWrap}>
-            <img
-              src={`/images/players/${player.portrait}`}
-              alt={player.name}
-              className={styles.largePortrait}
-            />
-            {slide.jesterWon && <div className={styles.winnerBadgeLarge}>WINNER</div>}
-            {!slide.jesterWon && player.isCowering && <div className={styles.cowardBadgeLarge}>COWARD</div>}
-            {!slide.jesterWon && player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
-          </div>
-          {slide.subtitle ? (
-            <h2 className={styles.deathName}>{slide.subtitle}</h2>
-          ) : (
-            <h1 className={styles.title} style={{ fontSize: fitFontSize(player.name) }}>{player.name}</h1>
-          )}
-          {slide.revealRole && (player.role || slide.revealText) && (
-            <p
-              className={styles.roleReveal}
-              style={{ color: slide.revealText ? '#888' : player.roleColor }}
-            >
-              {slide.revealText || player.roleName}
-            </p>
-          )}
-        </div>
-        {voters.length > 0 && (
-          <div className={styles.votersSection}>
-            <div className={styles.votersGallery}>
-              {voters.map((voter) => (
-                <div key={voter.id} className={styles.voterThumb}>
-                  <img
-                    src={`/images/players/${voter.portrait}`}
-                    alt={voter.name}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderVoteTally = (slide) => {
-    const { tally, voters, frontrunners, anonymousVoting, title, subtitle } =
-      slide;
-
-    // Convert tally to sorted array
-    const sorted = Object.entries(tally || {})
-      .map(([id, count]) => ({
-        player: getPlayer(id),
-        count,
-        voterIds: voters?.[id] || [],
-        isFrontrunner: frontrunners?.includes(id) || false,
-      }))
-      .filter((entry) => entry.player)
-      .sort((a, b) => b.count - a.count);
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        <h1 className={styles.title} style={{ fontSize: fitFontSize(title || 'VOTES') }}>{title || 'VOTES'}</h1>
-        <div className={styles.tallyList}>
-          {sorted.map(({ player, count, voterIds, isFrontrunner }) => (
-            <div
-              key={player.id}
-              className={`${styles.tallyRow} ${isFrontrunner ? styles.tallyRowFrontrunner : ''}`}
-            >
-              <img
-                src={`/images/players/${player.portrait}`}
-                alt={player.name}
-                className={styles.tallyPortrait}
-              />
-              <span className={styles.tallyName}>{player.name}</span>
-              {anonymousVoting ? (
-                <span className={styles.tallyCount}>{count}</span>
-              ) : (
-                <div className={styles.tallyVoters}>
-                  {voterIds.map((voterId) => {
-                    const voter = getPlayer(voterId);
-                    return voter ? (
-                      <img
-                        key={voterId}
-                        src={`/images/players/${voter.portrait}`}
-                        alt={voter.name}
-                        title={voter.name}
-                        className={styles.tallyVoterPortrait}
-                      />
-                    ) : null;
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-      </div>
-    );
-  };
-
-  // Memoize dead werewolves at top level (hooks can't be inside render functions)
-  const allPlayers = gameState?.players || [];
-  const deadWerewolves = useMemo(
-    () =>
-      allPlayers
-        .filter(
-          (p) => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf',
-        )
-        .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
-    [allPlayers],
-  );
-
-  const renderGallery = (slide) => {
-    const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
-    const heartbeatMode = gameState?.heartbeatMode;
-    const heartbeatThreshold = gameState?.heartbeatThreshold ?? 110;
-
-    // targetsOnly mode: just title, subtitle, then gallery — no werewolf tracker
-    if (slide.targetsOnly) {
-      const respondentIds = gameState?.eventRespondents?.[slide.activeEventId];
-      const confirmedSet = respondentIds ? new Set(respondentIds) : null;
-
-      return (
-        <div key={slide.id} className={styles.slide}>
-          {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
-          {slide.subtitle && (
-            <p className={styles.subtitle}>{slide.subtitle}</p>
-          )}
-          <div className={styles.gallery}>
-            {players.map((p) => (
-              <div
-                key={p.id}
-                className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''} ${p.isCowering ? styles.cowering : ''}`}
-              >
-                <img src={`/images/players/${p.portrait}`} alt={p.name} />
-                {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
-                {p.hasNovote && <div className={styles.tooMadBadge}>MAD</div>}
-                {heartbeatMode && p.heartbeat?.active && (
-                  <AnimatedBpm value={p.heartbeat.bpm} threshold={heartbeatThreshold} />
-                )}
-                <span className={styles.thumbName}>{p.name}</span>
-              </div>
-            ))}
-          </div>
-          {slide.itemDescription && (
-            <p className={styles.itemFlavorText}>{slide.itemDescription}</p>
-          )}
-        </div>
-      );
-    }
-
-    // Filter out dead werewolves from main gallery
-    const playersWithoutDeadWerewolves = players.filter(
-      (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf',
-    );
-
-    // Get werewolf info from game state
-    const totalWerewolves = gameState?.totalWerewolves || 0;
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
-
-        {/* Main player gallery */}
-        <div className={styles.gallery}>
-          {playersWithoutDeadWerewolves.map((p) => {
-            const isDead = p.status !== PlayerStatus.ALIVE;
-
-            return (
-              <div
-                key={p.id}
-                className={`${styles.playerThumb} ${isDead ? styles.dead : ''} ${p.isCowering && !isDead ? styles.cowering : ''}`}
-              >
-                <img src={`/images/players/${p.portrait}`} alt={p.name} />
-                {p.isCowering && !isDead && <div className={styles.cowardBadge}>COWARD</div>}
-                {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>MAD</div>}
-                {heartbeatMode && !isDead && p.heartbeat?.active && (
-                  <AnimatedBpm value={p.heartbeat.bpm} threshold={heartbeatThreshold} />
-                )}
-                <span className={styles.thumbName}>{p.name}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-
-        {/* Werewolf tracker section - only show during active game */}
-        {totalWerewolves > 0 && gameState?.phase !== GamePhase.LOBBY && (
-          <div className={styles.werewolfTracker}>
-            <div className={styles.gallery}>
-              {Array.from({ length: totalWerewolves }).map((_, index) => {
-                const deadWerewolf = deadWerewolves[index];
-
-                if (deadWerewolf) {
-                  // Show revealed dead werewolf
-                  return (
-                    <div
-                      key={`werewolf-${index}`}
-                      className={`${styles.playerThumb} ${styles.deadWerewolf}`}
-                    >
-                      <img
-                        src={`/images/players/${deadWerewolf.portrait}`}
-                        alt={deadWerewolf.name}
-                      />
-                      <span className={styles.thumbName}>
-                        {deadWerewolf.name}
-                      </span>
-                    </div>
-                  );
-                } else {
-                  // Show anonymous placeholder
-                  return (
-                    <div
-                      key={`werewolf-${index}`}
-                      className={`${styles.playerThumb} ${styles.anonWerewolf}`}
-                    >
-                      <img
-                        src='/images/players/anon.png'
-                        alt='Unknown Werewolf'
-                      />
-                      <span className={styles.thumbName}>WEREWOLF</span>
-                    </div>
-                  );
-                }
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderCountdown = (slide) => (
-    <div key={slide.id} className={styles.slide}>
-      {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
-      <div className={styles.countdown}>{slide.seconds || 0}</div>
-      {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-    </div>
-  );
-
-  const renderDeath = (slide) => {
-    const player = getPlayer(slide.playerId);
-    if (!player) {
-      // Player data not yet synced - show fallback
-      return renderFallback();
-    }
-
-    if (slide.coward) {
-      return (
-        <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
-          <h1
-            className={styles.title}
-            style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide, SlideStyle.WARNING) }}
-          >
-            {slide.title}
-          </h1>
-          <div className={styles.deathReveal}>
-            <div className={styles.cowardPortraitWrap}>
-              <img
-                src={`/images/players/${player.portrait}`}
-                alt={player.name}
-                className={`${styles.largePortrait} ${styles.cowardPortrait}`}
-              />
-              <div className={styles.cowardBadgeLarge}>COWARD</div>
-              {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
-            </div>
-            <h2 className={styles.deathName}>{slide.subtitle}</h2>
-            {slide.revealText && (
-              <p className={styles.roleReveal} style={{ color: '#888' }}>
-                {slide.revealText}
-              </p>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
-        <h1
-          className={styles.title}
-          style={{ fontSize: fitFontSize(slide.title || 'ELIMINATED'), color: getSlideColor(slide, SlideStyle.HOSTILE) }}
-        >
-          {slide.title || 'ELIMINATED'}
-        </h1>
-        <div className={styles.deathReveal}>
-          <div className={styles.portraitWrap}>
-            <img
-              src={`/images/players/${player.portrait}`}
-              alt={player.name}
-              className={`${styles.largePortrait} ${styles.deathPortrait}`}
-            />
-            {player.hasNovote && <div className={styles.tooMadBadgeLarge}>MAD</div>}
-          </div>
-          {slide.revealRole && (player.role || slide.revealText) && (
-            <p
-              className={styles.roleReveal}
-              style={{ color: slide.revealText ? '#888' : player.roleColor }}
-            >
-              {slide.revealText || player.roleName}
-            </p>
-          )}
-          {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
-            const sortKey = (e) => {
-              if (e.team === 'village')  return e.dim ? 0 : 1;
-              if (e.team === 'neutral')  return e.dim ? 2 : 3;
-              if (e.team === 'unknown')  return 4;
-              if (e.team === 'werewolf') return e.dim ? 6 : 5;
-              return 4;
-            };
-            const sorted = [...slide.remainingComposition].sort(
-              (a, b) => sortKey(a) - sortKey(b),
-            );
-            return (
-              <div className={styles.compGallery}>
-                {sorted.map((entry, i) => (
-                  <div
-                    key={i}
-                    className={`${styles.compPortrait} ${styles[`compTeam_${entry.team}`]}`}
-                    style={entry.dim ? { opacity: 0.12 } : undefined}
-                  >
-                    <img src="/images/players/anon.png" alt="" />
-                    {entry.team === 'unknown' && <div className={styles.compUnknownMark}>?</div>}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-    );
-  };
-
-  const renderOperator = (slide) => {
-    const words = slide.words || [];
-    return (
-      <div key={slide.id} className={`${styles.slide} ${styles.operatorSlide}`}>
-        <p className={styles.operatorEyebrow}>{slide.title}</p>
-        <OperatorReveal words={words} slideId={slide.id} />
-      </div>
-    );
-  };
-
-  const renderComposition = (slide) => {
-    const { roles = [], teamCounts = {} } = slide;
-
-    const werewolfRoles = roles.filter((r) => r.team === 'werewolf');
-    const villageRoles = roles.filter((r) => r.team === 'village');
-    const unassignedCount = teamCounts.unassigned || 0;
-
-    const pluralize = (name, count) => count > 1 ? `${name}s` : name;
-
-    const renderRoleCluster = (role, index) => (
-      <div key={role.roleId} className={`${styles.compCluster} ${index > 0 ? styles.compClusterSep : ''}`}>
-        <div className={styles.compClusterEmojis}>
-          {Array(role.count)
-            .fill(null)
-            .map((_, i) => (
-              <span key={i} className={styles.compEmoji}>
-                {USE_PIXEL_GLYPHS ? (
-                  <PixelGlyph iconId={role.roleId} size="6vw">
-                    {role.roleEmoji}
-                  </PixelGlyph>
-                ) : role.roleEmoji}
-              </span>
-            ))}
-        </div>
-        <span className={styles.compLabel}>{pluralize(role.roleName, role.count)}</span>
-      </div>
-    );
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
-        <div className={styles.compRow}>
-          {werewolfRoles.length > 0 && (
-            <div className={`${styles.compGroup} ${styles.compGroupWerewolf}`}>
-              {werewolfRoles.map(renderRoleCluster)}
-            </div>
-          )}
-          {villageRoles.length > 0 && (
-            <div className={`${styles.compGroup} ${styles.compGroupVillage}`}>
-              {villageRoles.map(renderRoleCluster)}
-            </div>
-          )}
-          {unassignedCount > 0 && (
-            <div className={styles.compGroup}>
-              <div className={styles.compCluster}>
-                <div className={styles.compClusterEmojis}>
-                  {Array(unassignedCount)
-                    .fill(null)
-                    .map((_, i) => (
-                      <span key={i} className={styles.compEmoji}>
-                        👤
-                      </span>
-                    ))}
-                </div>
-                <span className={styles.compLabel}>Unassigned</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderRoleTip = (slide) => {
-    const isWerewolf = slide.team === 'werewolf';
-    const isNeutral = slide.team === 'neutral';
-    const teamColor = isWerewolf ? '#c94c4c' : isNeutral ? '#e8a020' : '#7eb8da';
-    const teamLabel = isWerewolf ? 'WEREWOLF' : isNeutral ? 'INDEPENDENT' : 'VILLAGE';
-
-    return (
-      <div
-        key={slide.id}
-        className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}
-      >
-        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
-        <div className={styles.roleEmoji}>
-          {USE_PIXEL_GLYPHS ? (
-            <PixelGlyph iconId={slide.roleId} size="15vw">
-              {slide.roleEmoji}
-            </PixelGlyph>
-          ) : slide.roleEmoji}
-        </div>
-        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.roleName), color: slide.roleColor }}>
-          {slide.roleName}
-        </h1>
-        <div className={styles.badgeRow}>
-          <div
-            className={styles.teamBadge}
-            style={{ borderColor: teamColor, color: teamColor }}
-          >
-            {teamLabel}
-          </div>
-          {[...(slide.abilities || [])]
-            .sort((a, b) => {
-              const order = { '#c94c4c': 0, '#7eb8da': 1, '#d4af37': 2 };
-              return (order[a.color] ?? 3) - (order[b.color] ?? 3);
-            })
-            .map((ability) => (
-              <div
-                key={ability.label}
-                className={styles.abilityBadge}
-                style={{ borderColor: ability.color, color: ability.color }}
-              >
-                {ability.label}
-              </div>
-            ))}
-        </div>
-        <p className={styles.roleTipText}>{slide.detailedTip}</p>
-      </div>
-    );
-  };
-
-  const renderItemTip = (slide) => {
-    const itemColor = '#d4af37';
-    const usesLabel = slide.maxUses === -1 ? 'PASSIVE' : slide.maxUses === 1 ? 'SINGLE USE' : `${slide.maxUses} USES`;
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
-        <div className={styles.roleEmoji}>
-          {USE_PIXEL_GLYPHS ? (
-            <PixelGlyph iconId={slide.itemId} size="15vw">
-              {slide.itemEmoji}
-            </PixelGlyph>
-          ) : slide.itemEmoji}
-        </div>
-        <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.itemName), color: itemColor }}>
-          {slide.itemName}
-        </h1>
-        <div className={styles.badgeRow}>
-          <div className={styles.abilityBadge} style={{ borderColor: itemColor, color: itemColor }}>
-            {usesLabel}
-          </div>
-        </div>
-        <p className={styles.roleTipText}>{slide.itemDescription}</p>
-      </div>
-    );
-  };
-
-  const renderScores = (slide) => {
-    const entries = slide.entries || [];
-    return (
-      <div key={slide.id} className={`${styles.slide} ${styles.scoreSlide}`}>
-        <h1 className={styles.scoreTitle}>{slide.title || 'SCOREBOARD'}</h1>
-        <div className={styles.scoreTable}>
-          {entries.map((entry, i) => (
-            <div key={entry.name} className={styles.scoreEntry}>
-              <span className={styles.scoreRank}>#{i + 1}</span>
-              {entry.portrait && (
-                <img
-                  src={`/images/players/${entry.portrait}`}
-                  alt={entry.name}
-                  className={styles.scorePortrait}
-                />
-              )}
-              <span className={styles.scoreEntryName}>{entry.name}</span>
-              <span className={styles.scoreEntryValue}>{entry.score}</span>
-            </div>
-          ))}
-          {entries.length === 0 && (
-            <div className={styles.scoreEmpty}>No scores yet</div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderVictory = (slide) => {
-    return (
-      <div key={slide.id} className={`${styles.slide} ${styles.victorySlide}`}>
-        <h1
-          className={styles.victoryTitle}
-          style={{ color: getSlideColor(slide) }}
-        >
-          {slide.title}
-        </h1>
-        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-        {slide.winners && slide.winners.length > 0 && (
-          <div className={styles.victoryGallery}>
-            {slide.winners.map((w) => (
-              <div
-                key={w.id}
-                className={`${styles.playerThumb} ${!w.isAlive ? styles.dead : ''}`}
-              >
-                <img src={`/images/players/${w.portrait}`} alt={w.name} />
-                <span className={styles.thumbName}>{w.name}</span>
-                <span
-                  className={styles.victoryRole}
-                  style={{ color: w.roleColor }}
-                >
-                  {w.roleName}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  }
 
   // Auto-scale slide content to fit viewport
-  const wrapperRef = useRef(null);
+  const wrapperRef = useRef(null)
   useLayoutEffect(() => {
-    const wrapper = wrapperRef.current;
-    const slide = wrapper?.firstElementChild;
-    if (!slide) return;
-
-    // Reset scale to measure natural size
-    slide.style.transform = '';
-
-    const availableH = wrapper.clientHeight;
-    const naturalH = slide.offsetHeight;
-
+    const wrapper = wrapperRef.current
+    const slide = wrapper?.firstElementChild
+    if (!slide) return
+    slide.style.transform = ''
+    const availableH = wrapper.clientHeight
+    const naturalH = slide.offsetHeight
     if (naturalH > availableH) {
-      const scale = availableH / naturalH;
-      slide.style.transform = `scale(${scale})`;
+      slide.style.transform = `scale(${availableH / naturalH})`
     }
-  }, [effectiveSlide, gameState]);
-
-  // Event timer countdown (drives radial widget on timer slides)
-  const [timerDisplay, setTimerDisplay] = useState(null); // { seconds, fraction }
-
-  useEffect(() => {
-    const entries = Object.entries(eventTimers);
-    if (entries.length === 0) {
-      setTimerDisplay(null);
-      return;
-    }
-
-    const earliest = entries.reduce(
-      (min, [, t]) => (t.endsAt < min.endsAt ? t : min),
-      entries[0][1],
-    );
-
-    const tick = () => {
-      const remaining = Math.max(0, earliest.endsAt - Date.now());
-      if (remaining <= 0) {
-        setTimerDisplay(null);
-      } else {
-        setTimerDisplay({
-          seconds: Math.ceil(remaining / 1000),
-          fraction: remaining / earliest.duration,
-        });
-      }
-    };
-
-    tick();
-    const interval = setInterval(tick, 50);
-    return () => clearInterval(interval);
-  }, [eventTimers]);
-
-  const TIMER_RADIUS = 50;
-  const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
-
-  const renderTimerGallery = (slide) => {
-    const players = (slide.playerIds || []).map(getPlayer).filter(Boolean);
-    const dashOffset = timerDisplay
-      ? TIMER_CIRCUMFERENCE * (1 - timerDisplay.fraction)
-      : TIMER_CIRCUMFERENCE;
-    const respondentIds = gameState?.eventRespondents?.[slide.timerEventId];
-    const confirmedSet = respondentIds ? new Set(respondentIds) : null;
-
-    return (
-      <div key={slide.id} className={styles.slide}>
-        {slide.title && (
-          <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title), color: getSlideColor(slide) }}>
-            {slide.title}
-          </h1>
-        )}
-
-        {timerDisplay && (
-          <div className={styles.timerWidget}>
-            <svg viewBox='0 0 120 120' className={styles.timerSvg}>
-              <circle
-                cx='60'
-                cy='60'
-                r={TIMER_RADIUS}
-                className={styles.timerTrack}
-              />
-              <circle
-                cx='60'
-                cy='60'
-                r={TIMER_RADIUS}
-                className={styles.timerFill}
-                strokeDasharray={TIMER_CIRCUMFERENCE}
-                strokeDashoffset={dashOffset}
-              />
-            </svg>
-            <span className={styles.timerSeconds}>{timerDisplay.seconds}</span>
-          </div>
-        )}
-
-        {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-
-        <div className={styles.gallery}>
-          {players.map((p) => (
-            <div
-              key={p.id}
-              className={`${styles.playerThumb} ${confirmedSet?.has(p.id) ? styles.confirmed : ''} ${p.isCowering ? styles.cowering : ''}`}
-            >
-              <img src={`/images/players/${p.portrait}`} alt={p.name} />
-              {p.isCowering && <div className={styles.cowardBadge}>COWARD</div>}
-              {p.hasNovote && <div className={styles.tooMadBadge}>MAD</div>}
-              <span className={styles.thumbName}>{p.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  }, [effectiveSlide, gameState])
 
   return (
     <div className={styles.container}>
@@ -1200,5 +141,5 @@ export default function Screen() {
         {renderSlide()}
       </div>
     </div>
-  );
+  )
 }

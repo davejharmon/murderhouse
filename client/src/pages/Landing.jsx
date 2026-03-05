@@ -1,6 +1,7 @@
 // client/src/pages/Landing.jsx
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+import { getStr } from '../strings/index.js';
 import styles from './Landing.module.css';
 
 export default function Landing() {
@@ -11,8 +12,8 @@ export default function Landing() {
     <div className={styles.container}>
       <div className={styles.content}>
         <header className={styles.header}>
-          <h1>MURDERHOUSE</h1>
-          <p className={styles.tagline}>A social deduction game</p>
+          <h1>{getStr('landing', 'title')}</h1>
+          <p className={styles.tagline}>{getStr('landing', 'tagline')}</p>
         </header>
 
         <section className={styles.links}>
@@ -30,7 +31,7 @@ export default function Landing() {
                     }`}
                   >
                     <span className={styles.playerNum}>{num}</span>
-                    {taken && <span className={styles.takenLabel}>Joined</span>}
+                    {taken && <span className={styles.takenLabel}>{getStr('landing', 'joined')}</span>}
                   </Link>
                 );
               })}
@@ -54,13 +55,25 @@ export default function Landing() {
               </Link>
             </div>
           </div>
+
+          <div className={styles.linkGroup}>
+            <h2>Tools</h2>
+            <div className={styles.controlLinks}>
+              <Link to='/slides' className={styles.controlLink}>
+                Slide Editor
+              </Link>
+              <Link to='/strings' className={styles.controlLink}>
+                String Sheets
+              </Link>
+            </div>
+          </div>
         </section>
 
         <footer className={styles.footer}>
           <div
             className={`${styles.status} ${connected ? styles.connected : ''}`}
           >
-            {connected ? '● Connected' : '○ Connecting...'}
+            {connected ? getStr('landing', 'connected') : getStr('landing', 'connecting')}
           </div>
         </footer>
       </div>

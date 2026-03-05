@@ -2,7 +2,13 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { ClientMsg, GamePhase, PlayerStatus, SlideStyle, AUTO_ADVANCE_DELAY } from '@shared/constants.js';
+import {
+  ClientMsg,
+  GamePhase,
+  PlayerStatus,
+  SlideStyle,
+  AUTO_ADVANCE_DELAY,
+} from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import EventPanel from '../components/EventPanel';
 import SlideControls from '../components/SlideControls';
@@ -283,12 +289,13 @@ export default function Host() {
     send(ClientMsg.PUSH_ITEM_TIP_SLIDE, { itemId });
 
   const handlePushPhaseSlide = () => {
-    const title = phase === GamePhase.DAY
-      ? `DAY ${gameState?.dayCount}`
-      : `NIGHT ${gameState?.dayCount}`;
+    const title =
+      phase === GamePhase.DAY
+        ? `DAY ${gameState?.dayCount}`
+        : `NIGHT ${gameState?.dayCount}`;
     const playerIds = (gameState?.players ?? [])
-      .filter(p => p.status === PlayerStatus.ALIVE)
-      .map(p => p.id);
+      .filter((p) => p.status === PlayerStatus.ALIVE)
+      .map((p) => p.id);
     send(ClientMsg.PUSH_SLIDE, {
       slide: { type: 'gallery', title, playerIds, style: SlideStyle.NEUTRAL },
       jumpTo: true,
@@ -374,7 +381,9 @@ export default function Host() {
 
           {!isLobby && !isGameOver && (
             <button onClick={handlePushPhaseSlide}>
-              {phase === GamePhase.DAY ? `DAY ${gameState?.dayCount}` : `NIGHT ${gameState?.dayCount}`}
+              {phase === GamePhase.DAY
+                ? `DAY ${gameState?.dayCount}`
+                : `NIGHT ${gameState?.dayCount}`}
             </button>
           )}
 
@@ -388,26 +397,22 @@ export default function Host() {
         </div>
       </section>
 
-      {(gameState?.players?.filter(p => p.heartbeat?.active).length >= 2) && (
+      {gameState?.players?.filter((p) => p.heartbeat?.active).length >= 2 && (
         <section className={styles.section}>
-          <button onClick={() => setShowHeartbeat(true)}>
-            ❤️ Heartbeat...
-          </button>
+          <button onClick={() => setShowHeartbeat(true)}>👤 Heartbeats</button>
         </section>
       )}
 
       <section className={styles.section}>
         <button onClick={() => setShowTutorialSlides(true)}>
-          Tutorial Slides...
+          👤 Tutorials
         </button>
-        <button onClick={handlePushScoreSlide}>
-          Scoreboard
-        </button>
+        <button onClick={handlePushScoreSlide}>🏆 Scoreboard</button>
         <button
           className={gameState?.heartbeatMode ? 'primary' : ''}
           onClick={() => send(ClientMsg.TOGGLE_HEARTBEAT_MODE)}
         >
-          {gameState?.heartbeatMode ? '❤️ Heartbeat Mode ON' : '❤️ Heartbeat Mode'}
+          ❤️ HB Mode
         </button>
       </section>
 
