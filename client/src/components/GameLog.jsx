@@ -28,11 +28,11 @@ export default function GameLog({ entries = [], autoScroll = true }) {
     <div className={styles.log}>
       <header className={styles.header}>
         <h2>Log</h2>
-        {entries.length > 10 && (
+        {entries.length > 3 && (
           <button
             className={styles.clearBtn}
-            onClick={() => setTrimmedAt(Math.max(trimmedAt, entries.length - 10))}
-            title='Keep last 10 entries'
+            onClick={() => setTrimmedAt(Math.max(trimmedAt, entries.length - 3))}
+            title='Keep last 3 entries'
           >
             Clear
           </button>

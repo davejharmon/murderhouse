@@ -55,7 +55,16 @@ export default function Host() {
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
   const [showHeartbeat, setShowHeartbeat] = useState(false);
-  const [showScreenPreview, setShowScreenPreview] = useState(false);
+  const [showScreenPreview, setShowScreenPreview] = useState(
+    () => localStorage.getItem('host.showScreenPreview') === 'true',
+  );
+  const toggleScreenPreview = (v) => {
+    setShowScreenPreview((prev) => {
+      const next = typeof v === 'boolean' ? v : !prev;
+      localStorage.setItem('host.showScreenPreview', next);
+      return next;
+    });
+  };
 
   // Mobile tab navigation
   const [mobileTab, setMobileTab] = useState(TAB_PLAYERS);
@@ -337,32 +346,28 @@ export default function Host() {
               <span className={styles.presetStatusName}>
                 {loadedPreset.name}
               </span>
-              {isDirty ? (
-                <>
-                  <span className={styles.presetStatusChanged}>changed</span>
-                  <button
-                    className={styles.presetSaveBtn}
-                    onClick={handleQuickSavePreset}
-                    title='Update preset'
-                  >
-                    💾
-                  </button>
-                </>
-              ) : (
-                <span className={styles.presetStatusUnchanged}>unchanged</span>
+              {isDirty && (
+                <button
+                  className={styles.presetSaveBtn}
+                  onClick={handleQuickSavePreset}
+                  title='Save changes'
+                >
+                  💾
+                </button>
               )}
             </div>
           )}
         </div>
         <div className={styles.navLinks}>
-          <Link to='/screen'>Screen</Link>
-          <Link to='/debug'>Debug</Link>
-          <Link to='/operator'>Operator</Link>
+          <Link to='/screen' className={styles.navIcon} title='Screen'>🖥️</Link>
+          <Link to='/debug' className={styles.navIcon} title='Debug'>🐛</Link>
+          <Link to='/operator' className={styles.navIcon} title='Operator'>👻</Link>
           <button
-            className={styles.navButton}
+            className={styles.navIcon}
             onClick={() => setShowSettings(true)}
+            title='Settings'
           >
-            Settings
+            ⚙️
           </button>
         </div>
         <div className={styles.phaseIndicator}>
@@ -374,7 +379,12 @@ export default function Host() {
       </header>
 
       <section className={styles.section}>
-        <h2>Game Control</h2>
+        <h2>
+          Game Control
+          <span className={`${styles.connectionBadge} ${connected ? styles.connected : styles.disconnected}`}>
+            {connected ? getStr('player', 'online') : getStr('player', 'offline')}
+          </span>
+        </h2>
         <div className={styles.buttonGroup}>
           {isLobby && (
             <button
@@ -541,15 +551,6 @@ export default function Host() {
         onPushHeartbeatSlide={handlePushHeartbeatSlide}
       />
 
-      {/* Connection indicator */}
-      <div
-        className={`connection-badge ${
-          connected ? 'connected' : 'disconnected'
-        }`}
-      >
-        {connected ? getStr('player', 'online') : getStr('player', 'offline')}
-      </div>
-
       {/* Notifications */}
       <div className='notifications'>
         {notifications.map((n) => (
@@ -563,16 +564,16 @@ export default function Host() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>{controlsPanel}</aside>
         <main className={styles.main}>
+          {playersPanel}
           <div className={styles.screenPreviewBar}>
             <button
               className={styles.screenPreviewToggle}
-              onClick={() => setShowScreenPreview((v) => !v)}
+              onClick={() => toggleScreenPreview()}
             >
               {showScreenPreview ? '▲' : '▼'} SCREEN
             </button>
           </div>
           {showScreenPreview && <ScreenPreview />}
-          {playersPanel}
         </main>
         <aside className={styles.logPanel}>
           <GameLog entries={log} />

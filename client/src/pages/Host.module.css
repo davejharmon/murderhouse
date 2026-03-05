@@ -145,21 +145,6 @@
   white-space: nowrap;
 }
 
-.presetStatusChanged {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: #d4af37;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-}
-
-.presetStatusUnchanged {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-}
 
 .presetSaveBtn {
   background: none;
@@ -180,38 +165,42 @@
 
 .navLinks {
   display: flex;
-  gap: var(--space-md);
+  align-items: center;
+  gap: var(--space-xs);
   margin-bottom: var(--space-sm);
 }
 
-.navLinks a {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+.navIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 3px 5px;
   text-decoration: none;
-  letter-spacing: 0.1em;
-}
-
-.navLinks a:hover {
-  color: var(--color-accent-blue);
-}
-
-.navButton {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0.1em;
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  padding: 0;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
   cursor: pointer;
+  color: var(--color-text-primary);
+  transition: background 0.15s, border-color 0.15s;
+  border-radius: var(--border-radius);
 }
 
-.navButton:hover:not(:disabled) {
-  color: var(--color-accent-blue);
-  background: none;
-  border-color: transparent;
+.navIcon:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-text-muted);
+}
+
+.connectionBadge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  margin-left: auto;
+}
+
+.connectionBadge.connected {
+  color: var(--color-accent-green);
+}
+
+.connectionBadge.disconnected {
+  color: var(--color-accent-red);
 }
 
 .phaseIndicator {
@@ -228,6 +217,8 @@
 }
 
 .section h2 {
+  display: flex;
+  align-items: baseline;
   font-size: 0.75rem;
   color: var(--color-text-muted);
   letter-spacing: 0.15em;
@@ -293,11 +284,39 @@
 
 @media (max-width: 1200px) {
   .layout {
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 280px 1fr;
   }
 
   .logPanel {
     display: none;
+  }
+
+  .sidebar {
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .header {
+    padding-bottom: var(--space-md);
+  }
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 260px 1fr;
+  }
+
+  .sidebar {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .header {
+    padding-bottom: var(--space-sm);
+  }
+
+  .section {
+    gap: var(--space-sm);
   }
 }
 
