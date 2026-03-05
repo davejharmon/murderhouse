@@ -19,29 +19,37 @@ Server runs on ws://localhost:8080, client on http://localhost:5173.
 
 ```
 shared/constants.js          # Enums, message types, config (GamePhase, Team, ServerMsg, ClientMsg)
+shared/icons.js              # 18×18 XBM bitmaps for role/item glyphs
+shared/strings/gameStrings.js # String catalog — single source for server and client
 server/
   index.js                   # WebSocket server entry point (port 8080 + UDP 8089)
-  Game.js                    # Core game state machine (~1950 lines)
-  Player.js                  # Player model (role, status, inventory, connections)
+  Game.js                    # Core game state machine (~2750 lines)
+  Player.js                  # Player model (role, status, inventory, connections) (~990 lines)
+  strings.js                 # str(cat, key, tokens) — reads catalog + data/string-overrides.json
   definitions/
-    roles.js                 # Declarative role definitions (villager, werewolf, seer, etc.)
-    events.js                # Declarative event definitions (vote, kill, protect, etc.)
-    items.js                 # Item definitions (pistol, phone, clue)
+    roles.js                 # 15 declarative role definitions
+    events.js                # 14 declarative event definitions
+    items.js                 # 8 item definitions
   flows/                     # Interrupt flows for complex multi-step mechanics
     InterruptFlow.js         # Base class
     HunterRevengeFlow.js     # Hunter death → revenge pick
     GovernorPardonFlow.js    # Vote condemn → pardon option
-  handlers/index.js          # WebSocket message routing
+  handlers/index.js          # WebSocket message routing (~695 lines)
 client/
   vite.config.js             # Path aliases: @ → src/, @shared → shared/
   src/
     context/GameContext.jsx   # Central WebSocket state management
-    pages/                   # Landing, Player, Host, Screen, DebugGrid
-    components/              # PlayerConsole, TinyScreen, StatusLed, PlayerGrid, etc.
+    strings/index.js          # getStr(cat, key, tokens) — catalog + localStorage overrides
+    pages/                   # Landing, Player, Host, Screen, DebugGrid, Operator
+                             #   SlideEditor (/slides), StringSheets (/strings)
+    components/              # PlayerConsole, TinyScreen, StatusLed, PlayerGrid,
+                             #   PixelGlyph, ScreenPreview, EventPanel, SlideControls,
+                             #   GameLog, Modal, and several *Modal components
+    components/slides/       # 14 individual slide type components + slideUtils, slideStrings
     styles/global.css        # Severance-inspired aesthetic
 esp32-terminal/
   platformio.ini             # ESP32-S3, PlatformIO config
-  src/                       # main.cpp, display, input, leds, network, config.h
+  src/                       # main.cpp, display, input, leds, network, config.h, icons.h
   pcb/                       # EasyEDA PCB design files
 ```
 

@@ -18,6 +18,9 @@ Open in your browser:
 - **Host Dashboard**: http://localhost:5173/host
 - **Big Screen**: http://localhost:5173/screen (projector/TV)
 - **Players**: http://localhost:5173/player/1 through /player/10
+- **Operator**: http://localhost:5173/operator (host read-only terminal)
+- **Slide Editor**: http://localhost:5173/slides (dev: preview slides with mock data)
+- **String Sheets**: http://localhost:5173/strings (dev: browse and override string catalog)
 
 For production/remote deployment, `server/web.js` serves the built client over HTTP alongside the WebSocket server on a single port.
 
@@ -79,18 +82,24 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                                                              |
 | **Janitor**     | Werewolf | Clean        | Hides victim's role reveal when the pack kills                                                 |
 | **Poisoner**    | Werewolf | Poison       | Replaces pack kill with delayed poison (victim dies next night)                                |
+| **Jester**      | Neutral  | —            | Wins solo if voted out by the village                                                          |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
 ## Items
 
-| Item       | Uses | Effect                                                               |
-| ---------- | ---- | -------------------------------------------------------------------- |
-| **Pistol** | 1    | Shoot a player during the day (player-initiated, instant resolution) |
-| **Phone**  | 1    | Grants pardon ability (same as Governor, consumed on use)            |
-| **Clue**   | 1    | Investigate a player (same as Seer)                                  |
+| Item           | Uses     | Effect                                                               |
+| -------------- | -------- | -------------------------------------------------------------------- |
+| **Pistol**     | 1        | Shoot a player during the day (player-initiated, instant resolution) |
+| **Phone**      | 1        | Grants pardon ability (same as Governor, consumed on use)            |
+| **Clue**       | 1        | Investigate a player (same as Seer)                                  |
+| **Barricade**  | 1        | Absorbs one kill; destroyed on use                                   |
+| **Novote**     | 1        | Holder is excluded from the next vote                                |
+| **Coward**     | passive  | Cannot act at night; immune to night kills                           |
+| **Tanned**     | passive  | Appears EVIL to Seer and Clue investigations                         |
+| **Prospect**   | passive  | Joins the werewolf pack if killed by them                            |
 
-Items are given by the host. Items with `startsEvent` (pistol, crystal ball) appear in the player's ability selector when idle. Items stack if the same type is given twice.
+Items are given by the host. Active items (`startsEvent`: pistol, clue) appear in the player's ability selector when idle. Items stack if the same type is given twice.
 
 ## Features
 
@@ -154,18 +163,21 @@ See `esp32-terminal/README.md` for hardware setup.
 murderhouse/
 ├── shared/
 │   ├── constants.js              # Enums, message types, glyphs, config
-│   └── icons.js                  # 18×18 abstract icon bitmaps (role/item glyphs)
+│   ├── icons.js                  # 18×18 abstract icon bitmaps (role/item glyphs)
+│   └── strings/
+│       └── gameStrings.js        # String catalog (shared source for server and client)
 ├── server/
 │   ├── index.js                  # WebSocket server (port 8080) + UDP discovery (8089)
 │   ├── web.js                    # Production mode: Express serves client + WebSocket
-│   ├── Game.js                   # Core state machine (~1950 lines)
-│   ├── Player.js                 # Player model + display state (~850 lines)
+│   ├── Game.js                   # Core state machine (~2750 lines)
+│   ├── Player.js                 # Player model + display state (~990 lines)
+│   ├── strings.js                # str(cat, key, tokens) — catalog + data/string-overrides.json
 │   ├── handlers/
-│   │   └── index.js              # WebSocket message routing (~660 lines)
+│   │   └── index.js              # WebSocket message routing (~695 lines)
 │   ├── definitions/              # Declarative game rules
-│   │   ├── roles.js              # 14 roles with events, passives, win conditions
-│   │   ├── events.js             # 13 events with resolution logic
-│   │   └── items.js              # 3 items (pistol, phone, clue)
+│   │   ├── roles.js              # 15 roles with events, passives, win conditions
+│   │   ├── events.js             # 14 events with resolution logic
+│   │   └── items.js              # 8 items
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
 │   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill
@@ -179,25 +191,34 @@ murderhouse/
 │       ├── App.jsx               # Router setup
 │       ├── context/
 │       │   └── GameContext.jsx    # Central WebSocket state management
+│       ├── strings/
+│       │   └── index.js          # getStr(cat, key, tokens) — catalog + localStorage overrides
 │       ├── pages/
 │       │   ├── Landing.jsx       # Join/create game
 │       │   ├── Player.jsx        # Player console page
 │       │   ├── Host.jsx          # Host dashboard
-│       │   ├── Screen.jsx        # Big screen projector display
-│       │   └── DebugGrid.jsx     # 9-player debug grid
+│       │   ├── Screen.jsx        # Big screen projector display (~145 lines)
+│       │   ├── DebugGrid.jsx     # 9-player debug grid (/debug)
+│       │   ├── Operator.jsx      # Host read-only terminal (/operator)
+│       │   ├── SlideEditor.jsx   # Dev: preview all slide types with mock data (/slides)
+│       │   └── StringSheets.jsx  # Dev: browse, filter, and override string catalog (/strings)
 │       ├── components/
 │       │   ├── PlayerConsole.jsx  # Full player terminal (screen + buttons)
 │       │   ├── TinyScreen.jsx    # Canvas-based OLED simulator (256×64)
 │       │   ├── oledFonts.js      # Bitmap font data matching ESP32 U8G2
 │       │   ├── PixelGlyph.jsx    # Glyph renderer for TinyScreen
+│       │   ├── ScreenPreview.jsx # Scaled iframe wrapper for the /screen route
 │       │   ├── StatusLed.jsx     # Neopixel status LED indicator
 │       │   ├── PlayerGrid.jsx    # Player overview grid (host/screen)
 │       │   ├── EventPanel.jsx    # Event controls for host
 │       │   ├── SlideControls.jsx # Slide navigation for host
 │       │   ├── GameLog.jsx       # Game event log display
-│       │   ├── CustomEventModal.jsx    # Custom event configuration
-│       │   ├── SettingsModal.jsx  # Game settings, presets, timers
+│       │   ├── CustomEventModal.jsx     # Custom event configuration
+│       │   ├── ItemManagerModal.jsx     # Item give/revoke UI
+│       │   ├── SettingsModal.jsx        # Game settings, presets, timers
 │       │   ├── PortraitSelectorModal.jsx # Player portrait picker
+│       │   ├── HeartbeatModal.jsx       # Heartbeat sensor configuration
+│       │   ├── TutorialSlidesModal.jsx  # Role tutorial slide preview
 │       │   └── Modal.jsx         # Reusable modal component
 │       └── styles/
 │           └── global.css        # Severance-inspired aesthetic
@@ -235,7 +256,7 @@ murderhouse/
 
 ### Event Priority Order
 
-Events resolve by priority (lower = earlier): block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
+Events resolve by priority (lower = earlier): link (1) → block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
 
 ## Adding a Role
 
@@ -267,13 +288,6 @@ npm run test:watch    # Watch mode (re-runs on file change)
 ```
 
 ## Known Technical Debt & Refactoring Opportunities
-
-### High Impact
-
-### Medium Impact
-
-
-
 
 ### Fixed
 
