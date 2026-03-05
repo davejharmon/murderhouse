@@ -2459,6 +2459,7 @@ export class Game {
     if (this._fakeHeartbeats) {
       this._fakeHeartbeatSimState = {};
       this._fakeHeartbeatTimer = setInterval(() => this._tickFakeHeartbeats(), 1500);
+      this.broadcastGameState();
     } else {
       clearInterval(this._fakeHeartbeatTimer);
       this._fakeHeartbeatTimer = null;
