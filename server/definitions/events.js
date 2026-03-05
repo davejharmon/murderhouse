@@ -111,8 +111,8 @@ function getRunoffTargets(eventId, game) {
 const events = {
   vote: {
     id: 'vote',
-    name: 'Vote',
-    description: 'Choose who to eliminate.',
+    get name() { return str('events', 'vote.name') },
+    get description() { return str('events', 'vote.description') },
     verb: 'vote for',
     verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
@@ -159,7 +159,7 @@ const events = {
         frontrunners,
         tally,
         runoffRound,
-        'Vote',
+        str('events', 'vote.name'),
       );
       if (runoffResult) {
         if (runoffResult.tieBreaker) {
@@ -210,8 +210,8 @@ const events = {
 
   vigil: {
     id: 'vigil',
-    name: 'Kill',
-    description: 'Choose someone to eliminate. This is your only shot.',
+    get name() { return str('events', 'vigil.name') },
+    get description() { return str('events', 'vigil.description') },
     verb: 'shoot',
     verbPastTense: 'shot',
     phase: [GamePhase.NIGHT],
@@ -307,8 +307,8 @@ const events = {
 
   suspect: {
     id: 'suspect',
-    name: 'Suspect',
-    description: 'Who do you think is a werewolf?',
+    get name() { return str('events', 'suspect.name') },
+    get description() { return str('events', 'suspect.description') },
     verb: 'suspect',
     verbPastTense: 'suspected',
     phase: [GamePhase.NIGHT],
@@ -369,8 +369,8 @@ const events = {
 
   poison: {
     id: 'poison',
-    name: 'Poison',
-    description: "Use your poison on the alpha's target instead of a direct kill?",
+    get name() { return str('events', 'poison.name') },
+    get description() { return str('events', 'poison.description') },
     verb: 'poison',
     verbPastTense: 'poisoned',
     phase: [GamePhase.NIGHT],
@@ -406,8 +406,8 @@ const events = {
 
   clean: {
     id: 'clean',
-    name: 'Clean',
-    description: 'Clean up after the kill?',
+    get name() { return str('events', 'clean.name') },
+    get description() { return str('events', 'clean.description') },
     verb: 'clean',
     verbPastTense: 'cleaned',
     phase: [GamePhase.NIGHT],
@@ -440,8 +440,8 @@ const events = {
 
   kill: {
     id: 'kill',
-    name: 'Kill',
-    description: 'Choose your victim.',
+    get name() { return str('events', 'kill.name') },
+    get description() { return str('events', 'kill.description') },
     verb: 'target',
     verbPastTense: 'targeted',
     phase: [GamePhase.NIGHT],
@@ -568,8 +568,8 @@ const events = {
 
   hunt: {
     id: 'hunt',
-    name: 'Hunt',
-    description: 'Suggest a target for the Alpha to hunt.',
+    get name() { return str('events', 'hunt.name') },
+    get description() { return str('events', 'hunt.description') },
     verb: 'suggest',
     verbPastTense: 'suggested',
     phase: [GamePhase.NIGHT],
@@ -620,8 +620,8 @@ const events = {
 
   investigate: {
     id: 'investigate',
-    name: 'Investigate',
-    description: 'Choose someone to investigate.',
+    get name() { return str('events', 'investigate.name') },
+    get description() { return str('events', 'investigate.description') },
     verb: 'investigate',
     verbPastTense: 'investigated',
     phase: [GamePhase.NIGHT],
@@ -661,7 +661,7 @@ const events = {
           targetId,
           target,
           isEvil,
-          privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}`,
+          privateMessage: str('events', isEvil ? 'investigate.resultEvil' : 'investigate.resultInnocent', { name: target.name }),
         });
       }
 
@@ -684,9 +684,9 @@ const events = {
 
   stumble: {
     id: 'stumble',
-    name: 'Stumble',
+    get name() { return str('events', 'stumble.name') },
     displayName: 'Investigate', // What the drunk player's terminal shows (they think they're a seer)
-    description: 'Choose someone to investigate.',
+    get description() { return str('events', 'stumble.description') },
     verb: 'investigate',
     verbPastTense: 'investigated',
     phase: [GamePhase.NIGHT],
@@ -757,7 +757,7 @@ const events = {
           targetId,
           target,
           isEvil,
-          privateMessage: `${target.name} is ${isEvil ? 'EVIL' : 'INNOCENT'}`,
+          privateMessage: str('events', isEvil ? 'investigate.resultEvil' : 'investigate.resultInnocent', { name: target.name }),
         });
       }
 
@@ -775,8 +775,8 @@ const events = {
 
   block: {
     id: 'block',
-    name: 'Block',
-    description: 'Choose a player to block tonight.',
+    get name() { return str('events', 'block.name') },
+    get description() { return str('events', 'block.description') },
     verb: 'block',
     verbPastTense: 'blocked',
     phase: [GamePhase.NIGHT],
@@ -824,8 +824,8 @@ const events = {
 
   protect: {
     id: 'protect',
-    name: 'Protect',
-    description: 'Choose someone to protect tonight.',
+    get name() { return str('events', 'protect.name') },
+    get description() { return str('events', 'protect.description') },
     verb: 'protect',
     verbPastTense: 'protected',
     phase: [GamePhase.NIGHT],
@@ -879,8 +879,8 @@ const events = {
 
   shoot: {
     id: 'shoot',
-    name: 'Shoot',
-    description: 'Use your pistol to shoot someone.',
+    get name() { return str('events', 'shoot.name') },
+    get description() { return str('events', 'shoot.description') },
     verb: 'shoot',
     verbPastTense: 'shot',
     phase: [GamePhase.DAY],
@@ -957,8 +957,8 @@ const events = {
 
   customEvent: {
     id: 'customEvent',
-    name: 'Custom Event',
-    description: 'Vote for a custom reward.',
+    get name() { return str('events', 'customEvent.name') },
+    get description() { return str('events', 'customEvent.description') },
     verb: 'vote for',
     verbPastTense: 'voted for',
     phase: [GamePhase.DAY],
@@ -1021,7 +1021,7 @@ const events = {
         frontrunners,
         tally,
         runoffRound,
-        'Custom event',
+        str('events', 'customEvent.name'),
       );
       if (runoffResult) {
         if (runoffResult.tieBreaker) {

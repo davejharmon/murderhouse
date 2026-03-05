@@ -275,11 +275,11 @@ const roles = {
           // Notify the lovers
           game.sendPrivate(lover1.id, {
             type: 'notification',
-            message: `You are in love with ${lover2.name}. If they die, you die of heartbreak.`,
+            message: str('roles', 'cupid.loverMsg', { name: lover2.name }),
           });
           game.sendPrivate(lover2.id, {
             type: 'notification',
-            message: `You are in love with ${lover1.name}. If they die, you die of heartbreak.`,
+            message: str('roles', 'cupid.loverMsg', { name: lover1.name }),
           });
 
           return { success: true };

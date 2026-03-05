@@ -4,6 +4,7 @@
 // and events/flows query for item holders.
 
 import { EventId } from '../../shared/constants.js';
+import { str } from '../strings.js';
 
 /**
  * Item Definition Schema:
@@ -41,24 +42,24 @@ import { EventId } from '../../shared/constants.js';
 const items = {
   pistol: {
     id: 'pistol',
-    name: 'Pistol',
-    description: 'A deadly weapon. One shot. Make it count.',
+    get name() { return str('items', 'pistol.name') },
+    get description() { return str('items', 'pistol.description') },
     maxUses: 1,
     startsEvent: EventId.SHOOT, // Idle-activatable: starts the shoot event
   },
 
   phone: {
     id: 'phone',
-    name: 'Phone',
-    description: 'Call the governor for a one-time pardon. Use it wisely.',
+    get name() { return str('items', 'phone.name') },
+    get description() { return str('items', 'phone.description') },
     maxUses: 1,
     grantsAbility: 'pardon', // Situational: GovernorPardonFlow checks for this
   },
 
   clue: {
     id: 'clue',
-    name: 'Clue',
-    description: 'A mysterious lead. Investigate one player to learn their alignment.',
+    get name() { return str('items', 'clue.name') },
+    get description() { return str('items', 'clue.description') },
     maxUses: 1,
     startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
   },
@@ -83,17 +84,17 @@ const items = {
 
   coward: {
     id: 'coward',
-    name: "The Coward's Way Out",
-    shortName: 'Coward',
-    description: 'You hide from danger. No attacks can reach you — but you cannot act.',
+    get name() { return str('items', 'coward.name') },
+    get shortName() { return str('items', 'coward.shortName') },
+    get description() { return str('items', 'coward.description') },
     maxUses: -1, // Passive: always active while held
     grantsAbility: 'coward', // Checked by Game.getEventParticipants and event validTargets
   },
 
   barricade: {
     id: 'barricade',
-    name: 'Barricade',
-    description: 'A sturdy defense. The next time you would die, the barricade breaks instead.',
+    get name() { return str('items', 'barricade.name') },
+    get description() { return str('items', 'barricade.description') },
     maxUses: 1, // Passive: consumed on first death absorption
     grantsAbility: 'barricade', // Checked by killPlayer in Game.js
   },

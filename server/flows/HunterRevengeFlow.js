@@ -82,8 +82,8 @@ export class HunterRevengeFlow extends InterruptFlow {
 
     // Create the event using Game's flow event helper
     this.game._startFlowEvent(this.id, {
-      name: "Hunter's Revenge",
-      description: 'Choose who to take with you.',
+      name: str('events', 'hunterRevenge.name'),
+      description: str('events', 'hunterRevenge.description'),
       verb: 'shoot',
       participants: [player.id],
       getValidTargets: (actorId) => this.getValidTargets(actorId),

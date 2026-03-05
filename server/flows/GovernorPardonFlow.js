@@ -106,8 +106,8 @@ export class GovernorPardonFlow extends InterruptFlow {
 
     // Create the pardon event
     this.game._startFlowEvent(this.id, {
-      name: 'Governor Pardon',
-      description: 'Will you pardon this player from elimination?',
+      name: str('events', 'governorPardon.name'),
+      description: str('events', 'governorPardon.description'),
       verb: 'pardon',
       participants: this.state.governorIds,
       getValidTargets: (playerId) => this.getValidTargets(playerId),
