@@ -192,6 +192,34 @@
   color: var(--color-text-muted);
 }
 
+/* Scoring Rules */
+
+.scoringRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.scoringLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.scoringInput {
+  width: 3rem;
+  padding: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
 /* Scores */
 
 .scoreList {

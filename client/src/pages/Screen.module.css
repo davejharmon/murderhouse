@@ -440,6 +440,43 @@
   border-color: var(--color-accent-red);
 }
 
+/* Team-coloured death reveals */
+.deathTeam_cell {
+  background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
+}
+
+.deathTeam_cell .title {
+  color: #c94c4c;
+}
+
+.deathTeam_cell .deathPortrait {
+  border-color: #c94c4c;
+}
+
+.deathTeam_circle {
+  background: linear-gradient(180deg, #0a1520 0%, #0a0c0f 100%);
+}
+
+.deathTeam_circle .title {
+  color: #7eb8da;
+}
+
+.deathTeam_circle .deathPortrait {
+  border-color: #7eb8da;
+}
+
+.deathTeam_neutral {
+  background: linear-gradient(180deg, #18170a 0%, #0a0c0f 100%);
+}
+
+.deathTeam_neutral .title {
+  color: #d4af37;
+}
+
+.deathTeam_neutral .deathPortrait {
+  border-color: #d4af37;
+}
+
 .deathName {
   font-family: var(--font-mono);
   font-size: 4vw;
@@ -982,4 +1019,107 @@
   color: var(--color-text-muted);
   text-align: center;
   padding: 2vw;
+}
+
+/* Score Update Slide */
+
+.scoreUpdateTitle {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #d4af37;
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  margin: 0 0 2vh;
+}
+
+.scoreUpdateGroup {
+  margin-bottom: 2vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scoreUpdateGroupLabel {
+  font-family: var(--font-mono);
+  font-size: 1.8vw;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--color-text-secondary);
+  margin: 0 0 1vh;
+  text-transform: uppercase;
+}
+
+.scoreBadge {
+  position: absolute;
+  top: -0.5vw;
+  right: -0.5vw;
+  background: rgba(212, 175, 55, 0.95);
+  color: #1a1000;
+  font-family: var(--font-mono);
+  font-size: 1.8vw;
+  font-weight: 700;
+  padding: 0.2em 0.5em;
+  border-radius: 1vw;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.6);
+  animation: scoreBadgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.scoreBadgeLarge {
+  position: absolute;
+  top: -1vw;
+  right: -1vw;
+  background: rgba(212, 175, 55, 0.95);
+  color: #1a1000;
+  font-family: var(--font-mono);
+  font-size: 3.5vw;
+  font-weight: 700;
+  padding: 0.2em 0.5em;
+  border-radius: 1.5vw;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.6);
+  animation: scoreBadgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scoreBadgePop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Best Suspect Slide */
+
+.bestSuspectHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 3vh;
+}
+
+.bestSuspectName {
+  font-family: var(--font-mono);
+  font-size: 4vw;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text);
+  margin: 1vh 0 0;
+  text-transform: uppercase;
+}
+
+.suspectCorrect img {
+  border-color: #c94c4c;
+  filter: sepia(0.7) saturate(5) hue-rotate(-50deg);
+}
+
+.suspectCorrect .thumbName {
+  color: #c94c4c;
+}
+
+.suspectWrong {
+  opacity: 0.4;
+}
+
+.suspectWrong img {
+  filter: grayscale(0.8);
 }

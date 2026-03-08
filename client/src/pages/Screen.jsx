@@ -18,6 +18,8 @@ import {
   OperatorSlide,
   ScoresSlide,
   HeartbeatSlide,
+  ScoreUpdateSlide,
+  BestSuspectSlide,
 } from '../components/slides/index.js'
 import styles from './Screen.module.css'
 
@@ -107,6 +109,12 @@ export default function Screen() {
 
       case SlideType.SCORES:
         return <ScoresSlide slide={effectiveSlide} players={players} />
+
+      case SlideType.SCORE_UPDATE:
+        return <ScoreUpdateSlide slide={effectiveSlide} />
+
+      case SlideType.BEST_SUSPECT:
+        return <BestSuspectSlide slide={effectiveSlide} />
 
       default:
         return <TitleSlide slide={effectiveSlide} players={players} />

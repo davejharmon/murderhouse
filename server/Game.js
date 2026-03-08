@@ -203,7 +203,12 @@ export class Game {
   // === Host Settings ===
 
   _loadHostSettingsFromDisk() {
-    const defaults = { timerDuration: 30, autoAdvanceEnabled: false, heartbeatThreshold: 110 };
+    const defaults = {
+      timerDuration: 30,
+      autoAdvanceEnabled: false,
+      heartbeatThreshold: 110,
+      scoringConfig: { survived: 1, winningTeam: 1, bestInvestigator: 2 },
+    };
     if (!fs.existsSync(HOST_SETTINGS_PATH)) {
       this._hostSettings = defaults;
       return;
@@ -275,11 +280,19 @@ export class Game {
 
   pushScoreSlide() {
     const entries = this.getScoresForConnectedPlayers();
-    this.pushSlide({
+    const slide = {
       type: SlideType.SCORES,
       title: str('slides', 'misc.scoreboardTitle'),
       entries,
-    });
+    };
+    // Include pre-game scores for animated transition
+    if (this._preGameScores) {
+      slide.previousEntries = [...this.players.values()]
+        .filter(p => p.name)
+        .map(p => ({ name: p.name, portrait: p.portrait, score: this._preGameScores.get(p.name) ?? 0 }))
+        .sort((a, b) => b.score - a.score);
+    }
+    this.pushSlide(slide);
   }
 
   // === Game Presets ===
@@ -512,6 +525,9 @@ export class Game {
       this.addLog(str('log', 'gameStartError', { error: validation.error }));
       return { success: false, error: validation.error };
     }
+
+    // Snapshot scores for animated scoreboard at end of game
+    this._preGameScores = new Map(this._scores);
 
     // Assign roles
     this.assignRoles();
@@ -2002,7 +2018,109 @@ export class Game {
       false,
     ); // Queue after death slide, don't jump to it
 
+    this._awardEndGameScores(winner);
     this.broadcastGameState();
+  }
+
+  _awardEndGameScores(winner) {
+    const config = this._hostSettings.scoringConfig;
+    if (!config) return;
+
+    const allPlayers = [...this.players.values()].filter(p => p.name);
+    const toSlidePlayer = (p) => ({ id: p.id, name: p.name, portrait: p.portrait });
+
+    // --- Survived + Winning Team slide ---
+    const survivedPlayers = [];
+    const winningPlayers = [];
+
+    for (const player of allPlayers) {
+      let points = 0;
+      const survived = config.survived && (player.isAlive || player.deathDay === this.dayCount);
+      const onWinningTeam = config.winningTeam && player.role.team === winner;
+
+      if (survived) {
+        points += config.survived;
+        survivedPlayers.push(toSlidePlayer(player));
+      }
+      if (onWinningTeam) {
+        points += config.winningTeam;
+        winningPlayers.push(toSlidePlayer(player));
+      }
+
+      if (points > 0) {
+        const current = this._scores.get(player.name) ?? 0;
+        this._scores.set(player.name, current + points);
+        const reasons = [];
+        if (survived) reasons.push(str('slides', 'scoring.survivedLabel'));
+        if (onWinningTeam) reasons.push(str('slides', 'scoring.winningTeamLabel'));
+        this.addLog(str('log', 'scoreAwarded', { name: player.getNameWithEmoji(), points, reason: reasons.join(', ') }));
+      }
+    }
+
+    // Push score update slide if anyone earned points
+    const groups = [];
+    if (winningPlayers.length > 0) {
+      groups.push({ label: str('slides', 'scoring.winningTeamLabel'), players: winningPlayers, points: config.winningTeam });
+    }
+    if (survivedPlayers.length > 0) {
+      groups.push({ label: str('slides', 'scoring.survivedLabel'), players: survivedPlayers, points: config.survived });
+    }
+    if (groups.length > 0) {
+      this.pushSlide({
+        type: SlideType.SCORE_UPDATE,
+        title: str('slides', 'scoring.updateTitle'),
+        groups,
+      }, false);
+    }
+
+    // --- Best investigator: most correct suspect events ---
+    if (config.bestInvestigator) {
+      let bestCount = 0;
+      let fewestWrong = Infinity;
+      let bestPlayers = [];
+
+      for (const player of allPlayers) {
+        const suspicions = player.suspicions || [];
+        const correct = suspicions.filter(s => s.wasCorrect).length;
+        const wrong = suspicions.filter(s => !s.wasCorrect).length;
+        if (correct < 1) continue;
+        if (correct > bestCount || (correct === bestCount && wrong < fewestWrong)) {
+          bestCount = correct;
+          fewestWrong = wrong;
+          bestPlayers = [player];
+        } else if (correct === bestCount && wrong === fewestWrong) {
+          bestPlayers.push(player);
+        }
+      }
+
+      for (const player of bestPlayers) {
+        const current = this._scores.get(player.name) ?? 0;
+        this._scores.set(player.name, current + config.bestInvestigator);
+        const total = (player.suspicions || []).length;
+        this.addLog(str('log', 'scoreBestSuspect', { name: player.getNameWithEmoji(), points: config.bestInvestigator, correct: bestCount, total }));
+
+        // Build suspect history with portraits
+        const suspects = (player.suspicions || []).map(s => {
+          const target = this.getPlayer(s.targetId);
+          return {
+            name: target?.name || 'Unknown',
+            portrait: target?.portrait || 'default.png',
+            wasCorrect: s.wasCorrect,
+          };
+        });
+
+        this.pushSlide({
+          type: SlideType.BEST_SUSPECT,
+          title: str('slides', 'scoring.bestSuspectTitle'),
+          winner: toSlidePlayer(player),
+          suspects,
+          points: config.bestInvestigator,
+        }, false);
+      }
+    }
+
+    this._saveScoresToDisk();
+    this.sendScoresToHost();
   }
 
   // === Flow Dispatch ===
@@ -2154,6 +2272,7 @@ export class Game {
     }
 
     player.kill(cause);
+    player.deathDay = this.dayCount;
     this._invalidateWinCache();
     this._deathQueue.push({ player, cause });
 

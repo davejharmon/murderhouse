@@ -12,7 +12,11 @@ export default function CompositionSlide({ slide, strings = SLIDE_STRINGS.compos
   const circleRoles = roles.filter((r) => r.team === 'circle')
   const unassignedCount = teamCounts.unassigned || 0
 
-  const pluralize = (name, count) => count > 1 ? `${name}s` : name
+  const pluralize = (name, count) => {
+    if (count <= 1) return name
+    if (name.endsWith('y') && !/[aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`
+    return `${name}s`
+  }
 
   const renderRoleCluster = (role, index) => (
     <div key={role.roleId} className={`${styles.compCluster} ${index > 0 ? styles.compClusterSep : ''}`}>

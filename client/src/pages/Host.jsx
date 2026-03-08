@@ -330,6 +330,9 @@ export default function Host() {
   const handleSetScore = (name, score) =>
     send(ClientMsg.SET_SCORE, { name, score });
 
+  const handleScoringConfigChange = (scoringConfig) =>
+    send(ClientMsg.SAVE_HOST_SETTINGS, { scoringConfig });
+
   const handlePushScoreSlide = () => send(ClientMsg.PUSH_SCORE_SLIDE);
 
   const handleDebugAutoSelect = (playerId) =>
@@ -540,6 +543,8 @@ export default function Host() {
         connectedPlayers={gameState?.players ?? []}
         scores={scores}
         onSetScore={handleSetScore}
+        scoringConfig={hostSettings?.scoringConfig}
+        onScoringConfigChange={handleScoringConfigChange}
       />
 
       <TutorialSlidesModal

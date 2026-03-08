@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Modal from './Modal';
 import styles from './SettingsModal.module.css';
 import { ROLE_DISPLAY } from '@shared/constants.js';
+import { getStr } from '../strings/index.js';
 
 function presetRoleSummary(preset) {
   const playerCount = Object.keys(preset.players ?? {}).length;
@@ -39,6 +40,8 @@ export default function SettingsModal({
   connectedPlayers = [],
   scores = {},
   onSetScore,
+  scoringConfig = { survived: 1, winningTeam: 1, bestInvestigator: 2 },
+  onScoringConfigChange,
 }) {
   const [newPresetName, setNewPresetName] = useState('');
 
@@ -169,6 +172,28 @@ export default function SettingsModal({
               <span>AUTO-ADVANCE</span>
             </label>
           </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Scoring Rules</h3>
+          {[
+            { key: 'survived', label: getStr('host', 'scoring.survived') },
+            { key: 'winningTeam', label: getStr('host', 'scoring.winningTeam') },
+            { key: 'bestInvestigator', label: getStr('host', 'scoring.bestInvestigator') },
+          ].map(({ key, label }) => (
+            <div key={key} className={styles.scoringRow}>
+              <span className={styles.scoringLabel}>{label}</span>
+              <input
+                type="number"
+                min="0"
+                max="99"
+                value={scoringConfig[key] ?? 0}
+                onChange={(e) => onScoringConfigChange({ ...scoringConfig, [key]: parseInt(e.target.value) || 0 })}
+                className={styles.scoringInput}
+              />
+              <span className={styles.timerUnit}>pts</span>
+            </div>
+          ))}
         </section>
 
         <section className={styles.section}>

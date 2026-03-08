@@ -38,11 +38,13 @@ export default function DeathSlide({ slide, players, strings = SLIDE_STRINGS.dea
     )
   }
 
+  const teamClass = slide.revealRole && player.roleTeam ? styles[`deathTeam_${player.roleTeam}`] : ''
+
   return (
-    <div key={slide.id} className={`${styles.slide} ${styles.deathSlide}`}>
+    <div key={slide.id} className={`${styles.slide} ${styles.deathSlide} ${teamClass}`}>
       <h1
         className={styles.title}
-        style={{ fontSize: fitFontSize(slide.title || strings.eliminated), color: getSlideColor(slide, SlideStyle.HOSTILE) }}
+        style={{ fontSize: fitFontSize(slide.title || strings.eliminated), ...(!teamClass && { color: getSlideColor(slide, SlideStyle.HOSTILE) }) }}
       >
         {slide.title || strings.eliminated}
       </h1>

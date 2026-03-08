@@ -146,6 +146,8 @@ export const SlideType = {
   HEARTBEAT: 'heartbeat',
   OPERATOR: 'operator',
   SCORES: 'scores',
+  SCORE_UPDATE: 'scoreUpdate',
+  BEST_SUSPECT: 'bestSuspect',
 };
 
 export const SlideStyle = {
