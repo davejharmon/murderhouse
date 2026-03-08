@@ -88,16 +88,16 @@ Role composition is defined per player count in `GAME_COMPOSITION` (see `server/
 
 ## Items
 
-| Item           | Uses     | Effect                                                               |
-| -------------- | -------- | -------------------------------------------------------------------- |
-| **Pistol**     | 1        | Shoot a player during the day (player-initiated, instant resolution) |
-| **Phone**      | 1        | Grants pardon ability (same as Governor, consumed on use)            |
-| **Clue**       | 1        | Investigate a player (same as Seer)                                  |
-| **Barricade**  | 1        | Absorbs one kill; destroyed on use                                   |
-| **Novote**     | 1        | Holder is excluded from the next vote                                |
-| **Coward**     | passive  | Cannot act at night; immune to night kills                           |
-| **Tanned**     | passive  | Appears EVIL to Seer and Clue investigations                         |
-| **Prospect**   | passive  | Joins the werewolf pack if killed by them                            |
+| Item          | Uses    | Effect                                                               |
+| ------------- | ------- | -------------------------------------------------------------------- |
+| **Pistol**    | 1       | Shoot a player during the day (player-initiated, instant resolution) |
+| **Phone**     | 1       | Grants pardon ability (same as Governor, consumed on use)            |
+| **Clue**      | 1       | Investigate a player (same as Seer)                                  |
+| **Barricade** | 1       | Absorbs one kill; destroyed on use                                   |
+| **Novote**    | 1       | Holder is excluded from the next vote                                |
+| **Coward**    | passive | Cannot act at night; immune to night kills                           |
+| **Tanned**    | passive | Appears EVIL to Seer and Clue investigations                         |
+| **Prospect**  | passive | Joins the werewolf pack if killed by them                            |
 
 Items are given by the host. Active items (`startsEvent`: pistol, clue) appear in the player's ability selector when idle. Items stack if the same type is given twice.
 
@@ -313,20 +313,10 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ## Improvements
 
-- Add suspect functionality
-- Add slide to game end that shows score including suspect tracking
 - Add glyph for Jester
   Add new role: Jailer
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
-- export all slides for string review
 
 ## Bugs
-
-- ~~**Role tip slide: team badge colours clash with action badge colours**~~ — Fixed: team badge now has a subtle background fill (`teamColor + '28'` alpha), making it visually distinct from the outline-only ability badges even when they share the same hue.
-- ~~**Poison death slide uses 'POISONED' suffix — should use 'KILLED'**~~ — Fixed: `createDeathSlide` now maps cause `'poison'` to `death.suffixKilled`, hiding the kill mechanism.
-- ~~**Death slides can be auto-advanced past**~~ — Fixed: `createDeathSlide` now sets `skipProtected: true`; the auto-advance logic in `Host.jsx` skips slides with that flag.
-- ~~**Operator slide auto-advances before animation completes**~~ — Fixed: auto-advance delay for operator slides is computed as `max(AUTO_ADVANCE_DELAY, START_DELAY + (N-1)*WORD_INTERVAL + 180 + 1000ms grace)`.
-- replace emojis with fancy pixel art - in progress could look better
-- ~~janitor is missing a glyph~~ — Added `ICON_JANITOR` (broom) to `shared/icons.js` and `esp32-terminal/src/icons.h`.
