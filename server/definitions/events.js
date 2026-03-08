@@ -18,8 +18,8 @@ import { str } from '../strings.js';
 function getTeamDisplayName(role) {
   if (role?.id === RoleId.JESTER) return str('slides', 'death.teamJester');
   const names = {
-    village: str('slides', 'death.teamVillager'),
-    werewolf: str('slides', 'death.teamWerewolf'),
+    circle: str('slides', 'death.teamCircle'),
+    cell: str('slides', 'death.teamCell'),
     neutral: str('slides', 'death.teamNeutral'),
   };
   return names[role?.team] || str('slides', 'death.teamUnknown');
@@ -164,7 +164,7 @@ const events = {
       if (runoffResult) {
         if (runoffResult.tieBreaker) {
           const victim = game.getPlayer(runoffResult.winnerId);
-          // Don't kill yet - let Game.js handle it after checking for governor
+          // Don't kill yet - let Game.js handle it after checking for judge
           const teamName = getTeamDisplayName(victim.role);
           return {
             success: true,
@@ -186,7 +186,7 @@ const events = {
       }
 
       const victim = game.getPlayer(frontrunners[0]);
-      // Don't kill yet - let Game.js handle it after checking for governor
+      // Don't kill yet - let Game.js handle it after checking for judge
       const teamName = getTeamDisplayName(victim.role);
       return {
         success: true,
@@ -206,7 +206,7 @@ const events = {
     },
   },
 
-  // Note: pardon has been migrated to server/flows/GovernorPardonFlow.js
+  // Note: pardon has been migrated to server/flows/GovernorPardonFlow.js (Judge pardon)
 
   vigil: {
     id: 'vigil',
@@ -319,10 +319,10 @@ const events = {
         .getAlivePlayers()
         .filter(
           (p) =>
-            p.role.id === RoleId.VILLAGER ||
-            p.role.id === RoleId.TANNER ||
+            p.role.id === RoleId.NOBODY ||
+            p.role.id === RoleId.MARKED ||
             p.role.id === RoleId.HUNTER ||
-            p.role.id === RoleId.GOVERNOR,
+            p.role.id === RoleId.JUDGE,
         );
     },
 
@@ -346,7 +346,7 @@ const events = {
         actor.suspicions.push({
           day: game.dayCount,
           targetId,
-          wasCorrect: target.role.team === Team.WEREWOLF,
+          wasCorrect: target.role.team === Team.CELL,
         });
 
         suspicions.push({ actor, target });
@@ -377,7 +377,7 @@ const events = {
     priority: 59, // Just before kill (60)
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.POISONER);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.CHEMIST);
     },
 
     validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
@@ -389,14 +389,14 @@ const events = {
       for (const [actorId] of Object.entries(results)) {
         const result = results[actorId];
         if (result === null) continue; // NO
-        const poisoner = game.getPlayer(actorId);
-        if (poisoner?.isRoleblocked) continue; // Blocked — ability fails silently
-        game.poisonerActing = true;
+        const chemist = game.getPlayer(actorId);
+        if (chemist?.isRoleblocked) continue; // Blocked — ability fails silently
+        game.chemistActing = true;
       }
-      if (game.poisonerActing) {
+      if (game.chemistActing) {
         return {
           success: true,
-          message: str('log', 'poisonerActing'),
+          message: str('log', 'chemistActing'),
           silent: false,
         };
       }
@@ -414,7 +414,7 @@ const events = {
     priority: 58,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.JANITOR);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.FIXER);
     },
 
     validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
@@ -425,12 +425,12 @@ const events = {
     resolve: (results, game) => {
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue; // Abstain = NO
-        game.janitorCleaning = true;
+        game.fixerCovering = true;
       }
-      if (game.janitorCleaning) {
+      if (game.fixerCovering) {
         return {
           success: true,
-          message: str('log', 'janitorActing'),
+          message: str('log', 'fixerActing'),
           silent: false,
         };
       }
@@ -454,17 +454,17 @@ const events = {
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.WEREWOLF && !p.hasItem(ItemId.COWARD));
+        .filter((p) => p.role.team !== Team.CELL && !p.hasItem(ItemId.COWARD));
     },
 
-    aggregation: 'majority', // Werewolves vote together
+    aggregation: 'majority', // Cell votes together
     allowAbstain: false,
 
     resolve: (results, game) => {
       const { tally, frontrunners, isEmpty } = tallyVotes(results);
 
       if (isEmpty) {
-        game.poisonerActing = false; // No target — poisoner's action wasted
+        game.chemistActing = false; // No target — chemist's action wasted
         return { success: true, silent: true };
       }
 
@@ -475,15 +475,15 @@ const events = {
 
       // Skip if already dead (killed by another event this round)
       if (!victim.isAlive) {
-        game.poisonerActing = false;
+        game.chemistActing = false;
         return { success: true, silent: true };
       }
 
-      // Poisoner intercepts the kill — replace with delayed poison
-      if (game.poisonerActing) {
-        game.poisonerActing = false;
+      // Chemist intercepts the kill — replace with delayed poison
+      if (game.chemistActing) {
+        game.chemistActing = false;
 
-        // Doctor protection on the same night cancels the poison
+        // Medic protection on the same night cancels the poison
         if (victim.isProtected) {
           victim.isProtected = false;
           return {
@@ -496,12 +496,12 @@ const events = {
         // Apply poison state — victim dies at end of next night
         victim.isPoisoned = true;
         victim.poisonedAt = game.dayCount;
-        const poisoner = [...game.players.values()].find((p) => p.role?.id === RoleId.POISONER && p.isAlive);
+        const chemist = [...game.players.values()].find((p) => p.role?.id === RoleId.CHEMIST && p.isAlive);
         return {
           success: true,
           outcome: 'poisoned',
-          message: poisoner
-            ? str('log', 'poisonerPoisoned', { actor: poisoner.getNameWithEmoji(), name: victim.getNameWithEmoji() })
+          message: chemist
+            ? str('log', 'chemistDosed', { actor: chemist.getNameWithEmoji(), name: victim.getNameWithEmoji() })
             : str('log', 'poisonedPlayer', { name: victim.getNameWithEmoji() }),
         };
       }
@@ -515,7 +515,7 @@ const events = {
           .filter(Boolean);
         const actorStr = attackers.length === 1
           ? attackers[0].getNameWithEmoji()
-          : 'The pack';
+          : 'The cell';
         return {
           success: true,
           outcome: 'protected',
@@ -524,9 +524,9 @@ const events = {
         };
       }
 
-      const killResult = game.killPlayer(victim.id, 'werewolf');
+      const killResult = game.killPlayer(victim.id, 'cell');
 
-      // BARRICADE: attack was absorbed — victim survives silently
+      // HARDENED: attack was absorbed — victim survives silently
       if (killResult === 'barricaded') {
         return { success: true, outcome: 'barricaded', silent: true };
       }
@@ -540,11 +540,11 @@ const events = {
         };
       }
 
-      // Check if janitor is cleaning
-      const cleaned = game.janitorCleaning;
+      // Check if fixer is covering
+      const cleaned = game.fixerCovering;
       if (cleaned) {
         victim.isRoleCleaned = true;
-        game.janitorCleaning = false;
+        game.fixerCovering = false;
       }
 
       const teamName = cleaned ? str('slides', 'death.teamUnknown') : getTeamDisplayName(victim.role);
@@ -552,14 +552,14 @@ const events = {
         success: true,
         outcome: 'killed',
         victim,
-        message: str('log', 'killedByWolves', { name: victim.getNameWithEmoji() }),
+        message: str('log', 'killedByCell', { name: victim.getNameWithEmoji() }),
         slide: {
           type: 'death',
           playerId: victim.id,
           title: `${teamName} ${str('slides', 'death.suffixKilled')}`,
           subtitle: victim.name,
           revealRole: true,
-          revealText: cleaned ? str('slides', 'misc.janitorReveal') : null,
+          revealText: cleaned ? str('slides', 'misc.fixerReveal') : null,
           style: SlideStyle.HOSTILE,
         },
       };
@@ -578,27 +578,27 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.id === RoleId.WEREWOLF); // Only regular werewolves
+        .filter((p) => p.role.id === RoleId.SLEEPER); // Only regular sleepers
     },
 
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.WEREWOLF && !p.hasItem(ItemId.COWARD));
+        .filter((p) => p.role.team !== Team.CELL && !p.hasItem(ItemId.COWARD));
     },
 
-    aggregation: 'individual', // Each werewolf suggests independently
+    aggregation: 'individual', // Each sleeper suggests independently
     allowAbstain: true,
 
     resolve: (results, game) => {
       const suggestions = [];
 
-      for (const [werewolfId, targetId] of Object.entries(results)) {
+      for (const [sleeperId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
-        const werewolf = game.getPlayer(werewolfId);
+        const sleeper = game.getPlayer(sleeperId);
         const target = game.getPlayer(targetId);
 
-        suggestions.push({ werewolf, target });
+        suggestions.push({ sleeper, target });
       }
 
       if (suggestions.length === 0) {
@@ -607,7 +607,7 @@ const events = {
 
       const messages = suggestions.map(
         (s) =>
-          `${s.werewolf.getNameWithEmoji()} suggested ${s.target.getNameWithEmoji()}`,
+          `${s.sleeper.getNameWithEmoji()} suggested ${s.target.getNameWithEmoji()}`,
       );
 
       return {
@@ -628,7 +628,7 @@ const events = {
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.SEER);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.SEEKER);
     },
 
     validTargets: (actor, game) => {
@@ -643,12 +643,12 @@ const events = {
 
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
-        const seer = game.getPlayer(actorId);
+        const seeker = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
-        const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty || target.hasItem(ItemId.TANNED);
+        const isEvil = target.role.team === Team.CELL || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED);
 
-        if (!seer.investigations) seer.investigations = [];
-        seer.investigations.push({
+        if (!seeker.investigations) seeker.investigations = [];
+        seeker.investigations.push({
           day: game.dayCount,
           targetId,
           targetName: target.name,
@@ -656,8 +656,8 @@ const events = {
         });
 
         investigations.push({
-          seerId: actorId,
-          seer,
+          seekerId: actorId,
+          seeker,
           targetId,
           target,
           isEvil,
@@ -671,7 +671,7 @@ const events = {
 
       // Log investigations
       const messages = investigations.map(
-        (inv) => str('log', 'seerInvestigated', { seer: inv.seer.getNameWithEmoji(), target: inv.target.getNameWithEmoji(), result: inv.isEvil ? 'a WEREWOLF' : 'INNOCENT' }),
+        (inv) => str('log', 'seekerInvestigated', { seeker: inv.seeker.getNameWithEmoji(), target: inv.target.getNameWithEmoji(), result: inv.isEvil ? 'CELL' : 'INNOCENT' }),
       );
 
       return {
@@ -685,15 +685,15 @@ const events = {
   stumble: {
     id: 'stumble',
     get name() { return str('events', 'stumble.name') },
-    displayName: 'Investigate', // What the drunk player's terminal shows (they think they're a seer)
-    get description() { return str('events', 'stumble.description') },
+    displayName: 'Investigate', // What the amateur player's terminal shows (they think they're a seeker)
+    get description() { return str('events', 'investigate.description') },
     verb: 'investigate',
     verbPastTense: 'investigated',
     phase: [GamePhase.NIGHT],
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DRUNK);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.AMATEUR);
     },
 
     validTargets: (actor, game) => {
@@ -719,7 +719,7 @@ const events = {
           if (target.isProtected) {
             target.isProtected = false;
           } else if (target.isAlive) {
-            game.killPlayer(target.id, 'drunk');
+            game.killPlayer(target.id, 'amateur');
             game.queueDeathSlide({
               type: 'death',
               playerId: target.id,
@@ -736,11 +736,11 @@ const events = {
         }
         // 'investigate' → no side effect
 
-        game.addLog(`🥴 ${actor.name} (Drunk) rolled: ${action} → ${target.name}`); // Debug log, not in catalog
+        game.addLog(`🥴 ${actor.name} (Amateur) rolled: ${action} → ${target.name}`); // Debug log, not in catalog
 
         // Real investigate (25%) returns accurate result; other actions always show INNOCENT
         const isEvil = action === 'investigate'
-          ? (target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty || target.hasItem(ItemId.TANNED))
+          ? (target.role.team === Team.CELL || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED))
           : false;
 
         if (!actor.investigations) actor.investigations = [];
@@ -752,8 +752,8 @@ const events = {
         });
 
         investigations.push({
-          seerId: actorId,
-          seer: actor,
+          seekerId: actorId,
+          seeker: actor,
           targetId,
           target,
           isEvil,
@@ -785,7 +785,7 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.id === RoleId.ROLEBLOCKER);
+        .filter((p) => p.role.id === RoleId.HANDLER);
     },
 
     validTargets: (actor, game) => {
@@ -811,7 +811,7 @@ const events = {
       }
 
       const messages = blocks.map(
-        (b) => str('log', 'roleblockerBlocked', { blocker: b.blocker.getNameWithEmoji(), target: b.target.getNameWithEmoji() }),
+        (b) => str('log', 'handlerBlocked', { blocker: b.blocker.getNameWithEmoji(), target: b.target.getNameWithEmoji() }),
       );
 
       return {
@@ -832,7 +832,7 @@ const events = {
     priority: 10, // First to resolve
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DOCTOR);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.MEDIC);
     },
 
     validTargets: (actor, game) => {
@@ -850,12 +850,12 @@ const events = {
       for (const [actorId, targetId] of Object.entries(results)) {
         if (targetId === null) continue;
         const target = game.getPlayer(targetId);
-        const doctor = game.getPlayer(actorId);
+        const medic = game.getPlayer(actorId);
 
         target.isProtected = true;
-        doctor.lastProtected = targetId;
+        medic.lastProtected = targetId;
 
-        protections.push({ doctor, target });
+        protections.push({ medic, target });
       }
 
       if (protections.length === 0) {
@@ -864,7 +864,7 @@ const events = {
 
       // Log protections
       const messages = protections.map(
-        (p) => str('log', 'doctorProtected', { doctor: p.doctor.getNameWithEmoji(), target: p.target.getNameWithEmoji() }),
+        (p) => str('log', 'medicProtected', { medic: p.medic.getNameWithEmoji(), target: p.target.getNameWithEmoji() }),
       );
 
       return {

@@ -28,7 +28,7 @@ import { str } from '../strings.js';
  * Situational items (grantsAbility):
  *   - Don't appear in idle ability selector
  *   - Flows/events check if player has the ability
- *   - Example: phone -> grants 'pardon' ability, checked by GovernorPardonFlow
+ *   - Example: gavel -> grants 'pardon' ability, checked by GovernorPardonFlow
  *
  * Item consumption timing:
  *   IMMEDIATE  — consumed as soon as the player activates/selects
@@ -36,7 +36,7 @@ import { str } from '../strings.js';
  *   ON_RESOLVE — consumed when the event resolves via _cleanupParticipants
  *                (participation-granting items like clue: item.startsEvent === eventId && uses > 0)
  *   ON_TRIGGER — consumed when a passive condition fires, regardless of the event lifecycle
- *                (passive items like coward, barricade, novote: consumed inside killPlayer / vote logic)
+ *                (passive items like coward, hardened, novote: consumed inside killPlayer / vote logic)
  */
 
 const items = {
@@ -48,10 +48,10 @@ const items = {
     startsEvent: EventId.SHOOT, // Idle-activatable: starts the shoot event
   },
 
-  phone: {
-    id: 'phone',
-    get name() { return str('items', 'phone.name') },
-    get description() { return str('items', 'phone.description') },
+  gavel: {
+    id: 'gavel',
+    get name() { return str('items', 'gavel.name') },
+    get description() { return str('items', 'gavel.description') },
     maxUses: 1,
     grantsAbility: 'pardon', // Situational: GovernorPardonFlow checks for this
   },
@@ -61,12 +61,12 @@ const items = {
     get name() { return str('items', 'clue.name') },
     get description() { return str('items', 'clue.description') },
     maxUses: 1,
-    startsEvent: EventId.INVESTIGATE, // Grants seer's investigate ability
+    startsEvent: EventId.INVESTIGATE, // Grants seeker's investigate ability
   },
 
-  tanned: {
-    id: 'tanned',
-    name: 'Tanned',
+  marked: {
+    id: 'marked',
+    name: 'Marked',
     description: 'A hidden curse. You appear guilty when investigated.',
     maxUses: -1, // Passive: always active while held
     hidden: true, // Not shown on player console or icon slots
@@ -76,7 +76,7 @@ const items = {
   prospect: {
     id: 'prospect',
     name: 'Prospect',
-    description: 'A hidden mark. If killed by werewolves, join their pack instead of dying.',
+    description: 'A hidden mark. If killed by the Cell, join them instead of dying.',
     maxUses: -1, // Passive: consumed on trigger
     hidden: true, // Not shown on player console or icon slots
     grantsAbility: 'prospect', // Checked by killPlayer in Game.js
@@ -91,12 +91,12 @@ const items = {
     grantsAbility: 'coward', // Checked by Game.getEventParticipants and event validTargets
   },
 
-  barricade: {
-    id: 'barricade',
-    get name() { return str('items', 'barricade.name') },
-    get description() { return str('items', 'barricade.description') },
+  hardened: {
+    id: 'hardened',
+    get name() { return str('items', 'hardened.name') },
+    get description() { return str('items', 'hardened.description') },
     maxUses: 1, // Passive: consumed on first death absorption
-    grantsAbility: 'barricade', // Checked by killPlayer in Game.js
+    grantsAbility: 'hardened', // Checked by killPlayer in Game.js
   },
 
   novote: {

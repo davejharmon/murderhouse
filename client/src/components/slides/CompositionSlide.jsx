@@ -8,8 +8,8 @@ import styles from '../../pages/Screen.module.css'
 export default function CompositionSlide({ slide, strings = SLIDE_STRINGS.composition }) {
   const { roles = [], teamCounts = {} } = slide
 
-  const werewolfRoles = roles.filter((r) => r.team === 'werewolf')
-  const villageRoles = roles.filter((r) => r.team === 'village')
+  const cellRoles = roles.filter((r) => r.team === 'cell')
+  const circleRoles = roles.filter((r) => r.team === 'circle')
   const unassignedCount = teamCounts.unassigned || 0
 
   const pluralize = (name, count) => count > 1 ? `${name}s` : name
@@ -37,14 +37,14 @@ export default function CompositionSlide({ slide, strings = SLIDE_STRINGS.compos
     <div key={slide.id} className={styles.slide}>
       <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>
       <div className={styles.compRow}>
-        {werewolfRoles.length > 0 && (
-          <div className={`${styles.compGroup} ${styles.compGroupWerewolf}`}>
-            {werewolfRoles.map(renderRoleCluster)}
+        {cellRoles.length > 0 && (
+          <div className={`${styles.compGroup} ${styles.compGroupCell}`}>
+            {cellRoles.map(renderRoleCluster)}
           </div>
         )}
-        {villageRoles.length > 0 && (
-          <div className={`${styles.compGroup} ${styles.compGroupVillage}`}>
-            {villageRoles.map(renderRoleCluster)}
+        {circleRoles.length > 0 && (
+          <div className={`${styles.compGroup} ${styles.compGroupCircle}`}>
+            {circleRoles.map(renderRoleCluster)}
           </div>
         )}
         {unassignedCount > 0 && (

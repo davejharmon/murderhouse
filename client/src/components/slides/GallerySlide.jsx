@@ -41,10 +41,10 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
   const getPlayer = (id) => players?.find(p => p.id === id)
 
   const allPlayers = gameState?.players || []
-  const deadWerewolves = useMemo(
+  const deadCellMembers = useMemo(
     () =>
       allPlayers
-        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'werewolf')
+        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'cell')
         .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
     [allPlayers],
   )
@@ -169,16 +169,16 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
   }
 
   // ── Standard gallery ──────────────────────────────────────────────────────────
-  const playersWithoutDeadWerewolves = galleryPlayers.filter(
-    (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'werewolf',
+  const playersWithoutDeadCell = galleryPlayers.filter(
+    (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'cell',
   )
-  const totalWerewolves = gameState?.totalWerewolves || 0
+  const totalCellMembers = gameState?.totalCellMembers || 0
 
   return (
     <div key={slide.id} className={styles.slide}>
       {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
       <div className={styles.gallery}>
-        {playersWithoutDeadWerewolves.map((p) => {
+        {playersWithoutDeadCell.map((p) => {
           const isDead = p.status !== PlayerStatus.ALIVE
           return (
             <div
@@ -197,23 +197,23 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
         })}
       </div>
       {slide.subtitle && <p className={styles.subtitle}>{slide.subtitle}</p>}
-      {totalWerewolves > 0 && gameState?.phase !== GamePhase.LOBBY && (
-        <div className={styles.werewolfTracker}>
+      {totalCellMembers > 0 && gameState?.phase !== GamePhase.LOBBY && (
+        <div className={styles.cellTracker}>
           <div className={styles.gallery}>
-            {Array.from({ length: totalWerewolves }).map((_, index) => {
-              const deadWerewolf = deadWerewolves[index]
-              if (deadWerewolf) {
+            {Array.from({ length: totalCellMembers }).map((_, index) => {
+              const deadCell = deadCellMembers[index]
+              if (deadCell) {
                 return (
-                  <div key={`werewolf-${index}`} className={`${styles.playerThumb} ${styles.deadWerewolf}`}>
-                    <img src={`/images/players/${deadWerewolf.portrait}`} alt={deadWerewolf.name} />
-                    <span className={styles.thumbName}>{deadWerewolf.name}</span>
+                  <div key={`cell-${index}`} className={`${styles.playerThumb} ${styles.deadCell}`}>
+                    <img src={`/images/players/${deadCell.portrait}`} alt={deadCell.name} />
+                    <span className={styles.thumbName}>{deadCell.name}</span>
                   </div>
                 )
               } else {
                 return (
-                  <div key={`werewolf-${index}`} className={`${styles.playerThumb} ${styles.anonWerewolf}`}>
-                    <img src='/images/players/anon.png' alt='Unknown Werewolf' />
-                    <span className={styles.thumbName}>{strings.werewolf}</span>
+                  <div key={`cell-${index}`} className={`${styles.playerThumb} ${styles.anonCell}`}>
+                    <img src='/images/players/anon.png' alt='Unknown Sleeper' />
+                    <span className={styles.thumbName}>{strings.cell}</span>
                   </div>
                 )
               }

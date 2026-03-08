@@ -33,8 +33,8 @@ export default function FallbackSlide({ gameState, strings = SLIDE_STRINGS.fallb
               className={`${styles.playerThumb} ${isDead ? styles.dead : ''} ${p.isCowering && !isDead ? styles.cowering : ''}`}
             >
               <img src={`/images/players/${p.portrait}`} alt={p.name} />
-              {p.isCowering && !isDead && <div className={styles.cowardBadge}>{SLIDE_STRINGS.gallery.coward}</div>}
-              {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>{SLIDE_STRINGS.gallery.mad}</div>}
+              {p.isCowering && !isDead && <div className={styles.cowardBadge}>{SLIDE_STRINGS.death.coward}</div>}
+              {p.hasNovote && !isDead && <div className={styles.tooMadBadge}>{SLIDE_STRINGS.death.mad}</div>}
             </div>
           )
         })}

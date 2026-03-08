@@ -292,7 +292,7 @@ export class Player {
       isAlive: this.isAlive,
       connected: this.connected,
       terminalConnected: this.terminalConnected,
-      // Role only shown if dead and not cleaned by janitor
+      // Role only shown if dead and not cleaned by fixer
       role: showRole ? this.role?.id : null,
       roleName: showRole ? this.role?.name : null,
       roleColor: showRole ? this.role?.color : null,
@@ -332,15 +332,15 @@ export class Player {
     };
   }
 
-  // Get pack info (for werewolf team members)
+  // Get pack info (for cell team members)
   getPackInfo(game) {
-    if (!this.role || this.role.team !== Team.WEREWOLF) {
+    if (!this.role || this.role.team !== Team.CELL) {
       return null;
     }
 
     const packMembers = game
       .getAlivePlayers()
-      .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id)
+      .filter((p) => p.role.team === Team.CELL && p.id !== this.id)
       .map((p) => {
         const result = p.getActiveResult(game);
         return {
@@ -378,7 +378,7 @@ export class Player {
     // Get current event info
     const activeEventId = hasActiveEvent ? [...this.pendingEvents][0] : null;
     const activeEvent = activeEventId ? game?.activeEvents?.get(activeEventId) : null;
-    // Use displayName when rendering for the player themselves (e.g. drunk's stumble → "Investigate")
+    // Use displayName when rendering for the player themselves (e.g. amateur's stumble → "Investigate")
     const eventName = (displayRole && activeEvent?.event?.displayName)
       || activeEvent?.event?.name
       || eventContext?.eventName
@@ -437,10 +437,10 @@ export class Player {
 
     if (this.isPoisoned && !hasActiveEvent) return this._displayPoisoned(getLine1, phaseLed);
 
-    // Dynamically compute packmate tip for werewolves (reflects living members)
-    if (this.role?.team === Team.WEREWOLF) {
+    // Dynamically compute packmate tip for cell members (reflects living members)
+    if (this.role?.team === Team.CELL) {
       const packmates = game.getAlivePlayers().filter(
-        (p) => p.id !== this.id && p.role.team === Team.WEREWOLF,
+        (p) => p.id !== this.id && p.role.team === Team.CELL,
       );
       if (packmates.length === 0) {
         this.tutorialTip = 'Lone wolf';
@@ -674,7 +674,7 @@ export class Player {
           line3 = { left: usesLabel, right: '' };
           leds = { yes: LedState.DIM, no: LedState.OFF };
         } else {
-          // Non-activatable item (phone, etc.)
+          // Non-activatable item (gavel, etc.)
           line2Text = inventoryItem.id.toUpperCase();
           line3 = { text: 'Passive item' };
         }
@@ -711,10 +711,10 @@ export class Player {
    * Examples:
    *   #8 PLAYER > LOBBY (default name, no role)
    *   #8 DEMI > LOBBY (custom name, no role)
-   *   #8 WEREWOLF > DAY 1 (role assigned)
-   *   #8 WEREWOLF > DAY 1 > VOTE
-   *   #8 WEREWOLF > DAY 1 > DEAD
-   *   #8 VILLAGER > DAY 1 > SHOOT (PISTOL)
+   *   #8 SLEEPER > DAY 1 (role assigned)
+   *   #8 SLEEPER > DAY 1 > VOTE
+   *   #8 SLEEPER > DAY 1 > DEAD
+   *   #8 NOBODY > DAY 1 > SHOOT (PISTOL)
    */
   _getLine1(phase, dayCount, eventName, eventId) {
     const playerNum = `#${this.seatNumber}`;
@@ -722,7 +722,7 @@ export class Player {
     // Determine what to show: role (if assigned) or player name (in lobby)
     let nameOrRole;
     if (this.role) {
-      // Role assigned - show role name (use display override if set, e.g. drunk → seer)
+      // Role assigned - show role name (use display override if set, e.g. amateur → seeker)
       const displayRole = this._displayRoleOverride || this.role;
       nameOrRole = fitRoleName(displayRole, 12);
     } else {
@@ -781,7 +781,7 @@ export class Player {
   _buildIcons() {
     const idx = this.idleScrollIndex;
 
-    // Slot 0: role icon (use display override if set, e.g. drunk → seer glyph)
+    // Slot 0: role icon (use display override if set, e.g. amateur → seeker glyph)
     let slot0;
     if (!this.isAlive) {
       slot0 = { id: 'skull', state: IconState.INACTIVE };
@@ -828,11 +828,11 @@ export class Player {
    * Non-alpha (in HUNT): alpha's confirmedSelection ?? currentSelection
    */
   _getPackHint(game, eventId) {
-    if (!this.role || this.role.team !== Team.WEREWOLF) return '';
+    if (!this.role || this.role.team !== Team.CELL) return '';
     if (!game.activeEvents?.has(EventId.KILL)) return '';
 
     const packMembers = game.getAlivePlayers()
-      .filter((p) => p.role.team === Team.WEREWOLF && p.id !== this.id);
+      .filter((p) => p.role.team === Team.CELL && p.id !== this.id);
 
     if (packMembers.length === 0) return '';
 

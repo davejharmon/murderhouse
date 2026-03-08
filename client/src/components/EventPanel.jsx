@@ -48,11 +48,11 @@ export default function EventPanel({
   }));
 
   const availableRoles = [
-    { id: 'villager', name: 'Villager' },
-    { id: 'werewolf', name: 'Werewolf' },
-    { id: 'roleblocker', name: 'Roleblocker' },
-    { id: 'seer', name: 'Seer' },
-    { id: 'doctor', name: 'Doctor' },
+    { id: 'nobody', name: 'Nobody' },
+    { id: 'sleeper', name: 'Sleeper' },
+    { id: 'handler', name: 'Handler' },
+    { id: 'seeker', name: 'Seeker' },
+    { id: 'medic', name: 'Medic' },
     { id: 'hunter', name: 'Hunter' },
   ];
 

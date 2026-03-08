@@ -15,7 +15,7 @@ export default function TitleSlide({ slide, players }) {
             alt={player.name}
             className={styles.largePortrait}
           />
-          {player.isCowering && <div className={styles.cowardBadgeLarge}>{SLIDE_STRINGS.gallery.coward}</div>}
+          {player.isCowering && <div className={styles.cowardBadgeLarge}>{SLIDE_STRINGS.death.coward}</div>}
           {player.hasNovote && <div className={styles.tooMadBadgeLarge}>{SLIDE_STRINGS.death.mad}</div>}
         </div>
       )}

@@ -3,11 +3,11 @@
 import { SlideType, SlideStyle, GamePhase, PlayerStatus } from '@shared/constants.js'
 
 export const MOCK_PLAYERS = [
-  { id: 1, name: 'Alice',   portrait: 'player1.png', status: PlayerStatus.ALIVE, roleTeam: 'village',  roleName: 'Villager',  roleColor: '#7eb8da', roleEmoji: '🧑', isCowering: false, hasNovote: false, heartbeat: { active: true, bpm: 88,  fake: false } },
-  { id: 2, name: 'Bob',     portrait: 'player2.png', status: PlayerStatus.ALIVE, roleTeam: 'werewolf', roleName: 'Werewolf',  roleColor: '#c94c4c', roleEmoji: '🐺', isCowering: false, hasNovote: false, heartbeat: { active: true, bpm: 120, fake: false } },
-  { id: 3, name: 'Carol',   portrait: 'player3.png', status: PlayerStatus.ALIVE, roleTeam: 'village',  roleName: 'Seer',      roleColor: '#c9a94c', roleEmoji: '🔮', isCowering: true,  hasNovote: false, heartbeat: { active: true, bpm: 72,  fake: false } },
-  { id: 4, name: 'Dave',    portrait: 'player4.png', status: PlayerStatus.DEAD,  roleTeam: 'werewolf', roleName: 'Werewolf',  roleColor: '#c94c4c', roleEmoji: '🐺', isCowering: false, hasNovote: false, heartbeat: { active: false, bpm: 0,  fake: false }, deathTimestamp: 1000 },
-  { id: 5, name: 'Eve',     portrait: 'player5.png', status: PlayerStatus.ALIVE, roleTeam: 'village',  roleName: 'Doctor',    roleColor: '#7ed9a6', roleEmoji: '💉', isCowering: false, hasNovote: true,  heartbeat: { active: true, bpm: 95,  fake: false } },
+  { id: 1, name: 'Alice',   portrait: 'player1.png', status: PlayerStatus.ALIVE, roleTeam: 'circle',  roleName: 'Nobody',  roleColor: '#7eb8da', roleEmoji: '🧑', isCowering: false, hasNovote: false, heartbeat: { active: true, bpm: 88,  fake: false } },
+  { id: 2, name: 'Bob',     portrait: 'player2.png', status: PlayerStatus.ALIVE, roleTeam: 'cell', roleName: 'Sleeper',  roleColor: '#c94c4c', roleEmoji: '🐺', isCowering: false, hasNovote: false, heartbeat: { active: true, bpm: 120, fake: false } },
+  { id: 3, name: 'Carol',   portrait: 'player3.png', status: PlayerStatus.ALIVE, roleTeam: 'circle',  roleName: 'Seeker',      roleColor: '#c9a94c', roleEmoji: '🔮', isCowering: true,  hasNovote: false, heartbeat: { active: true, bpm: 72,  fake: false } },
+  { id: 4, name: 'Dave',    portrait: 'player4.png', status: PlayerStatus.DEAD,  roleTeam: 'cell', roleName: 'Sleeper',  roleColor: '#c94c4c', roleEmoji: '🐺', isCowering: false, hasNovote: false, heartbeat: { active: false, bpm: 0,  fake: false }, deathTimestamp: 1000 },
+  { id: 5, name: 'Eve',     portrait: 'player5.png', status: PlayerStatus.ALIVE, roleTeam: 'circle',  roleName: 'Medic',    roleColor: '#7ed9a6', roleEmoji: '💉', isCowering: false, hasNovote: true,  heartbeat: { active: true, bpm: 95,  fake: false } },
   { id: 6, name: 'Frank',   portrait: 'player6.png', status: PlayerStatus.ALIVE, roleTeam: 'neutral',  roleName: 'Jester',    roleColor: '#e8a020', roleEmoji: '🃏', isCowering: false, hasNovote: false, heartbeat: { active: true, bpm: 78,  fake: true  } },
 ]
 
@@ -15,7 +15,7 @@ export const MOCK_GAME_STATE_LOBBY = {
   phase: GamePhase.LOBBY,
   players: MOCK_PLAYERS,
   dayCount: 0,
-  totalWerewolves: 2,
+  totalCellMembers: 2,
   heartbeatMode: false,
   heartbeatThreshold: 110,
   eventRespondents: {},
@@ -25,7 +25,7 @@ export const MOCK_GAME_STATE_DAY = {
   phase: GamePhase.DAY,
   players: MOCK_PLAYERS,
   dayCount: 2,
-  totalWerewolves: 2,
+  totalCellMembers: 2,
   heartbeatMode: true,
   heartbeatThreshold: 110,
   eventRespondents: {},
@@ -36,7 +36,7 @@ export const MOCK_SLIDES = {
   [SlideType.TITLE]: {
     id: 'mock-title',
     type: SlideType.TITLE,
-    title: 'THE VILLAGE WAKES',
+    title: 'THE CIRCLE WAKES',
     subtitle: 'Day 2 begins',
     playerId: 1,
   },
@@ -45,14 +45,14 @@ export const MOCK_SLIDES = {
     id: 'mock-title-noplayer',
     type: SlideType.TITLE,
     title: 'NIGHT FALLS',
-    subtitle: 'Werewolves hunt',
+    subtitle: 'The cell hunts',
   },
 
   [SlideType.PLAYER_REVEAL]: {
     id: 'mock-player-reveal',
     type: SlideType.PLAYER_REVEAL,
     title: 'VOTED OUT',
-    subtitle: 'The village has spoken',
+    subtitle: 'The circle has spoken',
     playerId: 3,
     revealRole: true,
     style: SlideStyle.HOSTILE,
@@ -133,45 +133,45 @@ export const MOCK_SLIDES = {
     revealRole: true,
     style: SlideStyle.HOSTILE,
     remainingComposition: [
-      { team: 'village', dim: false },
-      { team: 'village', dim: false },
-      { team: 'werewolf', dim: false },
-      { team: 'werewolf', dim: true },
+      { team: 'circle', dim: false },
+      { team: 'circle', dim: false },
+      { team: 'cell', dim: false },
+      { team: 'cell', dim: true },
     ],
   },
 
   [`${SlideType.DEATH}_coward`]: {
     id: 'mock-death-coward',
     type: SlideType.DEATH,
-    title: 'FLED THE VILLAGE',
+    title: 'FLED THE CIRCLE',
     subtitle: 'Carol',
     playerId: 3,
     coward: true,
     style: SlideStyle.WARNING,
-    revealText: 'Seer — fled in shame',
+    revealText: 'Seeker — fled in shame',
   },
 
   [SlideType.VICTORY]: {
     id: 'mock-victory',
     type: SlideType.VICTORY,
-    title: 'VILLAGE WINS',
-    subtitle: 'The werewolves have been defeated',
+    title: 'THE CIRCLE WINS',
+    subtitle: 'The cell has been defeated',
     style: SlideStyle.POSITIVE,
     winners: [
-      { id: 1, name: 'Alice', portrait: 'player1.png', isAlive: true,  roleColor: '#7eb8da', roleName: 'Villager' },
-      { id: 3, name: 'Carol', portrait: 'player3.png', isAlive: false, roleColor: '#c9a94c', roleName: 'Seer'     },
-      { id: 5, name: 'Eve',   portrait: 'player5.png', isAlive: true,  roleColor: '#7ed9a6', roleName: 'Doctor'   },
+      { id: 1, name: 'Alice', portrait: 'player1.png', isAlive: true,  roleColor: '#7eb8da', roleName: 'Nobody' },
+      { id: 3, name: 'Carol', portrait: 'player3.png', isAlive: false, roleColor: '#c9a94c', roleName: 'Seeker'     },
+      { id: 5, name: 'Eve',   portrait: 'player5.png', isAlive: true,  roleColor: '#7ed9a6', roleName: 'Medic'   },
     ],
   },
 
-  [`${SlideType.VICTORY}_werewolf`]: {
+  [`${SlideType.VICTORY}_cell`]: {
     id: 'mock-victory-wolf',
     type: SlideType.VICTORY,
-    title: 'WEREWOLVES WIN',
-    subtitle: 'The village has fallen',
+    title: 'THE CELL WINS',
+    subtitle: 'The circle has fallen',
     style: SlideStyle.HOSTILE,
     winners: [
-      { id: 2, name: 'Bob',  portrait: 'player2.png', isAlive: true, roleColor: '#c94c4c', roleName: 'Werewolf' },
+      { id: 2, name: 'Bob',  portrait: 'player2.png', isAlive: true, roleColor: '#c94c4c', roleName: 'Sleeper' },
     ],
   },
 
@@ -180,10 +180,10 @@ export const MOCK_SLIDES = {
     type: SlideType.COMPOSITION,
     title: 'GAME SETUP',
     roles: [
-      { roleId: 'werewolf', roleName: 'Werewolf', roleEmoji: '🐺', team: 'werewolf', count: 2 },
-      { roleId: 'villager', roleName: 'Villager', roleEmoji: '🧑', team: 'village',  count: 3 },
-      { roleId: 'seer',     roleName: 'Seer',     roleEmoji: '🔮', team: 'village',  count: 1 },
-      { roleId: 'doctor',   roleName: 'Doctor',   roleEmoji: '💉', team: 'village',  count: 1 },
+      { roleId: 'sleeper', roleName: 'Sleeper', roleEmoji: '🐺', team: 'cell', count: 2 },
+      { roleId: 'nobody', roleName: 'Nobody', roleEmoji: '🧑', team: 'circle',  count: 3 },
+      { roleId: 'seeker',     roleName: 'Seeker',     roleEmoji: '🔮', team: 'circle',  count: 1 },
+      { roleId: 'medic',   roleName: 'Medic',   roleEmoji: '💉', team: 'circle',  count: 1 },
     ],
     teamCounts: { unassigned: 1 },
   },
@@ -192,27 +192,27 @@ export const MOCK_SLIDES = {
     id: 'mock-role-tip',
     type: SlideType.ROLE_TIP,
     title: 'YOUR ROLE',
-    roleId: 'seer',
-    roleName: 'Seer',
+    roleId: 'seeker',
+    roleName: 'Seeker',
     roleEmoji: '🔮',
     roleColor: '#c9a94c',
-    team: 'village',
+    team: 'circle',
     detailedTip: 'Each night you may investigate one player to learn their team alignment.',
     abilities: [
       { label: 'INVESTIGATE', color: '#7eb8da' },
     ],
   },
 
-  [`${SlideType.ROLE_TIP}_werewolf`]: {
+  [`${SlideType.ROLE_TIP}_cell`]: {
     id: 'mock-role-tip-wolf',
     type: SlideType.ROLE_TIP,
     title: 'YOUR ROLE',
-    roleId: 'werewolf',
-    roleName: 'Werewolf',
+    roleId: 'sleeper',
+    roleName: 'Sleeper',
     roleEmoji: '🐺',
     roleColor: '#c94c4c',
-    team: 'werewolf',
-    detailedTip: 'Each night you and your pack choose one player to eliminate.',
+    team: 'cell',
+    detailedTip: 'Each night you and your cell choose one player to eliminate.',
     abilities: [
       { label: 'KILL', color: '#c94c4c' },
     ],
@@ -237,7 +237,7 @@ export const MOCK_SLIDES = {
     itemName: 'Clue',
     itemEmoji: '🔍',
     maxUses: -1,
-    itemDescription: 'Passively grants you participation in the Seer investigation each night.',
+    itemDescription: 'Passively grants you participation in the Seeker investigation each night.',
   },
 
   [SlideType.OPERATOR]: {
@@ -363,8 +363,8 @@ export const SLIDE_EDITOR_LIST = [
     label: 'Victory',
     type: SlideType.VICTORY,
     variants: [
-      { label: 'Village', key: SlideType.VICTORY             },
-      { label: 'Wolf',    key: `${SlideType.VICTORY}_werewolf` },
+      { label: 'Circle', key: SlideType.VICTORY             },
+      { label: 'Cell',    key: `${SlideType.VICTORY}_cell` },
     ],
   },
   {
@@ -378,8 +378,8 @@ export const SLIDE_EDITOR_LIST = [
     label: 'Role Tip',
     type: SlideType.ROLE_TIP,
     variants: [
-      { label: 'Village',  key: SlideType.ROLE_TIP             },
-      { label: 'Werewolf', key: `${SlideType.ROLE_TIP}_werewolf` },
+      { label: 'Circle',  key: SlideType.ROLE_TIP             },
+      { label: 'Cell', key: `${SlideType.ROLE_TIP}_cell` },
     ],
   },
   {

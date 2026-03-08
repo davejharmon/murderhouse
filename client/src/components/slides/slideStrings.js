@@ -13,17 +13,15 @@ export const SLIDE_STRINGS = {
     get night()   { return getStr('screen', 'fallback.night') },
   },
   death: {
-    get eliminated() { return getStr('screen', 'death.eliminated') },
+    get eliminated() { return getStr('slides', 'death.suffixEliminated') },
     get coward()     { return getStr('screen', 'death.coward') },
     get mad()        { return getStr('screen', 'death.mad') },
   },
   gallery: {
-    get werewolf() { return getStr('screen', 'gallery.werewolf') },
-    get coward()   { return getStr('screen', 'gallery.coward') },
-    get mad()      { return getStr('screen', 'gallery.mad') },
+    get cell() { return getStr('screen', 'gallery.cell') },
   },
   scores: {
-    get title() { return getStr('screen', 'scores.title') },
+    get title() { return getStr('slides', 'misc.scoreboardTitle') },
     get empty() { return getStr('screen', 'scores.empty') },
   },
   heartbeat: {
@@ -35,9 +33,9 @@ export const SLIDE_STRINGS = {
     get unassigned() { return getStr('screen', 'composition.unassigned') },
   },
   roleTip: {
-    get werewolf()    { return getStr('screen', 'roleTip.werewolf') },
-    get independent() { return getStr('screen', 'roleTip.independent') },
-    get village()     { return getStr('screen', 'roleTip.village') },
+    get cell()    { return getStr('screen', 'roleTip.cell') },
+    get independent() { return getStr('slides', 'death.teamNeutral') },
+    get circle()      { return getStr('screen', 'roleTip.circle') },
     get passive()     { return getStr('screen', 'roleTip.passive') },
     get singleUse()   { return getStr('screen', 'roleTip.singleUse') },
     get uses()        { return getStr('screen', 'roleTip.uses') },

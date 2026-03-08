@@ -28,10 +28,10 @@
   --oled-bg:           #0a0800;   /* Warm near-black */
 
   /* Role colors */
-  --color-village: #7eb8da;
-  --color-werewolf: #c94c4c;
-  --color-seer: #9b7ed9;
-  --color-doctor: #7ed9a6;
+  --color-circle: #7eb8da;
+  --color-cell: #c94c4c;
+  --color-seeker: #9b7ed9;
+  --color-medic: #7ed9a6;
   --color-hunter: #d9a67e;
   
   /* Typography */

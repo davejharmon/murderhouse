@@ -44,14 +44,14 @@
       },
       "rolePool": [
         "alpha",
-        "werewolf",
-        "seer",
-        "doctor",
-        "villager",
-        "villager",
-        "villager",
-        "villager",
-        "villager"
+        "sleeper",
+        "seeker",
+        "medic",
+        "nobody",
+        "nobody",
+        "nobody",
+        "nobody",
+        "nobody"
       ],
       "timerDuration": 3,
       "autoAdvanceEnabled": true
@@ -104,14 +104,14 @@
       "roleMode": "assigned",
       "roleAssignments": {
         "1": "alpha",
-        "2": "werewolf",
-        "3": "doctor",
-        "4": "seer",
-        "5": "villager",
-        "6": "villager",
-        "7": "villager",
-        "8": "villager",
-        "9": "villager"
+        "2": "sleeper",
+        "3": "medic",
+        "4": "seeker",
+        "5": "nobody",
+        "6": "nobody",
+        "7": "nobody",
+        "8": "nobody",
+        "9": "nobody"
       },
       "fakeHeartbeats": false
     }

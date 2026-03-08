@@ -126,11 +126,11 @@ export class Game {
       }
     }
 
-    // Janitor cleaning flag (set by clean event, read by kill event)
-    this.janitorCleaning = false;
+    // Fixer covering flag (set by clean event, read by kill event)
+    this.fixerCovering = false;
 
-    // Poisoner flag (set by poison event, read by kill event)
-    this.poisonerActing = false;
+    // Chemist flag (set by poison event, read by kill event)
+    this.chemistActing = false;
 
     // Death processing queue
     this._deathQueue = [];
@@ -640,9 +640,9 @@ export class Game {
       if (poolIndex !== -1) {
         pool.splice(poolIndex, 1);
       } else {
-        const villagerIndex = pool.lastIndexOf('villager');
-        if (villagerIndex !== -1) {
-          pool.splice(villagerIndex, 1);
+        const nobodyIndex = pool.lastIndexOf('nobody');
+        if (nobodyIndex !== -1) {
+          pool.splice(nobodyIndex, 1);
         } else {
           pool.pop();
         }
@@ -657,9 +657,9 @@ export class Game {
       if (!roleDef?.companions) continue;
       for (const companionId of roleDef.companions) {
         if (allRoleIds.includes(companionId)) continue;
-        const villagerIndex = pool.lastIndexOf('villager');
-        if (villagerIndex === -1) continue; // No room — skip silently
-        pool.splice(villagerIndex, 1, companionId);
+        const nobodyIndex = pool.lastIndexOf('nobody');
+        if (nobodyIndex === -1) continue; // No room — skip silently
+        pool.splice(nobodyIndex, 1, companionId);
         allRoleIds.push(companionId);
       }
     }
@@ -698,7 +698,7 @@ export class Game {
       if (idx !== -1) {
         remaining.splice(idx, 1);
       } else {
-        const vi = remaining.lastIndexOf(RoleId.VILLAGER);
+        const vi = remaining.lastIndexOf(RoleId.NOBODY);
         if (vi !== -1) remaining.splice(vi, 1);
         else remaining.pop();
       }
@@ -707,28 +707,28 @@ export class Game {
 
     // Count teams
     const wolves = finalRoles.filter(
-      (r) => getRole(r)?.team === Team.WEREWOLF,
+      (r) => getRole(r)?.team === Team.CELL,
     ).length;
-    const villagers = finalRoles.filter(
-      (r) => getRole(r)?.team === Team.VILLAGE,
+    const circleMembers = finalRoles.filter(
+      (r) => getRole(r)?.team === Team.CIRCLE,
     ).length;
 
-    if (villagers === 0) {
+    if (circleMembers === 0) {
       return {
         valid: false,
-        error: 'No village team members — werewolves win instantly',
+        error: 'No circle team members — cell wins instantly',
       };
     }
     if (wolves === 0) {
       return {
         valid: false,
-        error: 'No werewolf team members — village wins instantly',
+        error: 'No cell team members — circle wins instantly',
       };
     }
-    if (wolves >= villagers) {
+    if (wolves >= circleMembers) {
       return {
         valid: false,
-        error: `${wolves} werewolves vs ${villagers} villagers — werewolves win instantly`,
+        error: `${wolves} cell members vs ${circleMembers} circle members — cell wins instantly`,
       };
     }
 
@@ -737,7 +737,7 @@ export class Game {
 
   _setTutorialTips() {
     for (const player of this.players.values()) {
-      if (player.role.team === Team.WEREWOLF) {
+      if (player.role.team === Team.CELL) {
         player.tutorialTip = null; // Computed dynamically in _buildDisplay
       } else {
         player.tutorialTip = player.role.tip || 'Good luck!';
@@ -761,10 +761,10 @@ export class Game {
           this.addLog(resolution.message);
         }
 
-        // Deliver private results (e.g., seer investigations) to living players
+        // Deliver private results (e.g., seeker investigations) to living players
         if (resolution.investigations) {
           for (const inv of resolution.investigations) {
-            const player = this.getPlayer(inv.seerId);
+            const player = this.getPlayer(inv.seekerId);
             if (player?.isAlive) {
               player.lastEventResult = { message: inv.privateMessage, critical: true };
               player.send(ServerMsg.EVENT_RESULT, {
@@ -783,9 +783,9 @@ export class Game {
       this._processPoisonDeaths();
     }
 
-    // Clear protection, player event state, and janitor flag
-    this.janitorCleaning = false;
-    this.poisonerActing = false;
+    // Clear protection, player event state, and fixer flag
+    this.fixerCovering = false;
+    this.chemistActing = false;
     for (const player of this.players.values()) {
       player.resetForPhase();
     }
@@ -956,7 +956,7 @@ export class Game {
         {
           type: 'gallery',
           title: str('slides', 'vote.slideTitle'),
-          subtitle: str('slides', 'vote.slideSubtitle'),
+          subtitle: str('events', 'vote.description'),
           playerIds: this.getAlivePlayers().map((p) => p.id),
           targetsOnly: true,
           activeEventId: eventId,
@@ -975,7 +975,7 @@ export class Game {
 
   // Start (or join) an event on behalf of a single player activating an item.
   // Unlike startEvent(), this does NOT sweep in all eligible participants — only the
-  // activating player is added.  If the event is already active (e.g. the seer's
+  // activating player is added.  If the event is already active (e.g. the seeker's
   // INVESTIGATE is running), the player is appended to its participant list and
   // notified without restarting the event.
   startEventForPlayer(eventId, playerId) {
@@ -1267,7 +1267,7 @@ export class Game {
           return { success: true, eventId };
         }
 
-        // Broadcast pack state for werewolf events
+        // Broadcast pack state for cell events
         if (this.shouldBroadcastPackState(eventId, player)) {
           this.broadcastPackState();
         }
@@ -1446,7 +1446,7 @@ export class Game {
   }
 
   // Nullify selections from roleblocked players (treat as abstain).
-  // The block event itself is exempt — roleblocking a roleblocker is intentional.
+  // The block event itself is exempt — blocking a handler is intentional.
   // Returns an array of { actorId, originalTargetId } for non-null selections that were blocked.
   _applyRoleblocks(results, eventId) {
     if (eventId === EventId.BLOCK) return [];
@@ -1506,10 +1506,10 @@ export class Game {
   _dispatchPrivateResults(resolution) {
     if (!resolution.investigations) return;
     for (const inv of resolution.investigations) {
-      const seer = this.getPlayer(inv.seerId);
-      if (seer) {
-        seer.lastEventResult = { message: inv.privateMessage, critical: true };
-        seer.send(ServerMsg.EVENT_RESULT, {
+      const seeker = this.getPlayer(inv.seekerId);
+      if (seeker) {
+        seeker.lastEventResult = { message: inv.privateMessage, critical: true };
+        seeker.send(ServerMsg.EVENT_RESULT, {
           eventId: EventId.INVESTIGATE,
           message: inv.privateMessage,
           data: inv,
@@ -1564,7 +1564,7 @@ export class Game {
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
-    // Note: Governor pardon is handled by GovernorPardonFlow.
+    // Note: Judge pardon is handled by GovernorPardonFlow.
 
     this._cleanupParticipants(participants, eventId, results);
     this._commitResolution(eventId, resolution);
@@ -1722,7 +1722,7 @@ export class Game {
       return this.triggerRunoff(eventId, resolution.frontrunners);
     }
 
-    // Check if any flow wants to intercept the vote resolution (e.g., governor pardon)
+    // Check if any flow wants to intercept the vote resolution (e.g., judge pardon)
     const flowContext = { voteEventId: eventId, resolution, instance };
     const interceptingFlow = [...this.flows.values()].find(
       (f) =>
@@ -1947,15 +1947,15 @@ export class Game {
     if (this._winCache !== WIN_CACHE_EMPTY) return this._winCache;
 
     const alive = this.getAlivePlayers();
-    const werewolves = alive.filter((p) => p.role.team === Team.WEREWOLF);
-    // Cowards can't vote, so they provide no effective voting power to the village.
-    // Exclude them from the majority calculation so werewolves aren't artificially
-    // blocked by unvotable village members.
-    const villagers = alive.filter((p) => p.role.team === Team.VILLAGE && !p.hasItem('coward'));
+    const cellMembers = alive.filter((p) => p.role.team === Team.CELL);
+    // Cowards can't vote, so they provide no effective voting power to the circle.
+    // Exclude them from the majority calculation so the cell isn't artificially
+    // blocked by unvotable circle members.
+    const circleMembers = alive.filter((p) => p.role.team === Team.CIRCLE && !p.hasItem('coward'));
 
     let result = null;
-    if (werewolves.length === 0) result = Team.VILLAGE;
-    else if (werewolves.length >= villagers.length) result = Team.WEREWOLF;
+    if (cellMembers.length === 0) result = Team.CIRCLE;
+    else if (cellMembers.length >= circleMembers.length) result = Team.CELL;
 
     this._winCache = result;
     return result;
@@ -1969,9 +1969,9 @@ export class Game {
       player.isRoleCleaned = false;
     }
 
-    const winnerName = winner === Team.VILLAGE
-      ? str('slides', 'victory.villagerName')
-      : str('slides', 'victory.werewolfName');
+    const winnerName = winner === Team.CIRCLE
+      ? str('slides', 'victory.circleName')
+      : str('slides', 'victory.cellName');
 
     this.addLog(str('log', 'gameOver', { winners: winnerName }));
 
@@ -1993,11 +1993,11 @@ export class Game {
         winners,
         title: `${winnerName} WIN`,
         subtitle:
-          winner === Team.VILLAGE
-            ? str('slides', 'victory.villageSubtitle')
-            : str('slides', 'victory.werewolfSubtitle'),
+          winner === Team.CIRCLE
+            ? str('slides', 'victory.circleSubtitle')
+            : str('slides', 'victory.cellSubtitle'),
         style:
-          winner === Team.VILLAGE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
+          winner === Team.CIRCLE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
       },
       false,
     ); // Queue after death slide, don't jump to it
@@ -2111,7 +2111,7 @@ export class Game {
       player.isPoisoned = false;
       player.poisonedAt = null;
 
-      // Doctor protection on the death night cures the poison — no slide
+      // Medic protection on the death night cures the poison — no slide
       if (player.isProtected) {
         player.isProtected = false;
         this.addLog(str('log', 'playerSavedPoison', { name: player.getNameWithEmoji() }));
@@ -2121,8 +2121,8 @@ export class Game {
       this.addLog(str('log', 'playerDiedPoison', { name: player.getNameWithEmoji() }));
       this.killPlayer(player.id, 'poison');
       const teamNames = {
-        village: str('slides', 'death.teamVillager'),
-        werewolf: str('slides', 'death.teamWerewolf'),
+        circle: str('slides', 'death.teamCircle'),
+        cell: str('slides', 'death.teamCell'),
         neutral: str('slides', 'death.teamNeutral'),
       };
       const teamName = teamNames[player.role?.team] || str('slides', 'death.teamUnknown');
@@ -2141,14 +2141,14 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return false;
 
-    // BARRICADE: absorbs any kill on first trigger
-    if (player.hasItem(ItemId.BARRICADE)) {
-      this._barricadeAbsorb(player);
+    // HARDENED: absorbs any kill on first trigger
+    if (player.hasItem(ItemId.HARDENED)) {
+      this._hardenedAbsorb(player);
       return 'barricaded';
     }
 
-    // PROSPECT: werewolf kill on a prospect → recruit instead of kill
-    if (cause === 'werewolf' && player.hasItem(ItemId.PROSPECT)) {
+    // PROSPECT: cell kill on a prospect → recruit instead of kill
+    if (cause === 'cell' && player.hasItem(ItemId.PROSPECT)) {
       this._recruitProspect(player);
       return true;
     }
@@ -2169,19 +2169,19 @@ export class Game {
     return true;
   }
 
-  _barricadeAbsorb(player) {
-    player.removeItem(ItemId.BARRICADE);
-    player.lastEventResult = { message: str('feedback', 'barricade.broken'), detail: str('feedback', 'barricade.detail'), critical: true };
-    this.addLog(str('log', 'barricadeAbsorbed', { name: player.getNameWithEmoji() }));
+  _hardenedAbsorb(player) {
+    player.removeItem(ItemId.HARDENED);
+    player.lastEventResult = { message: str('feedback', 'hardened.broken'), detail: str('feedback', 'hardened.detail'), critical: true };
+    this.addLog(str('log', 'hardenedAbsorbed', { name: player.getNameWithEmoji() }));
   }
 
   _recruitProspect(player) {
     player.removeItem(ItemId.PROSPECT);
-    player.assignRole(getRole(RoleId.WEREWOLF));
+    player.assignRole(getRole(RoleId.SLEEPER));
     this._invalidateWinCache(); // Team changed
     player.lastEventResult = { message: str('feedback', 'prospect.changed'), detail: str('feedback', 'prospect.detail'), critical: true };
     this.addLog(str('log', 'playerRecruited', { name: player.getNameWithEmoji() }));
-    this.broadcastPackState(); // syncs all wolves including the new recruit
+    this.broadcastPackState(); // syncs all cell members including the new recruit
   }
 
   _processDeathEffects({ player, cause }) {
@@ -2195,7 +2195,7 @@ export class Game {
       // Handle non-interrupt results (like Alpha promotion message)
       if (deathResult?.message && !deathResult.interrupt) {
         this.addLog(deathResult.message);
-        // Broadcast pack state so all werewolves see new roles
+        // Broadcast pack state so all cell members see new roles
         if (deathResult.message.includes('Alpha')) {
           this.broadcastPackState();
         }
@@ -2281,7 +2281,7 @@ export class Game {
   //   1. Identity slide: victim name in title (e.g. "MARK KILLED"), no role shown
   //      If slide.identityTitle is set, uses that as title (e.g. pistol: "MARK shot JANE!")
   //      and sets subtitle to victim name.
-  //   2. Role reveal slide: team name in title (e.g. "VILLAGER KILLED"), shows role.
+  //   2. Role reveal slide: team name in title (e.g. "CIRCLE KILLED"), shows role.
   //      If victim.isRoleCleaned, title becomes "??? {ACTION}" and shows revealText instead.
   queueDeathSlide(slide, jumpTo = true) {
     const victim = this.players.get(slide.playerId);
@@ -2309,7 +2309,7 @@ export class Game {
       const isDead = p.status === PlayerStatus.DEAD;
       const isCoward = p.isAlive && p.hasItem(ItemId.COWARD);
       remainingComposition.push({
-        team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'village'),
+        team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'circle'),
         dim: isDead || isCoward,
       });
     }
@@ -2334,8 +2334,8 @@ export class Game {
   // Create a death slide for a given cause (used when events don't provide custom slides)
   createDeathSlide(player, cause) {
     const teamNames = {
-      village: str('slides', 'death.teamVillager'),
-      werewolf: str('slides', 'death.teamWerewolf'),
+      circle: str('slides', 'death.teamCircle'),
+      cell: str('slides', 'death.teamCell'),
       neutral: str('slides', 'death.teamNeutral'),
     };
     const teamName = player.role?.id === RoleId.JESTER
@@ -2345,7 +2345,7 @@ export class Game {
     const killed = str('slides', 'death.suffixKilled');
     const titles = {
       eliminated: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
-      werewolf:   `${teamName} ${killed}`,
+      cell:       `${teamName} ${killed}`,
       vigilante:  `${teamName} ${killed}`,
       shot:       `${teamName} ${killed}`,
       hunter:     `${teamName} ${killed}`,
@@ -2356,7 +2356,7 @@ export class Game {
 
     const subtitles = {
       eliminated: player.name,
-      werewolf:   player.name,
+      cell:       player.name,
       vigilante:  player.name,
       shot:       str('slides', 'death.subtitleShot',        { name: player.name }),
       hunter:     str('slides', 'death.subtitleHunter',      { name: player.name }),
@@ -2667,18 +2667,18 @@ export class Game {
   shouldBroadcastPackState(eventId, player) {
     return (
       (eventId === EventId.HUNT || eventId === EventId.KILL) &&
-      player?.role?.team === Team.WEREWOLF
+      player?.role?.team === Team.CELL
     );
   }
 
-  // Broadcast pack state to all werewolves (for real-time hunt updates)
+  // Broadcast pack state to all cell members (for real-time hunt updates)
   broadcastPackState() {
-    const werewolves = this.getAlivePlayers().filter(
-      (p) => p.role && p.role.team === Team.WEREWOLF,
+    const cellMembers = this.getAlivePlayers().filter(
+      (p) => p.role && p.role.team === Team.CELL,
     );
 
-    for (const werewolf of werewolves) {
-      werewolf.syncState(this);
+    for (const member of cellMembers) {
+      member.syncState(this);
     }
   }
 
@@ -2720,16 +2720,16 @@ export class Game {
       return base;
     });
 
-    // Count total werewolves (both alive and dead)
-    const totalWerewolves = [...this.players.values()].filter(
-      (p) => p.role && p.role.team === Team.WEREWOLF,
+    // Count total cell members (both alive and dead)
+    const totalCellMembers = [...this.players.values()].filter(
+      (p) => p.role && p.role.team === Team.CELL,
     ).length;
 
     return {
       phase: this.phase,
       dayCount: this.dayCount,
       players,
-      totalWerewolves,
+      totalCellMembers,
       pendingEvents: this.pendingEvents,
       activeEvents: [...this.activeEvents.keys()],
       eventParticipants: this.getEventParticipantMap(),
@@ -2794,7 +2794,7 @@ export class Game {
 
     // Count roles by team
     const roleCounts = {};
-    const teamCounts = { village: 0, werewolf: 0 };
+    const teamCounts = { circle: 0, cell: 0 };
     for (const player of assigned) {
       const roleDef = getRole(player.preAssignedRole) || player.role;
       if (!roleDef) continue;
@@ -2809,8 +2809,8 @@ export class Game {
         };
       }
       roleCounts[roleDef.id].count++;
-      if (roleDef.team === Team.VILLAGE) teamCounts.village++;
-      else if (roleDef.team === Team.WEREWOLF) teamCounts.werewolf++;
+      if (roleDef.team === Team.CIRCLE) teamCounts.circle++;
+      else if (roleDef.team === Team.CELL) teamCounts.cell++;
     }
 
     const unassigned = players.length - assigned.length;
@@ -2845,7 +2845,7 @@ export class Game {
       abilities: this._getRoleAbilities(roleDef),
       detailedTip: roleDef.detailedTip || roleDef.description,
       style:
-        roleDef.team === Team.WEREWOLF
+        roleDef.team === Team.CELL
           ? SlideStyle.HOSTILE
           : SlideStyle.NEUTRAL,
     });
@@ -2901,7 +2901,7 @@ export class Game {
     // Roles whose key abilities are passive/flow-based, not in events
     const passiveAbilities = {
       [RoleId.HUNTER]: [{ label: 'REVENGE', color: abilityColors.revenge }],
-      [RoleId.GOVERNOR]: [{ label: 'PARDON', color: abilityColors.pardon }],
+      [RoleId.JUDGE]: [{ label: 'PARDON', color: abilityColors.pardon }],
     };
     const extras = passiveAbilities[roleDef.id] || [];
 

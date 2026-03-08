@@ -268,35 +268,35 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.playerThumb.deadWerewolf {
+.playerThumb.deadCell {
   opacity: 0.6;
 }
 
-.playerThumb.deadWerewolf img {
+.playerThumb.deadCell img {
   filter: sepia(0.7) saturate(5) hue-rotate(-50deg);
   border-color: #c94c4c;
 }
 
-.playerThumb.deadWerewolf .thumbName {
+.playerThumb.deadCell .thumbName {
   color: #c94c4c;
 }
 
-.playerThumb.anonWerewolf {
+.playerThumb.anonCell {
   opacity: 1;
 }
 
-.playerThumb.anonWerewolf img {
+.playerThumb.anonCell img {
   filter: brightness(0.3);
   border-color: #c94c4c;
 }
 
-.playerThumb.anonWerewolf .thumbName {
+.playerThumb.anonCell .thumbName {
   color: #c94c4c;
   font-size: 0.8vw;
   letter-spacing: 0.15em;
 }
 
-.werewolfTracker {
+.cellTracker {
   margin-top: 3vh;
   padding-top: 2vh;
   border-top: 2px solid rgba(201, 76, 76, 0.3);
@@ -583,8 +583,8 @@
   display: block;
 }
 
-.compTeam_village img    { filter: sepia(1) saturate(3) hue-rotate(175deg) brightness(1.1); }
-.compTeam_werewolf img   { filter: sepia(1) saturate(4) hue-rotate(330deg); }
+.compTeam_circle img    { filter: sepia(1) saturate(3) hue-rotate(175deg) brightness(1.1); }
+.compTeam_cell img   { filter: sepia(1) saturate(4) hue-rotate(330deg); }
 .compTeam_neutral img    { filter: sepia(1) saturate(2) brightness(1.1); }
 .compTeam_unknown img    { filter: grayscale(1) brightness(0.6); }
 
@@ -665,11 +665,11 @@
   border-radius: 8px;
 }
 
-.compGroupWerewolf {
+.compGroupCell {
   background: rgba(201, 76, 76, 0.15);
 }
 
-.compGroupVillage {
+.compGroupCircle {
   background: rgba(126, 184, 218, 0.15);
 }
 
@@ -743,10 +743,10 @@
   border-radius: 4px;
 }
 
-.werewolfTip {
+.cellTip {
 }
 
-.werewolfBg {
+.cellBg {
   background: linear-gradient(180deg, #1a0a0a 0%, #0a0c0f 100%);
 }
 

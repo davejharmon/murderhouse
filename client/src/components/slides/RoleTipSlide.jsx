@@ -6,15 +6,15 @@ import PixelGlyph from '../PixelGlyph'
 import styles from '../../pages/Screen.module.css'
 
 export default function RoleTipSlide({ slide, strings = SLIDE_STRINGS.roleTip }) {
-  const isWerewolf = slide.team === 'werewolf'
+  const isCell = slide.team === 'cell'
   const isNeutral = slide.team === 'neutral'
-  const teamColor = isWerewolf ? '#c94c4c' : isNeutral ? '#e8a020' : '#7eb8da'
-  const teamLabel = isWerewolf ? (strings.werewolf ?? 'WEREWOLF') : isNeutral ? strings.independent : (strings.village ?? 'VILLAGE')
+  const teamColor = isCell ? '#c94c4c' : isNeutral ? '#e8a020' : '#7eb8da'
+  const teamLabel = isCell ? (strings.cell ?? 'CELL') : isNeutral ? strings.independent : (strings.circle ?? 'CIRCLE')
 
   return (
     <div
       key={slide.id}
-      className={`${styles.slide} ${isWerewolf ? styles.werewolfTip : ''}`}
+      className={`${styles.slide} ${isCell ? styles.cellTip : ''}`}
     >
       {slide.title && <h1 className={styles.title} style={{ fontSize: fitFontSize(slide.title) }}>{slide.title}</h1>}
       <div className={styles.roleEmoji}>

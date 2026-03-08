@@ -171,8 +171,8 @@ export class HunterRevengeFlow extends InterruptFlow {
     this.phase = 'resolving';
 
     const teamNames = {
-      village: str('slides', 'death.teamVillager'),
-      werewolf: str('slides', 'death.teamWerewolf'),
+      circle: str('slides', 'death.teamCircle'),
+      cell: str('slides', 'death.teamCell'),
       neutral: str('slides', 'death.teamNeutral'),
     };
     const teamName = victim.role?.id === 'jester'

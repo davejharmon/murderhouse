@@ -1,17 +1,17 @@
 // server/flows/GovernorPardonFlow.js
-// Consolidated Governor pardon logic
+// Consolidated Judge pardon logic
 
 import { RoleId, ItemId, SlideStyle } from '../../shared/constants.js';
 import { InterruptFlow } from './InterruptFlow.js';
 import { str } from '../strings.js';
 
 /**
- * Governor Pardon Flow
+ * Judge Pardon Flow
  *
  * STATE MACHINE:
  *   idle -> active (vote condemns) -> pardoned OR executed -> idle
  *
- * TRIGGER: Vote event results in elimination AND governor/phone holder exists
+ * TRIGGER: Vote event results in elimination AND judge/gavel holder exists
  *
  * STATE:
  *   - condemnedId: string      - Player facing execution
@@ -19,23 +19,23 @@ import { str } from '../strings.js';
  *   - voteEventId: string      - The vote that triggered this
  *   - voteResolution: object   - Cached resolution from vote
  *   - voteInstance: object     - The vote event instance
- *   - governorIds: string[]    - Eligible pardoners (governor role or phone item)
+ *   - judgeIds: string[]       - Eligible pardoners (judge role or gavel item)
  *
  * FLOW:
  *   1. Vote resolves with elimination -> canTrigger() returns true
  *   2. trigger() called:
  *      - Store condemned player info and vote resolution
  *      - Push "CONDEMNED" slide
- *      - Create pardon event, send prompts to governors
- *   3. Governor selects:
+ *      - Create pardon event, send prompts to judges
+ *   3. Judge selects:
  *      - If target = condemned: PARDON (player lives)
  *      - If abstain/skip: EXECUTE (player dies)
  *   4. cleanup() - reset state
  *
  * NOTES:
- *   - Phone can pardon once per game (phone item consumed)
- *   - Governor role can always pardon (no limit)
- *   - Only one governor needs to pardon
+ *   - Gavel can pardon once per game (gavel item consumed)
+ *   - Judge role can always pardon (no limit)
+ *   - Only one judge needs to pardon
  *   - If no selection made, host can skip (executes)
  */
 export class GovernorPardonFlow extends InterruptFlow {
@@ -60,20 +60,20 @@ export class GovernorPardonFlow extends InterruptFlow {
       return false;
     }
 
-    // Check for governors or phone holders (excluding cowards — they lose all actions)
-    const governors = this.game.getAlivePlayers().filter((p) => {
+    // Check for judges or gavel holders (excluding cowards — they lose all actions)
+    const judges = this.game.getAlivePlayers().filter((p) => {
       if (p.hasItem(ItemId.COWARD)) return false;
       return (
-        p.role.id === RoleId.GOVERNOR ||
-        (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))
+        p.role.id === RoleId.JUDGE ||
+        (p.hasItem(ItemId.GAVEL) && p.canUseItem(ItemId.GAVEL))
       );
     });
 
-    return governors.length > 0;
+    return judges.length > 0;
   }
 
   /**
-   * Initialize the Governor pardon flow
+   * Initialize the Judge pardon flow
    * @param {Object} context - { voteEventId, resolution, instance }
    * @returns {Object} - { interrupt: true, flowId: 'pardon' }
    */
@@ -81,11 +81,11 @@ export class GovernorPardonFlow extends InterruptFlow {
     const { voteEventId, resolution, instance } = context;
     const condemned = resolution.victim;
 
-    const governors = this.game.getAlivePlayers().filter((p) => {
+    const judges = this.game.getAlivePlayers().filter((p) => {
       if (p.hasItem(ItemId.COWARD)) return false;
       return (
-        p.role.id === RoleId.GOVERNOR ||
-        (p.hasItem(ItemId.PHONE) && p.canUseItem(ItemId.PHONE))
+        p.role.id === RoleId.JUDGE ||
+        (p.hasItem(ItemId.GAVEL) && p.canUseItem(ItemId.GAVEL))
       );
     });
 
@@ -96,20 +96,20 @@ export class GovernorPardonFlow extends InterruptFlow {
       voteEventId,
       voteResolution: resolution,
       voteInstance: instance,
-      governorIds: governors.map((g) => g.id),
+      judgeIds: judges.map((g) => g.id),
     };
 
-    // Remove vote from governors' pending events
-    for (const governor of governors) {
-      governor.pendingEvents.delete(voteEventId);
+    // Remove vote from judges' pending events
+    for (const judge of judges) {
+      judge.pendingEvents.delete(voteEventId);
     }
 
     // Create the pardon event
     this.game._startFlowEvent(this.id, {
-      name: str('events', 'governorPardon.name'),
-      description: str('events', 'governorPardon.description'),
+      name: str('events', 'judgePardon.name'),
+      description: str('events', 'judgePardon.description'),
       verb: 'pardon',
-      participants: this.state.governorIds,
+      participants: this.state.judgeIds,
       getValidTargets: (playerId) => this.getValidTargets(playerId),
       allowAbstain: true,
       playerResolved: true, // Auto-resolve on selection
@@ -128,17 +128,17 @@ export class GovernorPardonFlow extends InterruptFlow {
       false // Don't jump - tally slide is already shown
     );
 
-    this.game.addLog(str('log', 'governorDecision', { name: condemned.getNameWithEmoji() }));
+    this.game.addLog(str('log', 'judgeDecision', { name: condemned.getNameWithEmoji() }));
 
     return { interrupt: true, flowId: GovernorPardonFlow.id };
   }
 
   /**
-   * Get participants (governors and phone holders)
+   * Get participants (judges and gavel holders)
    * @returns {string[]}
    */
   getParticipants() {
-    return this.state?.governorIds || [];
+    return this.state?.judgeIds || [];
   }
 
   /**
@@ -148,7 +148,7 @@ export class GovernorPardonFlow extends InterruptFlow {
    */
   getValidTargets(playerId) {
     if (!this.state) return [];
-    if (!this.state.governorIds.includes(playerId)) return [];
+    if (!this.state.judgeIds.includes(playerId)) return [];
 
     // Cannot pardon yourself
     if (this.state.condemnedId === playerId) return [];
@@ -158,36 +158,36 @@ export class GovernorPardonFlow extends InterruptFlow {
   }
 
   /**
-   * Handle governor's selection
+   * Handle judge's selection
    * Returns a structured result for Game._executeFlowResult() to process.
-   * @param {string} governorId
+   * @param {string} judgeId
    * @param {string|null} targetId
    * @returns {Object|null}
    */
-  onSelection(governorId, targetId) {
-    if (!this.state || !this.state.governorIds.includes(governorId)) {
+  onSelection(judgeId, targetId) {
+    if (!this.state || !this.state.judgeIds.includes(judgeId)) {
       return null;
     }
 
-    const governor = this.game.getPlayer(governorId);
+    const judge = this.game.getPlayer(judgeId);
     const condemned = this.game.getPlayer(this.state.condemnedId);
 
-    if (!governor || !condemned) {
+    if (!judge || !condemned) {
       return { error: 'Invalid state' };
     }
 
-    // Check phone usage before resolve (canUseItem may change after state changes)
-    const usesPhone = governor.hasItem(ItemId.PHONE) && governor.canUseItem(ItemId.PHONE);
+    // Check gavel usage before resolve (canUseItem may change after state changes)
+    const usesGavel = judge.hasItem(ItemId.GAVEL) && judge.canUseItem(ItemId.GAVEL);
 
     // Pardon = selected the condemned player
     const result = targetId === this.state.condemnedId
-      ? this.resolvePardon(governor, condemned)
-      : this.resolveExecution(governor, condemned);
+      ? this.resolvePardon(judge, condemned)
+      : this.resolveExecution(judge, condemned);
 
-    // Add phone consumption to the result
-    if (usesPhone) {
+    // Add gavel consumption to the result
+    if (usesGavel) {
       if (!result.consumeItems) result.consumeItems = [];
-      result.consumeItems.push({ playerId: governorId, itemId: ItemId.PHONE });
+      result.consumeItems.push({ playerId: judgeId, itemId: ItemId.GAVEL });
     }
 
     return result;
@@ -196,14 +196,14 @@ export class GovernorPardonFlow extends InterruptFlow {
   /**
    * Pardon the condemned player
    * Returns a structured result for Game._executeFlowResult() to process.
-   * @param {Player} governor
+   * @param {Player} judge
    * @param {Player} condemned
    * @returns {Object}
    */
-  resolvePardon(governor, condemned) {
+  resolvePardon(judge, condemned) {
     this.phase = 'resolving';
 
-    const message = str('log', 'pardoned', { governor: governor.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
+    const message = str('log', 'pardoned', { judge: judge.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
 
     this.cleanup();
 
@@ -230,17 +230,17 @@ export class GovernorPardonFlow extends InterruptFlow {
   /**
    * Execute the condemned player
    * Returns a structured result for Game._executeFlowResult() to process.
-   * @param {Player} governor
+   * @param {Player} judge
    * @param {Player} condemned
    * @returns {Object}
    */
-  resolveExecution(governor, condemned) {
+  resolveExecution(judge, condemned) {
     this.phase = 'resolving';
 
     const condemnedId = this.state.condemnedId;
     const voteResolution = this.state.voteResolution;
     const voteInstance = this.state.voteInstance;
-    const message = str('log', 'notPardoned', { governor: governor.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
+    const message = str('log', 'notPardoned', { judge: judge.getNameWithEmoji(), victim: condemned.getNameWithEmoji() });
 
     // Build slides array: "NO PARDON" title, then execution death slide
     const slides = [
@@ -281,37 +281,37 @@ export class GovernorPardonFlow extends InterruptFlow {
   }
 
   /**
-   * A governor disconnected with no remaining connections.
-   * If ALL governors are now disconnected, auto-execute (treat as abstain).
+   * A judge disconnected with no remaining connections.
+   * If ALL judges are now disconnected, auto-execute (treat as abstain).
    * @param {Player} player
    * @returns {Object|null}
    */
   onPlayerDisconnect(player) {
-    if (!this.state || !this.state.governorIds.includes(player.id)) return null;
-    // Only auto-execute if every governor has fully disconnected
-    const anyStillConnected = this.state.governorIds.some(gid => {
+    if (!this.state || !this.state.judgeIds.includes(player.id)) return null;
+    // Only auto-execute if every judge has fully disconnected
+    const anyStillConnected = this.state.judgeIds.some(gid => {
       if (gid === player.id) return false; // this one just disconnected
       const g = this.game.getPlayer(gid);
       return g && g.connections.length > 0;
     });
     if (anyStillConnected) return null;
     const condemned = this.game.getPlayer(this.state.condemnedId);
-    const governor = player; // use disconnecting player as the "decider" for logging
+    const judge = player; // use disconnecting player as the "decider" for logging
     if (!condemned) { this.cleanup(); return null; }
-    this.game.addLog(str('log', 'governorDisconnected', { name: player.getNameWithEmoji() }));
-    return this.resolveExecution(governor, condemned);
+    this.game.addLog(str('log', 'judgeDisconnected', { name: player.getNameWithEmoji() }));
+    return this.resolveExecution(judge, condemned);
   }
 
   /**
    * Clean up flow state
    */
   cleanup() {
-    // Clear pending events for governors
-    if (this.state?.governorIds) {
-      for (const gid of this.state.governorIds) {
-        const governor = this.game.getPlayer(gid);
-        if (governor) {
-          governor.clearFromEvent(this.id);
+    // Clear pending events for judges
+    if (this.state?.judgeIds) {
+      for (const gid of this.state.judgeIds) {
+        const judge = this.game.getPlayer(gid);
+        if (judge) {
+          judge.clearFromEvent(this.id);
         }
       }
     }

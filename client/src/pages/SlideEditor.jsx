@@ -147,7 +147,7 @@ export default function SlideEditor() {
     setSelectedVariant(0)
   }
 
-  const isWerewolfBg = selectedType === SlideType.ROLE_TIP && slide?.team === 'werewolf'
+  const isCellBg = selectedType === SlideType.ROLE_TIP && slide?.team === 'cell'
   const isHeartbeatBg = selectedType === SlideType.HEARTBEAT
 
   return (
@@ -170,7 +170,7 @@ export default function SlideEditor() {
       <main className={styles.preview}>
         <div
           ref={wrapperRef}
-          className={`${styles.previewFrame} ${isWerewolfBg ? styles.werewolfBg : ''} ${isHeartbeatBg ? styles.heartbeatBg : ''}`}
+          className={`${styles.previewFrame} ${isCellBg ? styles.cellBg : ''} ${isHeartbeatBg ? styles.heartbeatBg : ''}`}
         >
           {renderSlideComponent(selectedType, variant.key, slide, gameState, strings)}
         </div>

@@ -156,7 +156,7 @@ export function createHandlers(game) {
           player.syncState(game);
           game.debouncedBroadcastGameState(); // Debounced - host updates after dial settles
 
-          // Broadcast pack state for werewolf events (real-time selection sharing)
+          // Broadcast pack state for cell events (real-time selection sharing)
           if (game.shouldBroadcastPackState(eventId, player)) {
             game.broadcastPackState();
           }
@@ -181,7 +181,7 @@ export function createHandlers(game) {
           player.syncState(game);
           game.debouncedBroadcastGameState(); // Debounced - host updates after dial settles
 
-          // Broadcast pack state for werewolf events (real-time selection sharing)
+          // Broadcast pack state for cell events (real-time selection sharing)
           if (game.shouldBroadcastPackState(eventId, player)) {
             game.broadcastPackState();
           }

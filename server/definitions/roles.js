@@ -37,15 +37,15 @@ import { str } from '../strings.js';
  */
 
 const roles = {
-  villager: {
-    id: 'villager',
-    get name() { return str('roles', 'villager.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'villager.description') },
+  nobody: {
+    id: 'nobody',
+    get name() { return str('roles', 'nobody.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'nobody.description') },
     color: '#7eb8da',
     emoji: '👨‍🌾',
-    get tip() { return str('roles', 'villager.tip') },
-    get detailedTip() { return str('roles', 'villager.detailedTip') },
+    get tip() { return str('roles', 'nobody.tip') },
+    get detailedTip() { return str('roles', 'nobody.detailedTip') },
     events: {
       vote: {},
       suspect: {},
@@ -57,7 +57,7 @@ const roles = {
     id: 'alpha',
     get name() { return str('roles', 'alpha.name') },
     get shortName() { return str('roles', 'alpha.shortName') },
-    team: Team.WEREWOLF,
+    team: Team.CELL,
     get description() { return str('roles', 'alpha.description') },
     color: '#f02121',
     emoji: '👑',
@@ -68,20 +68,20 @@ const roles = {
       kill: {
         priority: 60, // Kills happen after protection
         canTarget: (player, target, game) => {
-          // Can't target self or other werewolves
-          return target.id !== player.id && target.role.team !== Team.WEREWOLF;
+          // Can't target self or other cell members
+          return target.id !== player.id && target.role.team !== Team.CELL;
         },
       },
     },
     passives: {
       onDeath: (player, killer, game) => {
-        // Promote a living pack member to alpha: prefer werewolves, then any team member
+        // Promote a living cell member to alpha: prefer sleepers, then any team member
         const alive = game.getAlivePlayers();
-        const werewolves = alive.filter((p) => p.role.id === RoleId.WEREWOLF);
+        const sleepers = alive.filter((p) => p.role.id === RoleId.SLEEPER);
         const candidates =
-          werewolves.length > 0
-            ? werewolves
-            : alive.filter((p) => p.role.team === Team.WEREWOLF);
+          sleepers.length > 0
+            ? sleepers
+            : alive.filter((p) => p.role.team === Team.CELL);
 
         if (candidates.length === 0) return null;
 
@@ -97,37 +97,37 @@ const roles = {
     },
   },
 
-  werewolf: {
-    id: 'werewolf',
-    get name() { return str('roles', 'werewolf.name') },
-    team: Team.WEREWOLF,
-    get description() { return str('roles', 'werewolf.description') },
+  sleeper: {
+    id: 'sleeper',
+    get name() { return str('roles', 'sleeper.name') },
+    team: Team.CELL,
+    get description() { return str('roles', 'sleeper.description') },
     color: '#c94c4c',
     emoji: '🐺',
     tip: null, // Dynamic: shows packmate name
-    get detailedTip() { return str('roles', 'werewolf.detailedTip') },
+    get detailedTip() { return str('roles', 'sleeper.detailedTip') },
     events: {
       vote: {},
       hunt: {
         priority: 55, // Suggest targets before kill happens
         canTarget: (player, target, game) => {
-          // Can't target self or other werewolves
-          return target.id !== player.id && target.role.team !== Team.WEREWOLF;
+          // Can't target self or other cell members
+          return target.id !== player.id && target.role.team !== Team.CELL;
         },
       },
     },
     passives: {},
   },
 
-  seer: {
-    id: 'seer',
-    get name() { return str('roles', 'seer.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'seer.description') },
+  seeker: {
+    id: 'seeker',
+    get name() { return str('roles', 'seeker.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'seeker.description') },
     color: '#9b7ed9',
     emoji: '🔮',
-    get tip() { return str('roles', 'seer.tip') },
-    get detailedTip() { return str('roles', 'seer.detailedTip') },
+    get tip() { return str('roles', 'seeker.tip') },
+    get detailedTip() { return str('roles', 'seeker.detailedTip') },
     events: {
       vote: {},
       investigate: {
@@ -136,11 +136,11 @@ const roles = {
           return target.id !== player.id;
         },
         onResolve: (player, target, game) => {
-          const isEvil = target.role.team === Team.WEREWOLF || !!target.role.appearsGuilty;
+          const isEvil = target.role.team === Team.CELL || !!target.role.appearsGuilty;
           return {
             success: true,
             privateMessage: `${target.name} is ${
-              isEvil ? 'a WEREWOLF' : 'NOT a werewolf'
+              isEvil ? 'CELL' : 'NOT CELL'
             }.`,
             data: { targetId: target.id, isEvil },
           };
@@ -150,15 +150,15 @@ const roles = {
     passives: {},
   },
 
-  doctor: {
-    id: 'doctor',
-    get name() { return str('roles', 'doctor.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'doctor.description') },
+  medic: {
+    id: 'medic',
+    get name() { return str('roles', 'medic.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'medic.description') },
     color: '#7ed9a6',
     emoji: '🧑‍⚕️',
-    get tip() { return str('roles', 'doctor.tip') },
-    get detailedTip() { return str('roles', 'doctor.detailedTip') },
+    get tip() { return str('roles', 'medic.tip') },
+    get detailedTip() { return str('roles', 'medic.detailedTip') },
     events: {
       vote: {},
       protect: {
@@ -185,7 +185,7 @@ const roles = {
   hunter: {
     id: 'hunter',
     get name() { return str('roles', 'hunter.name') },
-    team: Team.VILLAGE,
+    team: Team.CIRCLE,
     get description() { return str('roles', 'hunter.description') },
     color: '#d9a67e',
     emoji: '🔫',
@@ -208,7 +208,7 @@ const roles = {
   vigilante: {
     id: 'vigilante',
     get name() { return str('roles', 'vigilante.name') },
-    team: Team.VILLAGE,
+    team: Team.CIRCLE,
     get description() { return str('roles', 'vigilante.description') },
     color: '#8b7355',
     emoji: '🤠',
@@ -224,15 +224,15 @@ const roles = {
     passives: {},
   },
 
-  governor: {
-    id: 'governor',
-    get name() { return str('roles', 'governor.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'governor.description') },
+  judge: {
+    id: 'judge',
+    get name() { return str('roles', 'judge.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'judge.description') },
     color: '#d4af37',
     emoji: '🎩',
-    get tip() { return str('roles', 'governor.tip') },
-    get detailedTip() { return str('roles', 'governor.detailedTip') },
+    get tip() { return str('roles', 'judge.tip') },
+    get detailedTip() { return str('roles', 'judge.detailedTip') },
     events: {
       vote: {},
     },
@@ -242,7 +242,7 @@ const roles = {
   cupid: {
     id: 'cupid',
     get name() { return str('roles', 'cupid.name') },
-    team: Team.VILLAGE,
+    team: Team.CIRCLE,
     get description() { return str('roles', 'cupid.description') },
     color: '#e991c9',
     emoji: '💘',
@@ -280,15 +280,15 @@ const roles = {
     passives: {},
   },
 
-  roleblocker: {
-    id: 'roleblocker',
-    get name() { return str('roles', 'roleblocker.name') },
-    team: Team.WEREWOLF,
-    get description() { return str('roles', 'roleblocker.description') },
+  handler: {
+    id: 'handler',
+    get name() { return str('roles', 'handler.name') },
+    team: Team.CELL,
+    get description() { return str('roles', 'handler.description') },
     color: '#c94c4c',
     emoji: '🚫',
     tip: null, // Dynamic: shows packmate names
-    get detailedTip() { return str('roles', 'roleblocker.detailedTip') },
+    get detailedTip() { return str('roles', 'handler.detailedTip') },
     events: {
       vote: {},
       block: {
@@ -301,15 +301,15 @@ const roles = {
     passives: {},
   },
 
-  poisoner: {
-    id: 'poisoner',
-    get name() { return str('roles', 'poisoner.name') },
-    team: Team.WEREWOLF,
-    get description() { return str('roles', 'poisoner.description') },
+  chemist: {
+    id: 'chemist',
+    get name() { return str('roles', 'chemist.name') },
+    team: Team.CELL,
+    get description() { return str('roles', 'chemist.description') },
     color: '#c94c4c',
     emoji: '🧪',
     tip: null, // Dynamic: shows packmate names
-    get detailedTip() { return str('roles', 'poisoner.detailedTip') },
+    get detailedTip() { return str('roles', 'chemist.detailedTip') },
     events: {
       vote: {},
       poison: { priority: 59 },
@@ -317,15 +317,15 @@ const roles = {
     passives: {},
   },
 
-  janitor: {
-    id: 'janitor',
-    get name() { return str('roles', 'janitor.name') },
-    team: Team.WEREWOLF,
-    get description() { return str('roles', 'janitor.description') },
+  fixer: {
+    id: 'fixer',
+    get name() { return str('roles', 'fixer.name') },
+    team: Team.CELL,
+    get description() { return str('roles', 'fixer.description') },
     color: '#c94c4c',
     emoji: '🧹',
     tip: null, // Dynamic: shows packmate names
-    get detailedTip() { return str('roles', 'janitor.detailedTip') },
+    get detailedTip() { return str('roles', 'fixer.detailedTip') },
     events: {
       vote: {},
       clean: { priority: 58 },
@@ -333,23 +333,23 @@ const roles = {
     passives: {},
   },
 
-  tanner: {
-    id: 'tanner',
-    get name() { return str('roles', 'tanner.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'tanner.description') },
+  marked: {
+    id: 'marked',
+    get name() { return str('roles', 'marked.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'marked.description') },
     color: '#7eb8da',
     emoji: '🪡',
-    get tip() { return str('roles', 'tanner.tip') },
-    get detailedTip() { return str('roles', 'tanner.detailedTip') },
-    appearsGuilty: true, // Seer (and Clue) report this player as EVIL
-    // What the Tanner sees on their own terminal — identical to the Villager
+    get tip() { return str('roles', 'marked.tip') },
+    get detailedTip() { return str('roles', 'marked.detailedTip') },
+    appearsGuilty: true, // Seeker (and Clue) report this player as EVIL
+    // What the Marked sees on their own terminal — identical to the Nobody
     disguiseAs: {
-      id: 'villager',
-      get name() { return str('roles', 'villager.name') },
+      id: 'nobody',
+      get name() { return str('roles', 'nobody.name') },
       color: '#7eb8da',
       emoji: '👨‍🌾',
-      get description() { return str('roles', 'villager.description') },
+      get description() { return str('roles', 'nobody.description') },
     },
     events: {
       vote: {},
@@ -379,22 +379,22 @@ const roles = {
     },
   },
 
-  drunk: {
-    id: 'drunk',
-    get name() { return str('roles', 'drunk.name') },
-    team: Team.VILLAGE,
-    get description() { return str('roles', 'drunk.description') },
+  amateur: {
+    id: 'amateur',
+    get name() { return str('roles', 'amateur.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'amateur.description') },
     color: '#9b7ed9',
     emoji: '🥴',
-    get tip() { return str('roles', 'drunk.tip') },
-    get detailedTip() { return str('roles', 'drunk.detailedTip') },
-    // What the drunk player sees on their own terminal — identical to the Seer
+    get tip() { return str('roles', 'amateur.tip') },
+    get detailedTip() { return str('roles', 'amateur.detailedTip') },
+    // What the amateur player sees on their own terminal — identical to the Seeker
     disguiseAs: {
-      id: 'seer',
-      get name() { return str('roles', 'seer.name') },
+      id: 'seeker',
+      get name() { return str('roles', 'seeker.name') },
       color: '#9b7ed9',
       emoji: '🔮',
-      get description() { return str('roles', 'seer.description') },
+      get description() { return str('roles', 'seeker.description') },
     },
     events: {
       vote: {},
@@ -408,47 +408,47 @@ const roles = {
 };
 
 // Explicit role composition keyed by player count
-// Each value is the list of required special roles; remaining slots become villagers
+// Each value is the list of required special roles; remaining slots become nobodies
 export const GAME_COMPOSITION = {
-  4: [RoleId.ALPHA, RoleId.SEER],
-  5: [RoleId.ALPHA, RoleId.SEER],
-  6: [RoleId.ALPHA, RoleId.SEER, RoleId.DOCTOR],
-  7: [RoleId.ALPHA, RoleId.WEREWOLF, RoleId.SEER, RoleId.DOCTOR],
+  4: [RoleId.ALPHA, RoleId.SEEKER],
+  5: [RoleId.ALPHA, RoleId.SEEKER],
+  6: [RoleId.ALPHA, RoleId.SEEKER, RoleId.MEDIC],
+  7: [RoleId.ALPHA, RoleId.SLEEPER, RoleId.SEEKER, RoleId.MEDIC],
   8: [
     RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.SEER,
-    RoleId.DOCTOR,
+    RoleId.SLEEPER,
+    RoleId.SEEKER,
+    RoleId.MEDIC,
     RoleId.VIGILANTE,
   ],
   9: [
     RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.ROLEBLOCKER,
-    RoleId.SEER,
-    RoleId.DOCTOR,
+    RoleId.SLEEPER,
+    RoleId.HANDLER,
+    RoleId.SEEKER,
+    RoleId.MEDIC,
     RoleId.VIGILANTE,
     RoleId.HUNTER,
   ],
   10: [
     RoleId.ALPHA,
-    RoleId.WEREWOLF,
-    RoleId.ROLEBLOCKER,
-    RoleId.SEER,
-    RoleId.DOCTOR,
+    RoleId.SLEEPER,
+    RoleId.HANDLER,
+    RoleId.SEEKER,
+    RoleId.MEDIC,
     RoleId.VIGILANTE,
     RoleId.HUNTER,
-    RoleId.GOVERNOR,
+    RoleId.JUDGE,
   ],
 };
 
-// Build a role pool for a given player count from GAME_COMPOSITION, padded with villagers
+// Build a role pool for a given player count from GAME_COMPOSITION, padded with nobodies
 export function buildRolePool(playerCount) {
   const composition = GAME_COMPOSITION[playerCount];
   if (!composition)
     throw new Error(`No composition for ${playerCount} players`);
   const pool = [...composition];
-  while (pool.length < playerCount) pool.push(RoleId.VILLAGER);
+  while (pool.length < playerCount) pool.push(RoleId.NOBODY);
   return pool;
 }
 

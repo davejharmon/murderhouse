@@ -24,7 +24,7 @@ export default function PlayerRevealSlide({ slide, players }) {
             className={styles.largePortrait}
           />
           {slide.jesterWon && <div className={styles.winnerBadgeLarge}>WINNER</div>}
-          {!slide.jesterWon && player.isCowering && <div className={styles.cowardBadgeLarge}>{SLIDE_STRINGS.gallery.coward}</div>}
+          {!slide.jesterWon && player.isCowering && <div className={styles.cowardBadgeLarge}>{SLIDE_STRINGS.death.coward}</div>}
           {!slide.jesterWon && player.hasNovote && <div className={styles.tooMadBadgeLarge}>{SLIDE_STRINGS.death.mad}</div>}
         </div>
         {slide.subtitle ? (

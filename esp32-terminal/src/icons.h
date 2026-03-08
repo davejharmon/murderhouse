@@ -11,8 +11,8 @@
 #define ICON_SIZE 18
 #define ICON_BYTES 54  // 3 bytes/row * 18 rows
 
-// Villager - filled circle
-const uint8_t PROGMEM ICON_VILLAGER[] = {
+// Nobody - filled circle
+const uint8_t PROGMEM ICON_NOBODY[] = {
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
   0xC0, 0x03, 0x00,
@@ -33,7 +33,7 @@ const uint8_t PROGMEM ICON_VILLAGER[] = {
   0x00, 0x00, 0x00,
 };
 
-// Alpha werewolf - wolf face with crown
+// Alpha - wolf face with crown
 const uint8_t PROGMEM ICON_ALPHA[] = {
   0xA8, 0x1A, 0x00,
   0xF1, 0x8F, 0x00,
@@ -55,8 +55,8 @@ const uint8_t PROGMEM ICON_ALPHA[] = {
   0x40, 0x02, 0x00,
 };
 
-// Werewolf - wolf face with ears and fangs
-const uint8_t PROGMEM ICON_WEREWOLF[] = {
+// Sleeper - wolf face with ears and fangs
+const uint8_t PROGMEM ICON_SLEEPER[] = {
   0x00, 0x00, 0x00,
   0x01, 0x80, 0x00,
   0x03, 0xC0, 0x00,
@@ -77,8 +77,8 @@ const uint8_t PROGMEM ICON_WEREWOLF[] = {
   0x40, 0x02, 0x00,
 };
 
-// Seer - eye with pupil
-const uint8_t PROGMEM ICON_SEER[] = {
+// Seeker - eye with pupil
+const uint8_t PROGMEM ICON_SEEKER[] = {
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
@@ -99,8 +99,8 @@ const uint8_t PROGMEM ICON_SEER[] = {
   0x00, 0x00, 0x00,
 };
 
-// Doctor - bold cross
-const uint8_t PROGMEM ICON_DOCTOR[] = {
+// Medic - bold cross
+const uint8_t PROGMEM ICON_MEDIC[] = {
   0x00, 0x00, 0x00,
   0xC0, 0x03, 0x00,
   0xC0, 0x03, 0x00,
@@ -165,8 +165,8 @@ const uint8_t PROGMEM ICON_VIGILANTE[] = {
   0x00, 0x00, 0x00,
 };
 
-// Governor - shield
-const uint8_t PROGMEM ICON_GOVERNOR[] = {
+// Judge - shield
+const uint8_t PROGMEM ICON_JUDGE[] = {
   0xFF, 0xFF, 0x00,
   0xFF, 0xFF, 0x00,
   0xFF, 0xFF, 0x00,
@@ -209,8 +209,8 @@ const uint8_t PROGMEM ICON_CUPID[] = {
   0x00, 0x00, 0x00,
 };
 
-// Roleblocker - prohibition sign (rectangle with diagonal slash)
-const uint8_t PROGMEM ICON_ROLEBLOCKER[] = {
+// Handler - prohibition sign (rectangle with diagonal slash)
+const uint8_t PROGMEM ICON_HANDLER[] = {
   0x00, 0x00, 0x00,
   0xF0, 0x0F, 0x00,
   0xFC, 0x3F, 0x00,
@@ -253,8 +253,8 @@ const uint8_t PROGMEM ICON_PISTOL[] = {
   0x00, 0x00, 0x00,
 };
 
-// Phone - mobile phone
-const uint8_t PROGMEM ICON_PHONE[] = {
+// Gavel - judge's gavel
+const uint8_t PROGMEM ICON_GAVEL[] = {
   0xF0, 0x0F, 0x00,
   0xF8, 0x1F, 0x00,
   0x78, 0x1E, 0x00,
@@ -319,8 +319,8 @@ const uint8_t PROGMEM ICON_EMPTY[] = {
   0x00, 0x00, 0x00,
 };
 
-// Poisoner - poison vial
-const uint8_t PROGMEM ICON_POISONER[] = {
+// Chemist - poison vial
+const uint8_t PROGMEM ICON_CHEMIST[] = {
   0x00, 0x00, 0x00,  // blank
   0xC0, 0x01, 0x00,  // stopper cap (cols 6-8)
   0x20, 0x02, 0x00,  // neck (cols 5,9)
@@ -363,8 +363,8 @@ const uint8_t PROGMEM ICON_COWARD[] = {
   0x00, 0x00, 0x00,  // row 17: blank
 };
 
-// Tanner - stretched hide on stakes
-const uint8_t PROGMEM ICON_TANNER[] = {
+// Marked - stretched hide on stakes
+const uint8_t PROGMEM ICON_MARKED[] = {
   0x00, 0x00, 0x00,  // row  0: blank
   0x10, 0x10, 0x00,  // row  1: stake pegs (cols 4, 12)
   0x20, 0x08, 0x00,  // row  2: diagonal connectors (cols 5, 11)
@@ -429,8 +429,8 @@ const uint8_t PROGMEM ICON_SKULL[] = {
   0x00, 0x00, 0x00,
 };
 
-// Barricade — heraldic shield silhouette (filled, tapers to a point)
-const uint8_t PROGMEM ICON_BARRICADE[] = {
+// Hardened — heraldic shield silhouette (filled, tapers to a point)
+const uint8_t PROGMEM ICON_HARDENED[] = {
   0x00, 0x00, 0x00,  // row  0: blank
   0xFC, 0x3F, 0x00,  // row  1: cols 2-13 (12px, top cap)
   0xFE, 0x7F, 0x00,  // row  2: cols 1-14 (14px)
@@ -473,8 +473,8 @@ const uint8_t PROGMEM ICON_OP_TICK[] = {
   0x00, 0x00, 0x00,  // row 17
 };
 
-// Janitor - broom (diagonal handle upper-right to lower-left, solid head, tine bristles)
-const uint8_t PROGMEM ICON_JANITOR[] = {
+// Fixer - broom (diagonal handle upper-right to lower-left, solid head, tine bristles)
+const uint8_t PROGMEM ICON_FIXER[] = {
   0x00, 0x60, 0x00,  // row  0: handle tip (cols 13,14)
   0x00, 0x30, 0x00,  // row  1: cols 12,13
   0x00, 0x18, 0x00,  // row  2: cols 11,12
@@ -497,26 +497,25 @@ const uint8_t PROGMEM ICON_JANITOR[] = {
 
 // Get icon bitmap by string ID (matching JS icon IDs)
 inline const uint8_t* getIconBitmap(const String& id) {
-    if (id == "villager") return ICON_VILLAGER;
+    if (id == "nobody") return ICON_NOBODY;
     if (id == "alpha") return ICON_ALPHA;
-    if (id == "werewolf") return ICON_WEREWOLF;
-    if (id == "seer") return ICON_SEER;
-    if (id == "doctor") return ICON_DOCTOR;
+    if (id == "sleeper") return ICON_SLEEPER;
+    if (id == "seeker") return ICON_SEEKER;
+    if (id == "medic") return ICON_MEDIC;
     if (id == "hunter") return ICON_HUNTER;
     if (id == "vigilante") return ICON_VIGILANTE;
-    if (id == "governor") return ICON_GOVERNOR;
+    if (id == "judge") return ICON_JUDGE;
     if (id == "cupid") return ICON_CUPID;
-    if (id == "roleblocker") return ICON_ROLEBLOCKER;
-    if (id == "janitor") return ICON_JANITOR;
-    if (id == "tanner") return ICON_TANNER;
-    if (id == "tanned") return ICON_TANNER;
+    if (id == "handler") return ICON_HANDLER;
+    if (id == "fixer") return ICON_FIXER;
+    if (id == "marked") return ICON_MARKED;
     if (id == "prospect") return ICON_PROSPECT;
-    if (id == "poisoner") return ICON_POISONER;
+    if (id == "chemist") return ICON_CHEMIST;
     if (id == "pistol") return ICON_PISTOL;
-    if (id == "phone") return ICON_PHONE;
+    if (id == "gavel") return ICON_GAVEL;
     if (id == "clue") return ICON_CRYSTAL_BALL;
     if (id == "coward") return ICON_COWARD;
-    if (id == "barricade") return ICON_BARRICADE;
+    if (id == "hardened") return ICON_HARDENED;
     if (id == "skull") return ICON_SKULL;
     if (id == "empty") return ICON_EMPTY;
     if (id == "op_tick") return ICON_OP_TICK;

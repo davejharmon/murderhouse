@@ -9,8 +9,8 @@ export const GamePhase = {
 };
 
 export const Team = {
-  VILLAGE: 'village',
-  WEREWOLF: 'werewolf',
+  CIRCLE: 'circle',
+  CELL: 'cell',
   NEUTRAL: 'neutral',
 };
 
@@ -149,35 +149,35 @@ export const SlideType = {
 };
 
 export const SlideStyle = {
-  HOSTILE: 'hostile',     // Red - werewolf actions, eliminations, attacks
-  POSITIVE: 'positive',   // Green - saves, pardons, protections, village benefits
+  HOSTILE: 'hostile',     // Red - cell actions, eliminations, attacks
+  POSITIVE: 'positive',   // Green - saves, pardons, protections, circle benefits
   NEUTRAL: 'neutral',     // Blue/default - generic game info, phase changes
   WARNING: 'warning',     // Yellow - mysterious actions, third faction (future use)
 };
 
 // Slide style color mappings
 export const SlideStyleColors = {
-  [SlideStyle.HOSTILE]: '#c94c4c',   // Red (werewolf color)
-  [SlideStyle.POSITIVE]: '#7ed9a6',  // Green (doctor color)
-  [SlideStyle.NEUTRAL]: '#7eb8da',   // Blue (village color)
-  [SlideStyle.WARNING]: '#d4af37',   // Gold/yellow (governor color)
+  [SlideStyle.HOSTILE]: '#c94c4c',   // Red (cell color)
+  [SlideStyle.POSITIVE]: '#7ed9a6',  // Green (medic color)
+  [SlideStyle.NEUTRAL]: '#7eb8da',   // Blue (circle color)
+  [SlideStyle.WARNING]: '#d4af37',   // Gold/yellow (judge color)
 };
 
 export const RoleId = {
-  VILLAGER: 'villager',
+  NOBODY: 'nobody',
   ALPHA: 'alpha',
-  WEREWOLF: 'werewolf',
-  SEER: 'seer',
-  DOCTOR: 'doctor',
+  SLEEPER: 'sleeper',
+  SEEKER: 'seeker',
+  MEDIC: 'medic',
   HUNTER: 'hunter',
   VIGILANTE: 'vigilante',
-  GOVERNOR: 'governor',
+  JUDGE: 'judge',
   CUPID: 'cupid',
-  ROLEBLOCKER: 'roleblocker',
-  JANITOR: 'janitor',
-  POISONER: 'poisoner',
-  DRUNK: 'drunk',
-  TANNER: 'tanner',
+  HANDLER: 'handler',
+  FIXER: 'fixer',
+  CHEMIST: 'chemist',
+  AMATEUR: 'amateur',
+  MARKED: 'marked',
   JESTER: 'jester',
 };
 
@@ -200,31 +200,31 @@ export const EventId = {
 
 export const ItemId = {
   PISTOL: 'pistol',
-  PHONE: 'phone',
+  GAVEL: 'gavel',
   CLUE: 'clue',
   COWARD: 'coward',
-  TANNED: 'tanned',
+  MARKED: 'marked',
   PROSPECT: 'prospect',
-  BARRICADE: 'barricade',
+  HARDENED: 'hardened',
   NOVOTE: 'novote',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
 export const ROLE_DISPLAY = {
-  [RoleId.VILLAGER]:    { name: 'Villager',     emoji: '👨‍🌾' },
+  [RoleId.NOBODY]:      { name: 'Nobody',       emoji: '👨‍🌾' },
   [RoleId.ALPHA]:       { name: 'Alpha',        emoji: '👑' },
-  [RoleId.WEREWOLF]:    { name: 'Werewolf',     emoji: '🐺' },
-  [RoleId.SEER]:        { name: 'Seer',         emoji: '🔮' },
-  [RoleId.DOCTOR]:      { name: 'Doctor',       emoji: '🧑‍⚕️' },
+  [RoleId.SLEEPER]:     { name: 'Sleeper',      emoji: '🐺' },
+  [RoleId.SEEKER]:      { name: 'Seeker',       emoji: '🔮' },
+  [RoleId.MEDIC]:       { name: 'Medic',        emoji: '🧑‍⚕️' },
   [RoleId.HUNTER]:      { name: 'Hunter',       emoji: '🔫' },
   [RoleId.VIGILANTE]:   { name: 'Vigilante',    emoji: '🤠' },
-  [RoleId.GOVERNOR]:    { name: 'Governor',     emoji: '🎩' },
+  [RoleId.JUDGE]:       { name: 'Judge',         emoji: '🎩' },
   [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
-  [RoleId.ROLEBLOCKER]: { name: 'Roleblocker',  emoji: '🚫' },
-  [RoleId.JANITOR]:     { name: 'Janitor',      emoji: '🧹' },
-  [RoleId.POISONER]:    { name: 'Poisoner',     emoji: '🧪' },
-  [RoleId.DRUNK]:       { name: 'Drunk',        emoji: '🥴' },
-  [RoleId.TANNER]:      { name: 'Tanner',       emoji: '🪡' },
+  [RoleId.HANDLER]:     { name: 'Handler',      emoji: '🚫' },
+  [RoleId.FIXER]:       { name: 'Fixer',        emoji: '🧹' },
+  [RoleId.CHEMIST]:     { name: 'Chemist',      emoji: '🧪' },
+  [RoleId.AMATEUR]:     { name: 'Amateur',      emoji: '🥴' },
+  [RoleId.MARKED]:      { name: 'Marked',       emoji: '🪡' },
   [RoleId.JESTER]:      { name: 'Jester',       emoji: '🃏' },
 };
 
@@ -242,36 +242,36 @@ export const DEBUG_MODE = process.env.NODE_ENV !== 'production';
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.PHONE, ItemId.CLUE, ItemId.COWARD, ItemId.TANNED, ItemId.PROSPECT, ItemId.BARRICADE, ItemId.NOVOTE];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.GAVEL, ItemId.CLUE, ItemId.COWARD, ItemId.MARKED, ItemId.PROSPECT, ItemId.HARDENED, ItemId.NOVOTE];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
   [ItemId.PISTOL]:  { name: 'Pistol',  emoji: '🔫', description: 'A deadly weapon. One shot during the day. Make it count.' },
-  [ItemId.PHONE]:   { name: 'Phone',   emoji: '📱', description: 'Call the Governor for a one-time pardon after a vote condemns someone.' },
+  [ItemId.GAVEL]:   { name: 'Gavel',   emoji: '⚖️', description: 'Invoke the Judge for a one-time pardon after a vote condemns someone.' },
   [ItemId.CLUE]:    { name: 'Clue',    emoji: '🔎', description: 'A mysterious lead. Investigate one player to learn their alignment.' },
   [ItemId.COWARD]:  { name: 'Coward',  emoji: '🏳️', description: 'You hide from danger. No attacks can reach you — but you cannot act or be voted for.' },
-  [ItemId.TANNED]:   { name: 'Tanned',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seer or Clue.' },
-  [ItemId.PROSPECT]:  { name: 'Prospect',  emoji: '🐾', description: 'Hidden mark. If killed by werewolves, join their pack instead of dying.' },
-  [ItemId.BARRICADE]: { name: 'Barricade', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, the barricade breaks instead.' },
+  [ItemId.MARKED]:   { name: 'Marked',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seeker or Clue.' },
+  [ItemId.PROSPECT]:  { name: 'Prospect',  emoji: '🐾', description: 'Hidden mark. If killed by the Cell, join them instead of dying.' },
+  [ItemId.HARDENED]: { name: 'Hardened', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, it absorbs the blow instead.' },
   [ItemId.NOVOTE]: { name: 'No Vote', emoji: '🚷', description: 'Hidden restraint. This player cannot vote in the next elimination vote.' },
 };
 
 // Available roles (for host pre-assignment UI)
 export const AVAILABLE_ROLES = [
-  RoleId.VILLAGER,
+  RoleId.NOBODY,
   RoleId.ALPHA,
-  RoleId.WEREWOLF,
-  RoleId.SEER,
-  RoleId.DOCTOR,
+  RoleId.SLEEPER,
+  RoleId.SEEKER,
+  RoleId.MEDIC,
   RoleId.HUNTER,
   RoleId.VIGILANTE,
-  RoleId.GOVERNOR,
+  RoleId.JUDGE,
   RoleId.CUPID,
-  RoleId.ROLEBLOCKER,
-  RoleId.JANITOR,
-  RoleId.POISONER,
-  RoleId.DRUNK,
-  RoleId.TANNER,
+  RoleId.HANDLER,
+  RoleId.FIXER,
+  RoleId.CHEMIST,
+  RoleId.AMATEUR,
+  RoleId.MARKED,
   RoleId.JESTER,
 ];
 
