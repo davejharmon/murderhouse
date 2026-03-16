@@ -40,6 +40,7 @@ export const ServerMsg = {
   HOST_SETTINGS: 'hostSettings',
   OPERATOR_STATE: 'operatorState',
   SCORES: 'scores',
+  CALIBRATION_STATE: 'calibrationState',
 };
 
 // WebSocket message types - Client -> Server
@@ -113,6 +114,15 @@ export const ClientMsg = {
   PUSH_HEARTBEAT_SLIDE: 'pushHeartbeatSlide',
   TOGGLE_HEARTBEAT_MODE: 'toggleHeartbeatMode',
   TOGGLE_FAKE_HEARTBEATS: 'toggleFakeHeartbeats',
+
+  // Heartbeat calibration
+  START_CALIBRATION: 'startCalibration',
+  START_SINGLE_CALIBRATION: 'startSingleCalibration',
+  STOP_CALIBRATION: 'stopCalibration',
+  SAVE_CALIBRATION: 'saveCalibration',
+  TOGGLE_PLAYER_HEARTBEAT: 'togglePlayerHeartbeat',
+  SET_PLAYER_CALIBRATION: 'setPlayerCalibration',
+  TOGGLE_PLAYER_SIMULATED: 'togglePlayerSimulated',
 
   // Operator terminal
   OPERATOR_JOIN: 'operatorJoin',

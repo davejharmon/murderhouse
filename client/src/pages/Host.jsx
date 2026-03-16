@@ -17,6 +17,8 @@ import GameLog from '../components/GameLog';
 import SettingsModal from '../components/SettingsModal';
 import TutorialSlidesModal from '../components/TutorialSlidesModal';
 import HeartbeatModal from '../components/HeartbeatModal';
+import CalibrationModal from '../components/CalibrationModal';
+import ScoresModal from '../components/ScoresModal';
 import { getStr } from '../strings/index.js';
 import styles from './Host.module.css';
 
@@ -41,6 +43,7 @@ export default function Host() {
     hostSettings,
     operatorState,
     scores,
+    calibrationState,
   } = useGame();
 
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
@@ -55,9 +58,12 @@ export default function Host() {
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
   const [showHeartbeat, setShowHeartbeat] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [showScores, setShowScores] = useState(false);
   const [showScreenPreview, setShowScreenPreview] = useState(
     () => localStorage.getItem('host.showScreenPreview') === 'true',
   );
+  const [showOperator, setShowOperator] = useState(true);
   const toggleScreenPreview = (v) => {
     setShowScreenPreview((prev) => {
       const next = typeof v === 'boolean' ? v : !prev;
@@ -443,6 +449,16 @@ export default function Host() {
         >
           {getStr('host', 'btnHeartbeatMode')}
         </button>
+        {gameState?.heartbeatMode && Object.values(hostSettings?.heartbeatCalibration || {}).some(c => c.simulated) && (
+          <label className={styles.simsLose}>
+            <input
+              type="checkbox"
+              checked={hostSettings?.simsCanLose ?? false}
+              onChange={e => send(ClientMsg.SAVE_HOST_SETTINGS, { simsCanLose: e.target.checked })}
+            />
+            <span>{getStr('host', 'calibration.simsCanLose')}</span>
+          </label>
+        )}
       </section>
 
       {!isLobby && !isGameOver && (
@@ -465,39 +481,13 @@ export default function Host() {
         />
       )}
 
-      {/* Operator message feed */}
-      <div
-        className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}
-      >
-        <div className={styles.operatorHeader}>
-          <div className={styles.operatorLabel}>
-            OPERATOR
-            {operatorState?.ready ? (
-              <span className={styles.operatorReadyDot}> ● READY</span>
-            ) : null}
-          </div>
-          <button
-            className={styles.operatorSendBtn}
-            disabled={!(operatorState?.words?.length > 0)}
-            onClick={() => send(ClientMsg.OPERATOR_SEND)}
-          >
-            👻
-          </button>
-        </div>
-        <div className={styles.operatorMessage}>
-          {operatorState?.words?.length > 0 ? (
-            operatorState.words.join(' ')
-          ) : (
-            <span className={styles.operatorEmpty}>{getStr('host', 'noMessage')}</span>
-          )}
-        </div>
-      </div>
-
       <SlideControls
         slideQueue={slideQueue}
         onNext={handleNextSlide}
         onPrev={handlePrevSlide}
         onClear={handleClearSlides}
+        autoAdvanceEnabled={autoAdvanceEnabled}
+        onToggleAutoAdvance={handleToggleAutoAdvance}
       />
     </>
   );
@@ -534,17 +524,8 @@ export default function Host() {
         onSetDefault={handleSetDefaultPreset}
         timerDuration={timerDuration}
         onTimerDurationChange={handleTimerDurationChange}
-        autoAdvanceEnabled={autoAdvanceEnabled}
-        onToggleAutoAdvance={handleToggleAutoAdvance}
-        heartbeatThreshold={heartbeatThreshold}
-        onHeartbeatThresholdChange={handleHeartbeatThresholdChange}
-        fakeHeartbeats={gameState?.fakeHeartbeats ?? false}
-        onToggleFakeHeartbeats={() => send(ClientMsg.TOGGLE_FAKE_HEARTBEATS)}
-        connectedPlayers={gameState?.players ?? []}
-        scores={scores}
-        onSetScore={handleSetScore}
-        scoringConfig={hostSettings?.scoringConfig}
-        onScoringConfigChange={handleScoringConfigChange}
+        onOpenCalibration={() => { setShowSettings(false); setShowCalibration(true); }}
+        onOpenScores={() => { setShowSettings(false); setShowScores(true); }}
       />
 
       <TutorialSlidesModal
@@ -561,6 +542,25 @@ export default function Host() {
         onClose={() => setShowHeartbeat(false)}
         players={gameState?.players || []}
         onPushHeartbeatSlide={handlePushHeartbeatSlide}
+      />
+
+      <CalibrationModal
+        isOpen={showCalibration}
+        onClose={() => setShowCalibration(false)}
+        players={gameState?.players || []}
+        calibrationState={calibrationState}
+        hostSettings={hostSettings}
+        send={send}
+      />
+
+      <ScoresModal
+        isOpen={showScores}
+        onClose={() => setShowScores(false)}
+        players={gameState?.players || []}
+        scores={scores}
+        onSetScore={handleSetScore}
+        scoringConfig={hostSettings?.scoringConfig}
+        onScoringConfigChange={handleScoringConfigChange}
       />
 
       {/* Notifications */}
@@ -586,6 +586,37 @@ export default function Host() {
             </button>
           </div>
           {showScreenPreview && <ScreenPreview />}
+          <div className={styles.screenPreviewBar}>
+            <button
+              className={styles.screenPreviewToggle}
+              onClick={() => setShowOperator(v => !v)}
+            >
+              {showOperator ? '▲' : '▼'} OPERATOR
+              {operatorState?.ready ? (
+                <span className={styles.operatorReadyDot}> ● READY</span>
+              ) : null}
+            </button>
+            <button
+              className={styles.operatorSendBtn}
+              disabled={!(operatorState?.words?.length > 0)}
+              onClick={() => send(ClientMsg.OPERATOR_SEND)}
+            >
+              👻
+            </button>
+          </div>
+          {showOperator && (
+            <div
+              className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}
+            >
+              <div className={styles.operatorMessage}>
+                {operatorState?.words?.length > 0 ? (
+                  operatorState.words.join(' ')
+                ) : (
+                  <span className={styles.operatorEmpty}>{getStr('host', 'noMessage')}</span>
+                )}
+              </div>
+            </div>
+          )}
         </main>
         <aside className={styles.logPanel}>
           <GameLog entries={log} />

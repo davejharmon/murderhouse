@@ -26,6 +26,7 @@ export function GameProvider({ children }) {
   const [hostSettings, setHostSettings] = useState(null);
   const [operatorState, setOperatorState] = useState({ words: [], ready: false });
   const [scores, setScores] = useState({});
+  const [calibrationState, setCalibrationState] = useState(null);
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -165,6 +166,10 @@ export function GameProvider({ children }) {
         setScores(payload.scores ?? {});
         break;
 
+      case ServerMsg.CALIBRATION_STATE:
+        setCalibrationState(payload);
+        break;
+
       default:
         console.log('[WS] Unknown message:', type, payload);
     }
@@ -236,6 +241,7 @@ export function GameProvider({ children }) {
     hostSettings,
     operatorState,
     scores,
+    calibrationState,
 
     // Actions
     send,

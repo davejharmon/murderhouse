@@ -1,0 +1,104 @@
+/* client/src/components/ScoresModal.module.css */
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.section h3 {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.scoringRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.scoringLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.scoringInput {
+  width: 3rem;
+  padding: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
+.unit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.empty {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: var(--space-xs) 0;
+}
+
+.scoreList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.scoreName {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreBtn {
+  padding: 2px 10px;
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.scoreValue {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 2.5rem;
+  text-align: center;
+  flex-shrink: 0;
+}

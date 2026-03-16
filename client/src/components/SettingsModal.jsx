@@ -31,17 +31,8 @@ export default function SettingsModal({
   onSetDefault,
   timerDuration,
   onTimerDurationChange,
-  autoAdvanceEnabled,
-  onToggleAutoAdvance,
-  heartbeatThreshold,
-  onHeartbeatThresholdChange,
-  fakeHeartbeats = false,
-  onToggleFakeHeartbeats,
-  connectedPlayers = [],
-  scores = {},
-  onSetScore,
-  scoringConfig = { survived: 1, winningTeam: 1, bestInvestigator: 2 },
-  onScoringConfigChange,
+  onOpenCalibration,
+  onOpenScores,
 }) {
   const [newPresetName, setNewPresetName] = useState('');
 
@@ -135,94 +126,16 @@ export default function SettingsModal({
 
         <section className={styles.section}>
           <h3>Heartbeat Mode</h3>
-          <div className={styles.timerRow}>
-            <label>Spike threshold</label>
-            <input
-              type='number'
-              min='60'
-              max='200'
-              value={heartbeatThreshold ?? 110}
-              onChange={(e) => onHeartbeatThresholdChange(parseInt(e.target.value) || 110)}
-              className={styles.timerInput}
-              title='BPM above this value triggers the panic vote-loss effect'
-            />
-            <span className={styles.timerUnit}>BPM</span>
-          </div>
-          <div className={styles.toggle}>
-            <label>
-              <input
-                type='checkbox'
-                checked={fakeHeartbeats}
-                onChange={(e) => onToggleFakeHeartbeats(e.target.checked)}
-              />
-              <span>FAKE HEARTBEATS</span>
-            </label>
-          </div>
+          <button onClick={onOpenCalibration}>
+            {getStr('host', 'btnCalibrateHR')}
+          </button>
         </section>
 
         <section className={styles.section}>
-          <h3>Slide Behaviour</h3>
-          <div className={styles.toggle}>
-            <label>
-              <input
-                type='checkbox'
-                checked={autoAdvanceEnabled}
-                onChange={(e) => onToggleAutoAdvance(e.target.checked)}
-              />
-              <span>AUTO-ADVANCE</span>
-            </label>
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <h3>Scoring Rules</h3>
-          {[
-            { key: 'survived', label: getStr('host', 'scoring.survived') },
-            { key: 'winningTeam', label: getStr('host', 'scoring.winningTeam') },
-            { key: 'bestInvestigator', label: getStr('host', 'scoring.bestInvestigator') },
-          ].map(({ key, label }) => (
-            <div key={key} className={styles.scoringRow}>
-              <span className={styles.scoringLabel}>{label}</span>
-              <input
-                type="number"
-                min="0"
-                max="99"
-                value={scoringConfig[key] ?? 0}
-                onChange={(e) => onScoringConfigChange({ ...scoringConfig, [key]: parseInt(e.target.value) || 0 })}
-                className={styles.scoringInput}
-              />
-              <span className={styles.timerUnit}>pts</span>
-            </div>
-          ))}
-        </section>
-
-        <section className={styles.section}>
-          <h3>Scores</h3>
-          {connectedPlayers.length === 0 ? (
-            <div className={styles.presetEmpty}>No players connected</div>
-          ) : (
-            <div className={styles.scoreList}>
-              {connectedPlayers.map(p => {
-                const score = scores[p.name] ?? 0;
-                return (
-                  <div key={p.id} className={styles.scoreRow}>
-                    <span className={styles.scoreName}>{p.name || `P${p.id}`}</span>
-                    <button
-                      className={styles.scoreBtn}
-                      onClick={() => onSetScore(p.name, score - 1)}
-                      disabled={!p.name}
-                    >−</button>
-                    <span className={styles.scoreValue}>{score}</span>
-                    <button
-                      className={styles.scoreBtn}
-                      onClick={() => onSetScore(p.name, score + 1)}
-                      disabled={!p.name}
-                    >+</button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <h3>Scoring</h3>
+          <button onClick={onOpenScores}>
+            {getStr('host', 'btnScoreboard')}
+          </button>
         </section>
 
       </div>

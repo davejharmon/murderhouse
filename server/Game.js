@@ -69,6 +69,7 @@ export class Game {
     this.reset();
     this._loadGamePresetsFromDisk();
     this._loadHostSettingsFromDisk();
+    this._ensureSimTimer();
     this._loadScoresFromDisk();
 
     // Auto-load default preset if one is set
@@ -157,6 +158,19 @@ export class Game {
     this._fakeHeartbeats = false;
     this._fakeHeartbeatTimer = null;
     this._fakeHeartbeatSimState = {};
+
+    // Heartbeat calibration (null when not active)
+    if (this._calibrationTimer) clearTimeout(this._calibrationTimer);
+    this._calibration = null;
+    this._calibrationTimer = null;
+
+    // Simulated heartbeat (secret per-player fake, survives reset)
+    // Don't clear _simHeartbeatState or timer on reset — these persist like calibration config
+    if (!this._simHeartbeatState) this._simHeartbeatState = {};
+    if (this._hostSettings) this._ensureSimTimer();
+
+    // Noise injection state per player (tracks recent normalized values)
+    if (!this._noiseState) this._noiseState = {};
   }
 
   // === Player Management ===
@@ -183,6 +197,14 @@ export class Game {
 
     this.players.set(id, player);
 
+    // Ensure player has a default calibration entry
+    const calConfig = this._hostSettings.heartbeatCalibration || {};
+    if (!calConfig[id]) {
+      calConfig[id] = { restingBpm: 60, elevatedBpm: 100, enabled: false };
+      this._hostSettings.heartbeatCalibration = calConfig;
+      this.saveHostSettings(this._hostSettings);
+    }
+
     const via = ws.source === 'terminal' ? 'terminal' : 'web';
     this.addLog(str('log', 'playerJoined', { name: player.name, via }));
     this.broadcastPlayerList();
@@ -208,6 +230,11 @@ export class Game {
       autoAdvanceEnabled: false,
       heartbeatThreshold: 110,
       scoringConfig: { survived: 1, winningTeam: 1, bestInvestigator: 2 },
+      heartbeatCalibration: {},
+      heartbeatDisplayResting: 65,
+      heartbeatDisplayElevated: 110,
+      simsCanLose: false,
+      heartbeatAddNoise: false,
     };
     if (!fs.existsSync(HOST_SETTINGS_PATH)) {
       this._hostSettings = defaults;
@@ -228,6 +255,7 @@ export class Game {
   saveHostSettings(settings) {
     this._hostSettings = { ...this._hostSettings, ...settings };
     fs.writeFileSync(HOST_SETTINGS_PATH, JSON.stringify(this._hostSettings, null, 2));
+    this.sendToHost(ServerMsg.HOST_SETTINGS, this.getHostSettings());
   }
 
   setDefaultPreset(id) {
@@ -2651,7 +2679,10 @@ export class Game {
     return { base, current: base, mode: 'normal', spikeTarget: 0, spikeTicks: 0 };
   }
 
-  _tickFakeSimState(s) {
+  // canSpike: true = spikes can exceed ceiling (debug fakes & simsCanLose)
+  // ceiling: hard clamp for BPM when canSpike is false
+  // Same spike frequency either way — only difference is the clamp.
+  _tickFakeSimState(s, { canSpike = true, ceiling = 200 } = {}) {
     if (s.mode === 'normal') {
       if (Math.random() < 0.005) {
         s.mode = 'spiking';
@@ -2673,6 +2704,8 @@ export class Game {
         s.mode = 'normal';
       }
     }
+    // Hard clamp — spikes happen identically, but get capped when canSpike is off
+    if (!canSpike) s.current = Math.min(s.current, ceiling - 1);
     return s;
   }
 
@@ -2695,7 +2728,9 @@ export class Game {
     if (this.phase !== GamePhase.DAY) return;
     if (!player.isAlive) return;
     const threshold = this._hostSettings.heartbeatThreshold ?? 110;
-    if (player.heartbeat.bpm <= threshold) return;
+    const cal = this._hostSettings.heartbeatCalibration?.[player.id];
+    const bpmForCheck = (cal?.enabled) ? this._normalizeHeartbeat(player) : player.heartbeat.bpm;
+    if (bpmForCheck <= threshold) return;
     if (this.heartbeatSpikesThisDay.has(player.id)) return;
 
     // If vote is already running, check if player already confirmed — if so, skip
@@ -2708,19 +2743,224 @@ export class Game {
 
     this.heartbeatSpikesThisDay.add(player.id);
     player.addItem(getItem(ItemId.NOVOTE));
-    this.addLog(str('log', 'bpmPanicked', { name: player.getNameWithEmoji(), bpm: player.heartbeat.bpm, threshold }));
+    this.addLog(str('log', 'bpmPanicked', { name: player.getNameWithEmoji(), bpm: bpmForCheck, threshold }));
     this.pushSlide({
       type: SlideType.HEARTBEAT,
       playerId: player.id,
       playerName: player.name,
       portrait: player.portrait,
-      bpm: player.heartbeat.bpm,
+      bpm: bpmForCheck,
       fake: player.heartbeat.fake ?? false,
       title: str('slides', 'misc.bpmSpike.title', { name: player.name.toUpperCase() }),
       subtitle: str('slides', 'misc.bpmSpike.subtitle'),
       style: SlideStyle.WARNING,
     }, false);
     this.broadcastGameState();
+  }
+
+  // === Heartbeat Calibration ===
+
+  startCalibration(playerIds) {
+    if (this._calibration) this.stopCalibration();
+    this._calibration = {
+      phase: 'resting',
+      playerIds: playerIds.map(String),
+      samples: {},  // { playerId: { resting: [], elevated: [] } }
+      duration: 30000,
+      startTime: Date.now(),
+    };
+    for (const id of this._calibration.playerIds) {
+      this._calibration.samples[id] = { resting: [], elevated: [] };
+    }
+    this._calibrationTimer = setTimeout(() => this._advanceCalibration(), 30000);
+    this._broadcastCalibrationState();
+    this.broadcastGameState();
+    return { success: true };
+  }
+
+  startSingleCalibration(playerId) {
+    return this.startCalibration([playerId]);
+  }
+
+  stopCalibration() {
+    if (this._calibrationTimer) clearTimeout(this._calibrationTimer);
+    this._calibration = null;
+    this._calibrationTimer = null;
+    this._broadcastCalibrationState();
+    this.broadcastGameState();
+    return { success: true };
+  }
+
+  _advanceCalibration() {
+    if (!this._calibration) return;
+    if (this._calibration.phase === 'resting') {
+      this._calibration.phase = 'elevated';
+      this._calibration.startTime = Date.now();
+      this._calibrationTimer = setTimeout(() => this._advanceCalibration(), 30000);
+    } else if (this._calibration.phase === 'elevated') {
+      this._calibration.phase = 'review';
+    }
+    this._broadcastCalibrationState();
+    this.broadcastGameState();
+  }
+
+  collectCalibrationSample(player) {
+    if (!this._calibration) return;
+    if (!this._calibration.playerIds.includes(String(player.id))) return;
+    const bpm = player.heartbeat?.bpm;
+    if (!bpm || bpm <= 0) return;
+    const phase = this._calibration.phase;
+    if (phase !== 'resting' && phase !== 'elevated') return;
+    this._calibration.samples[player.id][phase].push(bpm);
+  }
+
+  saveCalibration() {
+    if (!this._calibration || this._calibration.phase !== 'review') {
+      return { success: false, error: 'No calibration to save' };
+    }
+    const calConfig = { ...this._hostSettings.heartbeatCalibration };
+    let count = 0;
+    for (const id of this._calibration.playerIds) {
+      const s = this._calibration.samples[id];
+      const restingMedian = this._median(s.resting);
+      const elevatedMedian = this._median(s.elevated);
+      if (restingMedian > 0 && elevatedMedian > 0 && elevatedMedian > restingMedian) {
+        calConfig[id] = { restingBpm: restingMedian, elevatedBpm: elevatedMedian, enabled: true };
+        count++;
+      }
+    }
+    this._hostSettings.heartbeatCalibration = calConfig;
+    this.saveHostSettings(this._hostSettings);
+    this.addLog(str('log', 'calibrationSaved', { count }));
+    this.stopCalibration();
+    return { success: true };
+  }
+
+  togglePlayerHeartbeat(playerId) {
+    const calConfig = this._hostSettings.heartbeatCalibration || {};
+    const entry = calConfig[playerId];
+    if (!entry) return { success: false, error: 'Player not calibrated' };
+    entry.enabled = !entry.enabled;
+    this.saveHostSettings(this._hostSettings);
+    this.broadcastGameState();
+    return { success: true, enabled: entry.enabled };
+  }
+
+  setPlayerCalibration(playerId, restingBpm, elevatedBpm) {
+    if (!restingBpm || !elevatedBpm || elevatedBpm <= restingBpm) {
+      return { success: false, error: 'Elevated must be greater than resting' };
+    }
+    const calConfig = this._hostSettings.heartbeatCalibration || {};
+    const existing = calConfig[playerId];
+    calConfig[playerId] = {
+      restingBpm: Math.round(restingBpm),
+      elevatedBpm: Math.round(elevatedBpm),
+      enabled: existing?.enabled ?? true,
+    };
+    this._hostSettings.heartbeatCalibration = calConfig;
+    this.saveHostSettings(this._hostSettings);
+    this.broadcastGameState();
+    return { success: true };
+  }
+
+  togglePlayerSimulated(playerId) {
+    const calConfig = this._hostSettings.heartbeatCalibration || {};
+    if (!calConfig[playerId]) {
+      // Auto-create a calibration entry with sensible defaults
+      calConfig[playerId] = { restingBpm: 60, elevatedBpm: 100, enabled: true };
+      this._hostSettings.heartbeatCalibration = calConfig;
+    }
+    const entry = calConfig[playerId];
+    entry.simulated = !entry.simulated;
+    entry.enabled = true;
+    this.saveHostSettings(this._hostSettings);
+    if (entry.simulated) {
+      this._simHeartbeatState[playerId] = this._initFakeSimState();
+    } else {
+      delete this._simHeartbeatState[playerId];
+    }
+    this._ensureSimTimer();
+    this.broadcastGameState();
+    return { success: true, simulated: entry.simulated };
+  }
+
+  _ensureSimTimer() {
+    const hasSimulated = Object.values(this._hostSettings?.heartbeatCalibration || {})
+      .some(c => c.simulated);
+    if (hasSimulated && !this._simHeartbeatTimer) {
+      this._simHeartbeatTimer = setInterval(() => this._tickSimHeartbeats(), 1500);
+    } else if (!hasSimulated && this._simHeartbeatTimer) {
+      clearInterval(this._simHeartbeatTimer);
+      this._simHeartbeatTimer = null;
+    }
+  }
+
+  _tickSimHeartbeats() {
+    const calConfig = this._hostSettings?.heartbeatCalibration || {};
+    const simsCanLose = this._hostSettings?.simsCanLose ?? false;
+    const threshold = this._hostSettings?.heartbeatThreshold ?? 110;
+    let ticked = false;
+    for (const [id, cal] of Object.entries(calConfig)) {
+      if (!cal.simulated) continue;
+      const player = this.getPlayer(id);
+      if (!player) continue;
+      if (!this._simHeartbeatState[id]) {
+        this._simHeartbeatState[id] = this._initFakeSimState();
+      }
+      const s = this._tickFakeSimState(this._simHeartbeatState[id], {
+        canSpike: simsCanLose,
+        ceiling: threshold,
+      });
+      // Simulated always wins over real sensor data
+      player.heartbeat = { bpm: s.current, active: true, fake: false, _simulated: true, lastUpdate: Date.now() };
+      this._checkHeartbeatModeSpike(player);
+      ticked = true;
+    }
+    if (ticked) this.broadcastGameState();
+  }
+
+  _normalizeHeartbeat(player) {
+    const cal = this._hostSettings.heartbeatCalibration?.[player.id];
+    if (!cal || !cal.enabled) return 0;
+    const raw = player.heartbeat?.bpm || 0;
+    if (raw <= 0) return 0;
+    const displayResting = this._hostSettings.heartbeatDisplayResting ?? 65;
+    const displayElevated = this._hostSettings.heartbeatDisplayElevated ?? 110;
+    const range = cal.elevatedBpm - cal.restingBpm;
+    if (range <= 0) return displayResting;
+    let normalized = displayResting + (raw - cal.restingBpm) / range * (displayElevated - displayResting);
+    normalized = Math.max(40, Math.min(200, Math.round(normalized)));
+
+    // Add noise if enabled — smooth random walk that makes flat readings look alive
+    if (this._hostSettings.heartbeatAddNoise) {
+      const ns = this._noiseState[player.id] || (this._noiseState[player.id] = { offset: 0, velocity: 0 });
+      // Brownian motion: velocity is pulled toward zero (mean-reverting) with random kicks
+      ns.velocity += (Math.random() - 0.5) * 1.8 - ns.velocity * 0.3 - ns.offset * 0.08;
+      ns.offset += ns.velocity;
+      // Soft clamp offset to ±5 range
+      ns.offset = Math.max(-5, Math.min(5, ns.offset));
+      normalized = Math.max(40, Math.min(200, Math.round(normalized + ns.offset)));
+    }
+
+    return normalized;
+  }
+
+  _broadcastCalibrationState() {
+    const state = this._calibration ? {
+      phase: this._calibration.phase,
+      playerIds: this._calibration.playerIds,
+      startTime: this._calibration.startTime,
+      duration: this._calibration.duration,
+      samples: this._calibration.samples,
+    } : null;
+    this.sendToHost(ServerMsg.CALIBRATION_STATE, state);
+  }
+
+  _median(arr) {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
   }
 
   // === Broadcasting ===
@@ -2830,10 +3070,16 @@ export class Game {
 
       // Include heartbeat data for all audiences
       const stale = now - p.heartbeat.lastUpdate > 5000;
+      const cal = this._hostSettings.heartbeatCalibration?.[p.id];
+      const calEnabled = cal?.enabled === true;
+      const normalizedBpm = calEnabled ? this._normalizeHeartbeat(p) : 0;
+      const isSimulated = !!(cal?.simulated && p.heartbeat._simulated);
       base.heartbeat = {
-        bpm: p.heartbeat.bpm,
-        active: p.heartbeat.active && !stale,
-        fake: p.heartbeat.fake ?? false,
+        bpm: calEnabled ? normalizedBpm : p.heartbeat.bpm,
+        rawBpm: audience === 'host' ? p.heartbeat.bpm : undefined,
+        active: calEnabled ? (calEnabled && p.heartbeat.active && !stale) : (p.heartbeat.active && !stale),
+        fake: isSimulated ? false : (p.heartbeat.fake ?? false),
+        simulated: audience === 'host' ? isSimulated : undefined,
       };
 
       return base;

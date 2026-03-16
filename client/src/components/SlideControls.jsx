@@ -1,4 +1,5 @@
 // client/src/components/SlideControls.jsx
+import { getStr } from '../strings/index.js';
 import styles from './SlideControls.module.css';
 
 export default function SlideControls({
@@ -6,6 +7,8 @@ export default function SlideControls({
   onNext,
   onPrev,
   onClear,
+  autoAdvanceEnabled,
+  onToggleAutoAdvance,
 }) {
   const { queue = [], currentIndex = -1 } = slideQueue;
   const total = queue.length;
@@ -47,6 +50,15 @@ export default function SlideControls({
       >
         Clear All
       </button>
+
+      <label className={styles.autoAdvance}>
+        <input
+          type="checkbox"
+          checked={autoAdvanceEnabled}
+          onChange={(e) => onToggleAutoAdvance(e.target.checked)}
+        />
+        <span>AUTO-ADVANCE</span>
+      </label>
 
     </section>
   );

@@ -399,3 +399,15 @@
     color: var(--color-accent-blue);
   }
 }
+
+.simsLose {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: #a78bfa;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: var(--border-radius-sm);
+}

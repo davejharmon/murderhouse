@@ -1,0 +1,210 @@
+/* client/src/components/CalibrationModal.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.section h3 {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.rangeRow {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.rangeRow label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.rangeInput {
+  width: 3.5rem;
+  padding: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.table th {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.1em;
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-variant-numeric: tabular-nums;
+}
+
+.liveValue {
+  color: var(--color-primary, #7eb8da);
+  font-weight: 600;
+}
+
+.calInput {
+  width: 3.2rem;
+  padding: 0.15em 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-align: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text);
+}
+
+.smallBtn {
+  font-size: 0.65rem;
+  padding: 0.15em 0.5em;
+}
+
+.phaseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phaseLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.timerDisplay {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary, #7eb8da);
+}
+
+.instruction {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.reviewButtons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.rowError {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.rowError td {
+  color: #ef4444;
+}
+
+.rowWarn {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.rowWarn td {
+  color: #f59e0b;
+}
+
+.statusCell {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.actionCell {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.simBtn {
+  opacity: 0.4;
+}
+
+.simActive {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #a78bfa;
+}
+
+.simBadge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  padding: 0.05em 0.3em;
+  border-radius: 2px;
+}
+
+.toggleRow {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.optionToggle {
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.optionToggle label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.simToggle {
+  padding: var(--space-sm);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--border-radius-sm);
+}
+
+.simToggle label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8rem;
+  color: #a78bfa;
+  cursor: pointer;
+}
+
+.noSensors {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: var(--space-md) 0;
+}

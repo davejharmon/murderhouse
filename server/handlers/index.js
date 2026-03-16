@@ -517,12 +517,30 @@ export function createHandlers(game) {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
 
+      // Don't let real sensor overwrite simulated heartbeat
+      const cal = game._hostSettings?.heartbeatCalibration?.[ws.playerId];
+      if (cal?.simulated) {
+        // Still collect calibration samples from real sensor if calibrating
+        if (game._calibration) {
+          const tmpHeartbeat = player.heartbeat;
+          player.heartbeat = { ...tmpHeartbeat, bpm: payload.bpm || 0 };
+          game.collectCalibrationSample(player);
+          player.heartbeat = tmpHeartbeat;
+        }
+        return { success: true };
+      }
+
       player.heartbeat = {
         bpm: payload.bpm || 0,
         active: (payload.bpm || 0) > 0,
         fake: payload.fake === true,
         lastUpdate: Date.now(),
       };
+      // Collect calibration sample if calibration is active
+      if (game._calibration) {
+        game.collectCalibrationSample(player);
+        game._broadcastCalibrationState();
+      }
       game._checkHeartbeatModeSpike(player);
       game.broadcastGameState();
       return { success: true };
@@ -530,6 +548,33 @@ export function createHandlers(game) {
 
     [ClientMsg.TOGGLE_HEARTBEAT_MODE]: requireHost(() => game.toggleHeartbeatMode()),
     [ClientMsg.TOGGLE_FAKE_HEARTBEATS]: requireHost(() => game.toggleFakeHeartbeats()),
+
+    // Heartbeat calibration
+    [ClientMsg.START_CALIBRATION]: requireHost(() => {
+      const playerIds = [...game.players.values()]
+        .filter(p => p.heartbeat?.active || p.heartbeat?.fake)
+        .map(p => p.id);
+      if (!playerIds.length) return { success: false, error: 'No active sensors' };
+      return game.startCalibration(playerIds);
+    }),
+    [ClientMsg.START_SINGLE_CALIBRATION]: requireHost((ws, payload) => {
+      if (!payload.playerId) return { success: false, error: 'No player specified' };
+      return game.startSingleCalibration(payload.playerId);
+    }),
+    [ClientMsg.STOP_CALIBRATION]: requireHost(() => game.stopCalibration()),
+    [ClientMsg.SAVE_CALIBRATION]: requireHost(() => game.saveCalibration()),
+    [ClientMsg.TOGGLE_PLAYER_HEARTBEAT]: requireHost((ws, payload) => {
+      if (!payload.playerId) return { success: false, error: 'No player specified' };
+      return game.togglePlayerHeartbeat(payload.playerId);
+    }),
+    [ClientMsg.SET_PLAYER_CALIBRATION]: requireHost((ws, payload) => {
+      if (!payload.playerId) return { success: false, error: 'No player specified' };
+      return game.setPlayerCalibration(payload.playerId, payload.restingBpm, payload.elevatedBpm);
+    }),
+    [ClientMsg.TOGGLE_PLAYER_SIMULATED]: requireHost((ws, payload) => {
+      if (!payload.playerId) return { success: false, error: 'No player specified' };
+      return game.togglePlayerSimulated(payload.playerId);
+    }),
 
     [ClientMsg.PUSH_HEARTBEAT_SLIDE]: requireHost((ws, payload) => {
       const player = game.getPlayer(payload.playerId);

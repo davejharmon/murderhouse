@@ -417,6 +417,11 @@ export class Player {
     const isAbstained = activeResult?.abstained ?? false;
     const confirmedTargetId = (activeResult && !activeResult.abstained) ? activeResult.targetId : null;
 
+    // Calibration override — highest priority when active
+    if (game._calibration?.playerIds.includes(String(this.id))) {
+      return this._displayCalibration(game._calibration);
+    }
+
     // Priority-ordered state dispatch
     if (phase === GamePhase.LOBBY)          return this._displayLobby(getLine1);
     if (phase === GamePhase.GAME_OVER)      return this._displayGameOver(getLine1);
@@ -471,6 +476,28 @@ export class Player {
   }
 
   // --- Display state methods (called by _buildDisplay) ---
+
+  _displayCalibration(cal) {
+    const remaining = Math.max(0, Math.ceil((cal.startTime + cal.duration - Date.now()) / 1000));
+    let line2Text, line3Text;
+    if (cal.phase === 'resting') {
+      line2Text = `RESTING... ${remaining}s`;
+      line3Text = 'Sit still';
+    } else if (cal.phase === 'elevated') {
+      line2Text = `ELEVATED... ${remaining}s`;
+      line3Text = 'Breathe fast';
+    } else {
+      line2Text = 'COMPLETE';
+      line3Text = 'Stand by';
+    }
+    return this._display(
+      { left: 'CALIBRATION', right: '' },
+      { text: line2Text, style: DisplayStyle.NORMAL },
+      { text: line3Text },
+      { yes: LedState.OFF, no: LedState.OFF },
+      StatusLed.LOBBY
+    );
+  }
 
   _displayLobby(getLine1) {
     return this._display(
