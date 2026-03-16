@@ -10,8 +10,8 @@ static unsigned long beatLedOnTime = 0;
 static bool beatLedOn = false;
 
 // BPM calculation — circular buffer of last 4 beat intervals
-static const int BPM_BUFFER_SIZE = 4;
-static unsigned long beatIntervals[BPM_BUFFER_SIZE] = {0};
+static const int BPM_BUFFER_SIZE = 6;
+static unsigned long beatIntervals[6] = {0};
 static int beatIntervalIndex = 0;
 static int beatIntervalCount = 0;
 static unsigned long prevBeatTime = 0;
@@ -20,9 +20,9 @@ static const unsigned long ACTIVE_TIMEOUT_MS = 3000; // Consider inactive after 
 
 // Adaptive threshold — sliding window min/max
 static const unsigned long WINDOW_MS = 2000;     // 2-second rolling window
-static const unsigned long REFRACTORY_MS = 300;   // ~200 BPM cap
+static const unsigned long REFRACTORY_MS = 400;   // ~150 BPM cap
 static const float THRESHOLD_RATIO = 0.60f;       // 60% of range above min
-static const int MIN_RANGE = 400;                  // Minimum ADC range to consider valid signal
+static const int MIN_RANGE = 400;                  // Minimum ADC range to reject T-wave false triggers
 
 static int rollingMin = 4095;
 static int rollingMax = 0;
@@ -82,7 +82,9 @@ void heartrateUpdate() {
             // Beat detected — record interval for BPM
             if (prevBeatTime > 0) {
                 unsigned long interval = now - prevBeatTime;
-                if (interval > 300 && interval < 2000) { // 30-200 BPM range
+                if (interval > 300 && interval < 4000) { // Accept wider range, compensate below
+                    // Likely skipped beat(s) — halve interval to compensate
+                    while (interval > 1500) interval /= 2;
                     beatIntervals[beatIntervalIndex] = interval;
                     beatIntervalIndex = (beatIntervalIndex + 1) % BPM_BUFFER_SIZE;
                     if (beatIntervalCount < BPM_BUFFER_SIZE) beatIntervalCount++;

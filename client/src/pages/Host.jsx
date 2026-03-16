@@ -426,7 +426,7 @@ export default function Host() {
         </div>
       </section>
 
-      {gameState?.players?.filter((p) => p.heartbeat?.active).length >= 2 && (
+      {gameState?.players?.filter((p) => p.heartbeat?.active).length >= 1 && (
         <section className={styles.section}>
           <button onClick={() => setShowHeartbeat(true)}>{getStr('host', 'btnHeartbeats')}</button>
         </section>
