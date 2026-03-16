@@ -1,4 +1,4 @@
-# ESP32 Terminal PCB - EasyEDA Design Guide
+we# ESP32 Terminal PCB - EasyEDA Design Guide
 
 ## Overview
 
@@ -8,23 +8,23 @@ Breakout board for the Murderhouse ESP32 physical terminal. Connects an ESP32-S3
 
 ### Headers (ESP32 Socket)
 
-| Ref | Component      | Pins        | LCSC Part | Notes                     |
-| --- | -------------- | ----------- | --------- | ------------------------- |
-| J1  | ESP32 Left     | 1x22 Female | C2337     | 2.54mm pitch              |
-| J2  | ESP32 Right    | 1x22 Female | C2337     | 2.54mm pitch              |
+| Ref | Component   | Pins        | LCSC Part | Notes        |
+| --- | ----------- | ----------- | --------- | ------------ |
+| J1  | ESP32 Left  | 1x22 Female | C2337     | 2.54mm pitch |
+| J2  | ESP32 Right | 1x22 Female | C2337     | 2.54mm pitch |
 
 ### Connectors (JST-XH, Panel Components)
 
-| Ref | Component      | Connector        | LCSC Part | Notes                     |
-| --- | -------------- | ---------------- | --------- | ------------------------- |
-| J3  | OLED Display   | XH 7-pin (B7B)  | C144398   | CS,DC,RES,SDA,SCK,VCC,GND |
-| J4  | YES Button     | XH 4-pin (B4B)  | C144395   | COM,NO,LED+,LED-          |
-| J5  | NO Button      | XH 4-pin (B4B)  | C144395   | COM,NO,LED+,LED-          |
-| J6  | Rotary Encoder | XH 5-pin (B5B)  | C157991   | GND,A,B,SW,GND            |
-| J7  | Neopixel       | XH 3-pin (B3B)  | C144394   | 5V,GND,DIN                |
-| J10 | Power LED (D1) | XH 2-pin (B2B)  | C158012   | LED+,LED-                 |
-| J11 | I2C LED (D2)*  | XH 2-pin (B2B)  | C158012   | LED+,LED-                 |
-| J12 | Heartbeat (D3)*| XH 2-pin (B2B)  | C158012   | LED+,LED-                 |
+| Ref | Component        | Connector      | LCSC Part | Notes                     |
+| --- | ---------------- | -------------- | --------- | ------------------------- |
+| J3  | OLED Display     | XH 7-pin (B7B) | C144398   | CS,DC,RES,SDA,SCK,VCC,GND |
+| J4  | YES Button       | XH 4-pin (B4B) | C144395   | COM,NO,LED+,LED-          |
+| J5  | NO Button        | XH 4-pin (B4B) | C144395   | COM,NO,LED+,LED-          |
+| J6  | Rotary Encoder   | XH 5-pin (B5B) | C157991   | GND,A,B,SW,GND            |
+| J7  | Neopixel         | XH 3-pin (B3B) | C144394   | 5V,GND,DIN                |
+| J10 | ~~Power LED (D1)~~ | ~~XH 2-pin (B2B)~~ | ~~C158012~~ | ~~removed~~ |
+| J11 | Power LED (D2)   | XH 2-pin (B2B) | C158012   | LED+,LED-                 |
+| J12 | Heartbeat (D3)\* | XH 2-pin (B2B) | C158012   | LED+,LED-                 |
 
 _JST-XH connectors are keyed/polarized (2.5mm pitch). Crimp XH terminals onto panel wires._
 
@@ -32,19 +32,19 @@ _Note: Power supplied via ESP32 DevKit USB-C port - no separate power header nee
 
 ### Resistors (0805 SMD recommended)
 
-| Ref | Value | Qty | LCSC Part | Purpose                    | Current        |
-| --- | ----- | --- | --------- | -------------------------- | -------------- |
-| R1  | 100Ω  | 1   | C17408    | YES button LED (yellow)    | ~13mA @ 3.3V   |
-| R2  | 150Ω  | 1   | C17471    | NO button LED (red)        | ~10mA @ 3.3V   |
-| R3  | 330Ω  | 1   | C17630    | Neopixel data line         | —              |
-| R4  | 220Ω  | 1   | C17557    | Power LED D1 (yellow)      | ~14mA @ 5V     |
-| R7  | 150Ω  | 1   | C17471    | I2C status LED D2 (red)*   | ~10mA @ 3.3V   |
-| R8  | 100Ω  | 1   | C17408    | Heartbeat LED D3 (green)*  | ~13mA @ 3.3V   |
+| Ref | Value | Qty | LCSC Part | Purpose                    | Current      |
+| --- | ----- | --- | --------- | -------------------------- | ------------ |
+| R1  | 100Ω  | 1   | C17408    | YES button LED (yellow)    | ~13mA @ 3.3V |
+| R2  | 150Ω  | 1   | C17471    | NO button LED (red)        | ~10mA @ 3.3V |
+| R3  | 330Ω  | 1   | C17630    | Neopixel data line         | —            |
+| R4  | ~~220Ω~~ | ~~1~~ | ~~C17557~~ | ~~Power LED D1 (yellow)~~ | ~~removed~~ |
+| R7  | 150Ω  | 1   | C17471    | Power LED D2 (yellow)      | ~10mA @ 3.3V (PWM dimmed) |
+| R8  | 100Ω  | 1   | C17408    | Heartbeat LED D3 (red)\*   | ~13mA @ 3.3V |
 
-_*R7 and R8 are optional - only populate with corresponding LEDs_
+_\*R8 is optional - only populate with corresponding LED_
 
-_Resistor values chosen to equalise perceived brightness across colours. Red LEDs are_
-_more efficient so run at lower current (~10mA). Yellow and green LEDs run at ~13–14mA._
+_D2 brightness controlled via PWM (~3% duty) so hardware resistor value is less critical._
+_R4 no longer populated — D1 (hardwired 5V power LED) removed in favour of PWM-controlled D2._
 
 ### Capacitors
 
@@ -54,39 +54,40 @@ _more efficient so run at lower current (~10mA). Yellow and green LEDs run at ~1
 
 ### LEDs (Panel-Mounted with Bezels)
 
-| Ref | Component       | LCSC Part | Purpose              | Connector |
-| --- | --------------- | --------- | -------------------- | --------- |
-| D1  | Yellow LED 3mm  | C85160    | Power indicator      | J10       |
-| D2  | Red LED 3mm     | C84256    | I2C device detected* | J11       |
-| D3  | Green LED 3mm   | C85161    | Heartbeat pulse*     | J12       |
+| Ref | Component      | LCSC Part | Purpose               | Connector |
+| --- | -------------- | --------- | --------------------- | --------- |
+| D1  | ~~Yellow LED 3mm~~ | ~~C85160~~ | ~~Power indicator (hardwired 5V)~~ | ~~J10~~ |
+| D2  | Yellow LED 3mm | C85160    | Power indicator (PWM) | J11       |
+| D3  | Red LED 3mm    | C84256    | Heartbeat pulse\*     | J12       |
 
 _All indicator LEDs are panel-mounted in 3mm bezels, wired back to PCB via JST-XH 2-pin._
 _Button LEDs: YES = yellow, NO = red (built into arcade buttons)._
-_*D2 and D3 are optional - only populate if using I2C TRRS or AD8232 expansions._
+_D1 removed — power indicator moved to D2 (GPIO 19) for PWM brightness control._
+_\*D3 is optional - only populate if using AD8232 expansion._
 
 ### Rotary Encoder
 
-| Ref | Component          | LCSC Part | Purpose              |
-| --- | ------------------ | --------- | -------------------- |
-| SW1 | EC11 Rotary Encoder| C318884   | Navigation dial      |
+| Ref | Component           | LCSC Part | Purpose         |
+| --- | ------------------- | --------- | --------------- |
+| SW1 | EC11 Rotary Encoder | C318884   | Navigation dial |
 
 _EC11 is a standard 5-pin encoder with detents. Only 3 pins used (GND, A, B). Push-button pin optional._
 
 ### Optional: Heart Rate Monitor (AD8232)
 
-| Ref | Component          | Pins | LCSC Part | Notes                      |
-| --- | ------------------ | ---- | --------- | -------------------------- |
-| J8  | AD8232 Breakout    | XH 6-pin (B6B) | C144397 | GND,3V3,OUT,LO+,LO-,SDN |
+| Ref | Component       | Pins           | LCSC Part | Notes                   |
+| --- | --------------- | -------------- | --------- | ----------------------- |
+| J8  | AD8232 Breakout | XH 6-pin (B6B) | C144397   | GND,3V3,OUT,LO+,LO-,SDN |
 
 _AD8232 is a single-lead heart rate monitor. Connect electrode pads to RA/LA/RL pads on breakout._
 
 ### Optional: I2C Expansion
 
-| Ref | Component          | LCSC Part | Notes                       |
-| --- | ------------------ | --------- | --------------------------- |
-| J9  | I2C Expansion      | C144395   | XH 4-pin (B4B): SDA,SCL,3V3,GND |
-| R5  | 4.7kΩ              | C17673    | I2C SDA pullup (optional)   |
-| R6  | 4.7kΩ              | C17673    | I2C SCL pullup (optional)   |
+| Ref | Component     | LCSC Part | Notes                           |
+| --- | ------------- | --------- | ------------------------------- |
+| J9  | I2C Expansion | C144395   | XH 4-pin (B4B): SDA,SCL,3V3,GND |
+| R5  | 4.7kΩ         | C17673    | I2C SDA pullup (optional)       |
+| R6  | 4.7kΩ         | C17673    | I2C SCL pullup (optional)       |
 
 _Panel-mount a 3.5mm TRRS jack or another JST-XH socket and wire back to J9._
 _TRRS pinout: Tip=SDA, Ring1=SCL, Ring2=3.3V, Sleeve=GND._
@@ -122,7 +123,7 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
          GPIO 11  ─┤17 (OLED_SDA)  28├─ GPIO 47
          GPIO 12  ─┤18 (OLED_SCK)  27├─ GPIO 21
          GPIO 13  ─┤19 (AD_SDN)*   26├─ GPIO 20 (HB_LED)*
-         GPIO 14  ─┤20 (OLED_RST)  25├─ GPIO 19 (I2C_LED)*
+         GPIO 14  ─┤20 (OLED_RST)  25├─ GPIO 19 (PWR_LED)
                5V  ─┤21             24├─ GND
               GND  ─┤22             23├─ GND
                     └─────────────────┘
@@ -167,13 +168,13 @@ Power is supplied via the DevKit's USB-C port. The 5V pin provides USB voltage t
 
 ### Rotary Encoder Header (J6)
 
-| J6 Pin | Signal | Connects To              |
-| ------ | ------ | ------------------------ |
-| 1      | GND    | GND rail (encoder common)|
-| 2      | A      | ESP32 GPIO 1 (pin 37)    |
-| 3      | B      | ESP32 GPIO 2 (pin 36)    |
-| 4      | SW     | ESP32 GPIO 42 (pin 35)   |
-| 5      | GND    | GND rail (switch common) |
+| J6 Pin | Signal | Connects To               |
+| ------ | ------ | ------------------------- |
+| 1      | GND    | GND rail (encoder common) |
+| 2      | A      | ESP32 GPIO 1 (pin 37)     |
+| 3      | B      | ESP32 GPIO 2 (pin 36)     |
+| 4      | SW     | ESP32 GPIO 42 (pin 35)    |
+| 5      | GND    | GND rail (switch common)  |
 
 _EC11 encoder with push button. Uses internal pullups on ESP32. Button active LOW._
 
@@ -191,55 +192,50 @@ _C1 (100µF) placed across 5V and GND near J7 for power smoothing_
 
 Power is supplied through the ESP32 DevKit's USB-C port. No separate power connector needed.
 
-| Source         | Connects To | Notes                                |
-| -------------- | ----------- | ------------------------------------ |
-| ESP32 5V pin (pin 21) | 5V rail | Provides USB voltage for Neopixel |
-| ESP32 3V3 pins | 3.3V rail   | Regulated by DevKit for OLED         |
-| ESP32 GND      | GND rail    | Common ground                        |
+| Source                | Connects To | Notes                             |
+| --------------------- | ----------- | --------------------------------- |
+| ESP32 5V pin (pin 21) | 5V rail     | Provides USB voltage for Neopixel |
+| ESP32 3V3 pins        | 3.3V rail   | Regulated by DevKit for OLED      |
+| ESP32 GND             | GND rail    | Common ground                     |
 
-### Power LED Header (J10 → D1)
+### ~~Power LED Header (J10 → D1)~~ — Removed
 
-| J10 Pin | Signal | Connects To           |
-| ------- | ------ | --------------------- |
-| 1       | LED+   | 5V rail via R4 (220Ω) |
-| 2       | LED-   | GND rail              |
-
-_Yellow LED in 3mm panel bezel. Indicates USB power is connected._
+_D1 hardwired power LED removed. Power indicator moved to D2 on GPIO 19 (PWM-controlled)._
 
 ### Optional: AD8232 Heart Monitor Header (J8)
 
-| J8 Pin | Signal | Connects To              |
-| ------ | ------ | ------------------------ |
-| 1      | GND    | GND rail                 |
-| 2      | 3.3V   | 3.3V rail                |
-| 3      | OUTPUT | ESP32 GPIO 3 (pin 13)    |
-| 4      | LO+    | ESP32 GPIO 17 (pin 10)   |
-| 5      | LO-    | ESP32 GPIO 18 (pin 11)   |
-| 6      | SDN    | ESP32 GPIO 13 (pin 19)   |
+| J8 Pin | Signal | Connects To            |
+| ------ | ------ | ---------------------- |
+| 1      | GND    | GND rail               |
+| 2      | 3.3V   | 3.3V rail              |
+| 3      | OUTPUT | ESP32 GPIO 3 (pin 13)  |
+| 4      | LO+    | ESP32 GPIO 17 (pin 10) |
+| 5      | LO-    | ESP32 GPIO 18 (pin 11) |
+| 6      | SDN    | ESP32 GPIO 13 (pin 19) |
 
 _AD8232 OUTPUT is analog (0-3.3V). GPIO 3 is ADC1_CH2. LO+/LO- go HIGH when electrodes detach._
 
 ### Optional: I2C Expansion Header (J9)
 
-| J9 Pin | Signal | Connects To                         |
-| ------ | ------ | ----------------------------------- |
-| 1      | SDA    | ESP32 GPIO 15 (pin 8) via R5 4.7kΩ  |
-| 2      | SCL    | ESP32 GPIO 16 (pin 9) via R6 4.7kΩ  |
-| 3      | 3.3V   | 3.3V rail                           |
-| 4      | GND    | GND rail                            |
+| J9 Pin | Signal | Connects To                        |
+| ------ | ------ | ---------------------------------- |
+| 1      | SDA    | ESP32 GPIO 15 (pin 8) via R5 4.7kΩ |
+| 2      | SCL    | ESP32 GPIO 16 (pin 9) via R6 4.7kΩ |
+| 3      | 3.3V   | 3.3V rail                          |
+| 4      | GND    | GND rail                           |
 
 _Pullups R5/R6 optional if target device has internal pullups._
 _Wire to a panel-mounted TRRS jack (Tip=SDA, Ring1=SCL, Ring2=3.3V, Sleeve=GND)_
 _or another JST-XH socket for direct I2C sensor connection._
 
-### Optional: I2C Status LED Header (J11 → D2)
+### Power LED Header (J11 → D2)
 
 | J11 Pin | Signal | Connects To                        |
 | ------- | ------ | ---------------------------------- |
 | 1       | LED+   | R7 (150Ω) → ESP32 GPIO 19 (pin 25) |
 | 2       | LED-   | GND rail                           |
 
-_Red LED in 3mm panel bezel. Illuminates when I2C device detected on TRRS port. Active HIGH._
+_Yellow LED in 3mm panel bezel. PWM-controlled power indicator (~3% duty for a soft glow)._
 
 ### Optional: Heartbeat LED Header (J12 → D3)
 
@@ -257,7 +253,7 @@ _Green LED in 3mm panel bezel. Pulses with detected heartbeat from AD8232. Drive
 | ESP32-S3 (WiFi active) | 200-300mA         |
 | 2× LED arcade buttons  | 40-100mA          |
 | 1× WS2811 Neopixel     | 60mA max          |
-| 1× Power LED           | 15mA              |
+| 1× Power LED (PWM ~3%) | <1mA              |
 | OLED SSD1322           | 100-150mA         |
 | **Base Total**         | **~500mA**        |
 | ---------------------- | ----------------- |
@@ -331,9 +327,9 @@ Suggested Layout (Top View):
 └────────────────────────────────────────────────────┘
 
 Panel LED connector notes:
-- J10 (D1 yellow power): Always populated
-- J11 (D2 red I2C):      Optional, near J9 I2C header
-- J12 (D3 green heartbeat): Optional, near J8 AD8232 header
+- J10 (D1): Removed — no longer populated
+- J11 (D2 yellow power): Always populated, PWM-controlled via GPIO 19
+- J12 (D3 red heartbeat): Optional, near J8 AD8232 header
 ```
 
 ### 6. Design Rules (JLCPCB Compatible)
@@ -396,9 +392,8 @@ Neopixel (WS2811):
 
 Panel LEDs (3mm in bezels):
   LED Pin  → Connector
-  D1 (yellow power):     Anode → J10 pin 1, Cathode → J10 pin 2
-  D2 (red I2C)*:         Anode → J11 pin 1, Cathode → J11 pin 2
-  D3 (green heartbeat)*: Anode → J12 pin 1, Cathode → J12 pin 2
+  D2 (yellow power):     Anode → J11 pin 1, Cathode → J11 pin 2
+  D3 (red heartbeat)*:   Anode → J12 pin 1, Cathode → J12 pin 2
 
 Power:
   Connect USB-C power brick to ESP32 DevKit USB-C port
@@ -439,7 +434,7 @@ After assembly:
 
 - [ ] Check for shorts between 3.3V, 5V, and GND
 - [ ] Insert ESP32 module
-- [ ] Connect USB-C power - D1 (yellow power LED) should illuminate
+- [ ] Connect USB-C power - D2 (yellow power LED) should glow softly
 - [ ] Check 3.3V and 5V rails with multimeter
 - [ ] Connect OLED - should show boot screen
 - [ ] Test buttons - LEDs should light when GPIO driven
@@ -453,7 +448,7 @@ Optional expansions (if populated):
 - [ ] AD8232: D3 (green heartbeat LED) pulses with detected beats
 - [ ] I2C (J9): Scan for devices with I2C scanner sketch
 - [ ] I2C (J9): Verify 3.3V on pin 3, GND on pin 4
-- [ ] I2C (J9): D2 (red LED) lights when device detected
+- [ ] I2C (J9): Verify device appears on I2C scan
 
 ---
 

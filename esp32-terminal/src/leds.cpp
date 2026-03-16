@@ -52,13 +52,16 @@ void ledsInit() {
     // Initialize PWM for button LEDs
     ledcSetup(PWM_CHANNEL_YES, PWM_FREQ, PWM_RESOLUTION);
     ledcSetup(PWM_CHANNEL_NO, PWM_FREQ, PWM_RESOLUTION);
+    ledcSetup(PWM_CHANNEL_POWER, PWM_FREQ, PWM_RESOLUTION);
 
     ledcAttachPin(PIN_LED_YES, PWM_CHANNEL_YES);
     ledcAttachPin(PIN_LED_NO, PWM_CHANNEL_NO);
+    ledcAttachPin(PIN_LED_POWER, PWM_CHANNEL_POWER);
 
-    // Start with LEDs off
+    // Start with LEDs off (power LED on at low brightness)
     ledcWrite(PWM_CHANNEL_YES, 0);
     ledcWrite(PWM_CHANNEL_NO, 0);
+    ledcWrite(PWM_CHANNEL_POWER, LED_POWER_BRIGHT);
 
     // Initialize Neopixel
     neopixel.begin();

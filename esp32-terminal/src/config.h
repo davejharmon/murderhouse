@@ -66,7 +66,7 @@
 // PIN DEFINITIONS - PANEL INDICATOR LEDs (optional) - ESP32-S3
 // ============================================================================
 
-#define PIN_LED_I2C     19  // D2 - Blue leads-on LED (active HIGH)
+#define PIN_LED_POWER   19  // D2 - Yellow power LED (PWM, active HIGH)
 #define PIN_LED_HEARTBEAT 20  // D3 - Red heartbeat LED (active HIGH)
 
 // ============================================================================
@@ -117,8 +117,9 @@
 // ============================================================================
 
 // PWM channels (ESP32 has 16 channels, 0-15)
-#define PWM_CHANNEL_YES  0
-#define PWM_CHANNEL_NO   1
+#define PWM_CHANNEL_YES    0
+#define PWM_CHANNEL_NO     1
+#define PWM_CHANNEL_POWER  2
 
 // PWM frequency and resolution
 #define PWM_FREQ         5000  // 5 kHz
@@ -129,6 +130,7 @@
 #define LED_DIM          76    // ~30%
 #define LED_BRIGHT       255   // 100%
 #define LED_BRIGHT_NO    40    // ~16% - red LED perceived much brighter than yellow, needs heavy cap
+#define LED_POWER_BRIGHT 8    // ~3% - just a visible glow for power indicator
 
 // ============================================================================
 // DISPLAY CONFIGURATION

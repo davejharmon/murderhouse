@@ -263,7 +263,7 @@ void displayRender(const DisplayState& state) {
 
     // Critical content only flashes on first display — track seen text so
     // scrolling away and back does not re-trigger the blink animation.
-    static std::string lastCriticalText = "";
+    static String lastCriticalText = "";
     bool isCritical = state.line2.style == DisplayStyle::CRITICAL;
     bool isNewCritical = isCritical && state.line2.text != lastCriticalText;
     if (isCritical) lastCriticalText = state.line2.text;
