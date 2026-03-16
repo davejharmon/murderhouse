@@ -56,6 +56,10 @@ void heartrateUpdate() {
     if (now - lastSampleTime < AD8232_SAMPLE_MS) return;
     lastSampleTime = now;
 
+    // NOTE: AD8232 LO+/LO- leads-off detection not functional on this
+    // breakout board (pins stuck LOW). Heartbeat gating handled server-side
+    // via host-controlled enable/disable per player.
+
     // Read analog signal
     int sample = analogRead(PIN_AD8232_OUT);
 
