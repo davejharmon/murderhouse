@@ -203,3 +203,23 @@
 .led_no_bright:active:not(:disabled) {
   transform: scale(0.95);
 }
+
+/* Large message preview — fills available space between TinyScreen and controls */
+.messagePreview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) var(--space-md);
+  overflow: hidden;
+}
+
+.messageText {
+  font-family: var(--font-mono);
+  font-size: clamp(1.2rem, 8vw, 3.5rem);
+  font-weight: 700;
+  color: rgba(200, 200, 200, 0.7);
+  text-align: center;
+  word-break: break-word;
+  line-height: 1.2;
+}

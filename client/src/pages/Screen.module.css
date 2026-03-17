@@ -530,9 +530,9 @@
 
 .operatorEyebrow {
   font-family: var(--font-mono);
-  font-size: clamp(0.7rem, 1.2vw, 1rem);
+  font-size: clamp(0.9rem, 1.8vw, 1.4rem);
   letter-spacing: 0.45em;
-  color: rgba(180, 180, 180, 0.3);
+  color: rgba(200, 200, 200, 0.55);
   text-transform: uppercase;
   text-align: center;
   animation: operatorFadeIn 1.2s ease forwards;
@@ -543,17 +543,17 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: baseline;
-  gap: 1.4em;
-  max-width: 80vw;
+  gap: 2vw;
+  max-width: 90vw;
   text-align: center;
 }
 
 /* Base: hidden (opacity 0 preserves layout space) */
 .operatorWord {
   font-family: var(--font-mono);
-  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-size: clamp(3rem, 10vw, 9rem);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   display: inline-block;
   opacity: 0;
 }

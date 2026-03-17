@@ -244,7 +244,7 @@ export const MOCK_SLIDES = {
     id: 'mock-operator',
     type: SlideType.OPERATOR,
     title: 'TRANSMISSION RECEIVED',
-    words: ['THE', 'WOLF', 'WALKS', 'AMONG', 'YOU'],
+    words: ['THIS', 'IS', 'A', 'VERY', 'LONG', 'SENTENCE', 'HOW', 'WILL', 'IT', 'RENDER', 'I', 'WONDER'],
   },
 
   [SlideType.SCORES]: {

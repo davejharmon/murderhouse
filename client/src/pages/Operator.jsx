@@ -240,6 +240,13 @@ export default function Operator() {
       {/* OLED display */}
       <TinyScreen display={display} />
 
+      {/* Large message preview */}
+      {words.length > 0 && !cleared && (
+        <div className={styles.messagePreview}>
+          <span className={styles.messageText}>{words.join(' ')}</span>
+        </div>
+      )}
+
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.buttonRow}>
