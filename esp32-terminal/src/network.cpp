@@ -1,6 +1,7 @@
 // Network Layer Implementation
 #include "network.h"
 #include "config.h"
+#include "heartrate.h"
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <WebSocketsClient.h>
@@ -485,6 +486,14 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             }
             else if (strcmp(msgType, ServerMsg::OPERATOR_STATE) == 0) {
                 parseOperatorState(msgPayload);
+            }
+            else if (strcmp(msgType, ServerMsg::HEARTRATE_MONITOR) == 0) {
+                bool enabled = msgPayload["enabled"] | false;
+                if (enabled) {
+                    heartrateEnable();
+                } else {
+                    heartrateDisable();
+                }
             }
             else if (strcmp(msgType, ServerMsg::GAME_STATE) == 0) {
                 // Game state updates - we mainly care about playerState

@@ -3,6 +3,12 @@
 #include "heartrate.h"
 #include "config.h"
 
+// AD8232 power state — powered on once connected to keep analog circuit warm
+static bool hrPowered = false;
+
+// Reporting/LED state — controlled by server via heartrateMonitor message
+static bool hrEnabled = false;
+
 // Beat detection state
 static unsigned long lastSampleTime = 0;
 static unsigned long lastBeatTime = 0;
@@ -32,18 +38,58 @@ static unsigned long windowStart = 0;
 static bool wasBelowThreshold = true;
 
 void heartrateInit() {
-    // AD8232 shutdown control — drive LOW to enable
+    // AD8232 shutdown control — start in shutdown (HIGH = off)
     pinMode(PIN_AD8232_SDN, OUTPUT);
-    digitalWrite(PIN_AD8232_SDN, LOW);
+    digitalWrite(PIN_AD8232_SDN, HIGH);
+    hrPowered = false;
+    hrEnabled = false;
 
     // Red heartbeat LED
     pinMode(PIN_LED_HEARTBEAT, OUTPUT);
     digitalWrite(PIN_LED_HEARTBEAT, LOW);
 
-    Serial.println("[HR] AD8232 initialized, SDN LOW (active)");
+    Serial.println("[HR] AD8232 initialized, SDN HIGH (shutdown)");
+}
+
+void heartratePowerOn() {
+    if (!hrPowered) {
+        digitalWrite(PIN_AD8232_SDN, LOW);
+        hrPowered = true;
+        Serial.println("[HR] AD8232 powered on (warm-up)");
+    }
+}
+
+void heartratePowerOff() {
+    if (hrPowered) {
+        digitalWrite(PIN_AD8232_SDN, HIGH);
+        digitalWrite(PIN_LED_HEARTBEAT, LOW);
+        beatLedOn = false;
+        hrPowered = false;
+        hrEnabled = false;
+        Serial.println("[HR] AD8232 powered off");
+    }
+}
+
+void heartrateEnable() {
+    if (!hrEnabled) {
+        heartratePowerOn(); // Ensure powered on
+        hrEnabled = true;
+        Serial.println("[HR] Reporting enabled");
+    }
+}
+
+void heartrateDisable() {
+    if (hrEnabled) {
+        digitalWrite(PIN_LED_HEARTBEAT, LOW);
+        beatLedOn = false;
+        hrEnabled = false;
+        Serial.println("[HR] Reporting disabled");
+    }
 }
 
 void heartrateUpdate() {
+    if (!hrPowered) return;
+
     unsigned long now = millis();
 
     // Turn off beat LED after flash duration
@@ -55,10 +101,6 @@ void heartrateUpdate() {
     // Sample at ~250 Hz
     if (now - lastSampleTime < AD8232_SAMPLE_MS) return;
     lastSampleTime = now;
-
-    // NOTE: AD8232 LO+/LO- leads-off detection not functional on this
-    // breakout board (pins stuck LOW). Heartbeat gating handled server-side
-    // via host-controlled enable/disable per player.
 
     // Read analog signal
     int sample = analogRead(PIN_AD8232_OUT);
@@ -86,8 +128,7 @@ void heartrateUpdate() {
             // Beat detected — record interval for BPM
             if (prevBeatTime > 0) {
                 unsigned long interval = now - prevBeatTime;
-                if (interval > 300 && interval < 4000) { // Accept wider range, compensate below
-                    // Likely skipped beat(s) — halve interval to compensate
+                if (interval > 300 && interval < 4000) {
                     while (interval > 1500) interval /= 2;
                     beatIntervals[beatIntervalIndex] = interval;
                     beatIntervalIndex = (beatIntervalIndex + 1) % BPM_BUFFER_SIZE;
@@ -96,11 +137,15 @@ void heartrateUpdate() {
             }
             prevBeatTime = now;
 
-            Serial.printf("[HR] Beat detected  sample=%d  threshold=%d  range=%d\n", sample, threshold, range);
             lastBeatTime = now;
-            digitalWrite(PIN_LED_HEARTBEAT, HIGH);
-            beatLedOn = true;
-            beatLedOnTime = now;
+
+            // Only flash LED when reporting is enabled
+            if (hrEnabled) {
+                Serial.printf("[HR] Beat detected  sample=%d  threshold=%d  range=%d\n", sample, threshold, range);
+                digitalWrite(PIN_LED_HEARTBEAT, HIGH);
+                beatLedOn = true;
+                beatLedOnTime = now;
+            }
         }
         wasBelowThreshold = false;
     } else {

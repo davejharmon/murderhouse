@@ -107,7 +107,7 @@ void setup() {
     // Initialize serial for debugging
     Serial.begin(115200);
     Serial.println();
-    Serial.println("=== Murderhouse ESP32 Terminal ===");
+    Serial.println("=== Murderhouse ESP32 Terminal v" FIRMWARE_VERSION " ===");
 
     // Initialize subsystems
     Serial.println("Initializing display...");
@@ -264,6 +264,16 @@ void loop() {
 
         // Update status LED
         ledsSetStatus(connState);
+
+        // Power AD8232 on when connected (keeps circuit warm for instant response)
+        // Power off on disconnect. Server controls LED/reporting via enable/disable.
+        if (connState == ConnectionState::CONNECTED) {
+            heartratePowerOn();
+        } else if (connState == ConnectionState::RECONNECTING ||
+                   connState == ConnectionState::WIFI_CONNECTING ||
+                   connState == ConnectionState::PLAYER_SELECT) {
+            heartratePowerOff();
+        }
 
         // Update display for connection states
         if (connState != ConnectionState::CONNECTED) {

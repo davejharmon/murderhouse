@@ -19,6 +19,7 @@ namespace ServerMsg {
     const char* const EVENT_RESULT = "eventResult";
     const char* const PHASE_CHANGE = "phaseChange";
     const char* const OPERATOR_STATE = "operatorState";
+    const char* const HEARTRATE_MONITOR = "heartrateMonitor";
 }
 
 // ============================================================================

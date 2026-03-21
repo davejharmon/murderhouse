@@ -41,6 +41,7 @@ export const ServerMsg = {
   OPERATOR_STATE: 'operatorState',
   SCORES: 'scores',
   CALIBRATION_STATE: 'calibrationState',
+  HEARTRATE_MONITOR: 'heartrateMonitor',
 };
 
 // WebSocket message types - Client -> Server

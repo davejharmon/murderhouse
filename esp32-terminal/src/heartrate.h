@@ -16,4 +16,12 @@ uint8_t heartrateGetBPM();
 // Returns true if a beat was detected within the last 3 seconds
 bool heartrateIsActive();
 
+// Power the AD8232 on/off (controls shutdown pin)
+void heartratePowerOn();
+void heartratePowerOff();
+
+// Enable/disable reporting (LED flashes + BPM sends). PowerOn is implicit.
+void heartrateEnable();
+void heartrateDisable();
+
 #endif // HEARTRATE_H

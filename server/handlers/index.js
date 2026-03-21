@@ -44,6 +44,9 @@ export function createHandlers(game) {
           });
           send(ws, ServerMsg.GAME_STATE, game.getGameState());
           send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState(game));
+          if (ws.source === 'terminal') {
+            send(ws, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(playerId) });
+          }
           // Notify others of reconnection - broadcastGameState after broadcastPlayerList
           // ensures host gets role info (PLAYER_LIST only has public state)
           game.broadcastPlayerList();
@@ -63,6 +66,9 @@ export function createHandlers(game) {
         });
         send(ws, ServerMsg.GAME_STATE, game.getGameState());
         send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState(game));
+        if (ws.source === 'terminal') {
+          send(ws, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(playerId) });
+        }
       } else {
         send(ws, ServerMsg.ERROR, { message: result.error });
       }
@@ -84,6 +90,9 @@ export function createHandlers(game) {
         });
         send(ws, ServerMsg.GAME_STATE, game.getGameState());
         send(ws, ServerMsg.PLAYER_STATE, result.player.getPrivateState(game));
+        if (ws.source === 'terminal') {
+          send(ws, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(playerId) });
+        }
         // Notify others of reconnection - broadcastGameState after broadcastPlayerList
         // ensures host gets role info (PLAYER_LIST only has public state)
         game.broadcastPlayerList();

@@ -164,6 +164,9 @@ export class Game {
     this._calibration = null;
     this._calibrationTimer = null;
 
+    // Track which player has heartrate enabled due to a heartbeat slide
+    this._heartrateSlidePlayerId = null;
+
     // Simulated heartbeat (secret per-player fake, survives reset)
     // Don't clear _simHeartbeatState or timer on reset — these persist like calibration config
     if (!this._simHeartbeatState) this._simHeartbeatState = {};
@@ -2648,8 +2651,25 @@ export class Game {
 
   // === Heartbeat Mode ===
 
+  // Whether live heartbeat data is needed (globally or for a specific player via slide)
+  _isHeartrateNeeded(playerId) {
+    if (this.heartbeatMode || this._calibration) return true;
+    if (playerId && this._heartrateSlidePlayerId === playerId) return true;
+    return false;
+  }
+
+  // Tell all terminal-connected players to enable/disable their AD8232
+  _broadcastHeartrateMonitor() {
+    for (const player of this.players.values()) {
+      if (player.terminalConnected) {
+        player.send(ServerMsg.HEARTRATE_MONITOR, { enabled: this._isHeartrateNeeded(player.id) });
+      }
+    }
+  }
+
   toggleHeartbeatMode() {
     this.heartbeatMode = !this.heartbeatMode;
+    this._broadcastHeartrateMonitor();
     this.broadcastGameState();
     return { success: true, heartbeatMode: this.heartbeatMode };
   }
@@ -2774,6 +2794,7 @@ export class Game {
     }
     this._calibrationTimer = setTimeout(() => this._advanceCalibration(), 30000);
     this._broadcastCalibrationState();
+    this._broadcastHeartrateMonitor();
     this.broadcastGameState();
     return { success: true };
   }
@@ -2787,6 +2808,7 @@ export class Game {
     this._calibration = null;
     this._calibrationTimer = null;
     this._broadcastCalibrationState();
+    this._broadcastHeartrateMonitor();
     this.broadcastGameState();
     return { success: true };
   }
@@ -3051,6 +3073,28 @@ export class Game {
     this.broadcast(ServerMsg.SLIDE_QUEUE, slideData);
 
     this.sendToScreen(ServerMsg.SLIDE, currentSlide);
+
+    // Enable/disable heartrate monitor for heartbeat slide subjects
+    const newSlidePlayerId = (currentSlide?.type === SlideType.HEARTBEAT)
+      ? currentSlide.playerId : null;
+
+    if (newSlidePlayerId !== this._heartrateSlidePlayerId) {
+      // Disable previous slide subject (unless still needed by HB mode/calibration)
+      if (this._heartrateSlidePlayerId) {
+        const prev = this.getPlayer(this._heartrateSlidePlayerId);
+        if (prev?.terminalConnected && !this.heartbeatMode && !this._calibration) {
+          prev.send(ServerMsg.HEARTRATE_MONITOR, { enabled: false });
+        }
+      }
+      // Enable new slide subject
+      if (newSlidePlayerId) {
+        const player = this.getPlayer(newSlidePlayerId);
+        if (player?.terminalConnected) {
+          player.send(ServerMsg.HEARTRATE_MONITOR, { enabled: true });
+        }
+      }
+      this._heartrateSlidePlayerId = newSlidePlayerId;
+    }
   }
 
   sendToScreen(type, payload) {

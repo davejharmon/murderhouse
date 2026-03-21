@@ -298,7 +298,9 @@ void displayPlayerSelect(uint8_t selectedPlayer) {
     // === LINE 1: Title ===
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
-    u8g2.drawStr(MARGIN_X, LINE1_Y, "SELECT TERMINAL");
+    char selectTitle[32];
+    snprintf(selectTitle, sizeof(selectTitle), "%s > SELECT TERMINAL", FIRMWARE_VERSION);
+    u8g2.drawStr(MARGIN_X, LINE1_Y, selectTitle);
 
     // === LINE 2: Selected player/operator (large, centered) ===
     u8g2.setFont(FONT_LARGE);
@@ -332,9 +334,9 @@ void displayConnectionStatus(ConnectionState connState, const char* detail) {
 
     switch (connState) {
         case ConnectionState::BOOT:
-            line1 = "CONNECTING...";
+            line1 = "MURDERHOUSE";
             line2 = "BOOTING";
-            line3 = "Initializing...";
+            line3 = "v" FIRMWARE_VERSION;
             break;
 
         case ConnectionState::PLAYER_SELECT:
