@@ -32,6 +32,23 @@ static unsigned long lastHeartbeatSend = 0;
 static bool lastHeartbeatActive = false;
 static const unsigned long HEARTBEAT_SEND_MS = 2000; // Send BPM every 2 seconds
 
+// Encoder button tap detection (for screen mode toggle)
+static bool lastEncoderBtnState = true;  // HIGH = not pressed (pullup)
+static unsigned long lastEncoderBtnChange = 0;
+
+bool checkEncoderTap() {
+    bool state = digitalRead(PIN_ENCODER_SW);
+    if (state != lastEncoderBtnState && (millis() - lastEncoderBtnChange > DEBOUNCE_MS)) {
+        lastEncoderBtnChange = millis();
+        lastEncoderBtnState = state;
+        if (state == HIGH) {  // Released — tap detected
+            // Only count as tap if held less than 500ms (not a reset gesture)
+            if (millis() - lastEncoderBtnChange < 500) return true;
+        }
+    }
+    return false;
+}
+
 // Reset detection state (hold encoder button for 3 seconds)
 static unsigned long encoderBtnHeldSince = 0;
 static bool resetMessageShown = false;
@@ -245,6 +262,12 @@ void loop() {
                 break;
         }
 
+        // Encoder tap toggles screen mode
+        if (checkEncoderTap()) {
+            displayToggleScreenMode();
+            playerSelectDirty = true;
+        }
+
         // Update display if selection changed
         if (playerSelectDirty) {
             displayPlayerSelect(selectedPlayer);
@@ -253,6 +276,12 @@ void loop() {
 
         delay(1);
         return;  // Don't process network until player is confirmed
+    }
+
+    // Allow screen mode toggle during connection screens (before game starts)
+    if (!networkIsConnected() && checkEncoderTap()) {
+        displayToggleScreenMode();
+        displayConnectionStatus(lastConnState);
     }
 
     // Update network and get connection state

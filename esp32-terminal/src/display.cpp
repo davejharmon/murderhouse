@@ -4,15 +4,19 @@
 #include "icons.h"
 #include <U8g2lib.h>
 #include <SPI.h>
+#include <Preferences.h>
+
+static Preferences prefs;
 
 // U8g2 constructor for SSD1322 256x64 (4-wire SPI)
-// Using hardware SPI with custom pins
+// Screen mode is selected at runtime on the player select screen (NO button toggles)
 U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
-    U8G2_R2,           // Rotation (180° for upside-down mount)
-    PIN_OLED_CS,       // CS
-    PIN_OLED_DC,       // DC
-    PIN_OLED_RST       // Reset
+    U8G2_R0,
+    PIN_OLED_CS, PIN_OLED_DC, PIN_OLED_RST
 );
+
+// Screen mode: 0 = NHD, 1 = SSD1322U
+static uint8_t screenMode = 0;
 
 // Font definitions
 // Small font for line 1 and line 3 (~10px height)
@@ -38,12 +42,31 @@ U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(
 static const int ICON_Y[] = {1, 23, 45};    // Y positions for 3 icons (centered in slots)
 static const int SLOT_Y[] = {0, 22, 44};    // Y positions for 3 slots (for bar)
 
+static void applyScreenMode() {
+    if (screenMode == 0) {
+        // NHD panels: 180° rotation, no flip
+        u8g2.setDisplayRotation(U8G2_R2);
+        u8g2.setFlipMode(0);
+    } else {
+        // SSD1322U panels: no rotation, flip to correct mirroring
+        u8g2.setDisplayRotation(U8G2_R0);
+        u8g2.setFlipMode(1);
+    }
+}
+
 void displayInit() {
     // Initialize SPI with ESP32-S3 pins
     SPI.begin(PIN_OLED_CLK, -1, PIN_OLED_MOSI, PIN_OLED_CS);
 
+    // Load saved screen mode from NVS
+    prefs.begin("display", true);  // read-only
+    screenMode = prefs.getUChar("screenMode", 0);
+    prefs.end();
+    Serial.printf("[Display] Screen mode: %s\n", screenMode == 0 ? "NHD" : "SSD1322U");
+
     // Initialize U8g2
     u8g2.begin();
+    applyScreenMode();
     u8g2.setContrast(255);  // Max contrast for amber OLED
     u8g2.clearBuffer();
     u8g2.sendBuffer();
@@ -317,14 +340,33 @@ void displayPlayerSelect(uint8_t selectedPlayer) {
     u8g2.drawFrame(textX - 6, LINE2_Y - 18, textWidth + 12, 24);
     u8g2.drawStr(textX, LINE2_Y, playerText);
 
-    // === LINE 3: Instructions ===
+    // === LINE 3: Instructions + screen mode ===
     u8g2.setFont(FONT_SMALL);
-    const char* instructions = "DIAL select - YES confirm";
-    int instrWidth = u8g2.getStrWidth(instructions);
-    int instrX = (DISPLAY_WIDTH - instrWidth) / 2;
-    u8g2.drawStr(instrX, LINE3_Y, instructions);
+    u8g2.drawStr(MARGIN_X, LINE3_Y, "YES confirm");
+    // Show screen mode on the right (encoder tap toggles)
+    const char* modeName = screenMode == 0 ? "NHD" : "SSD1322U";
+    char modeLabel[24];
+    snprintf(modeLabel, sizeof(modeLabel), "PUSH: %s", modeName);
+    int modeWidth = u8g2.getStrWidth(modeLabel);
+    u8g2.drawStr(DISPLAY_WIDTH - modeWidth - MARGIN_X, LINE3_Y, modeLabel);
 
     u8g2.sendBuffer();
+}
+
+void displayToggleScreenMode() {
+    screenMode = (screenMode + 1) % 2;
+    applyScreenMode();
+
+    // Save to NVS
+    prefs.begin("display", false);  // read-write
+    prefs.putUChar("screenMode", screenMode);
+    prefs.end();
+
+    Serial.printf("[Display] Screen mode changed to: %s\n", screenMode == 0 ? "NHD" : "SSD1322U");
+}
+
+const char* displayGetScreenModeName() {
+    return screenMode == 0 ? "NHD" : "SSD1322U";
 }
 
 void displayConnectionStatus(ConnectionState connState, const char* detail) {

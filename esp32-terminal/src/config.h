@@ -6,7 +6,7 @@
 // FIRMWARE VERSION
 // ============================================================================
 
-#define FIRMWARE_VERSION "1.0.0"
+#define FIRMWARE_VERSION "1.0.1"
 
 // ============================================================================
 // NETWORK CONFIGURATION
@@ -142,6 +142,9 @@
 // ============================================================================
 // DISPLAY CONFIGURATION
 // ============================================================================
+
+// OLED panel variant is now selected at runtime via NO button on the
+// terminal select screen. Saved to NVS. Modes: NHD / SSD1322U.
 
 // Display dimensions
 #define DISPLAY_WIDTH    256

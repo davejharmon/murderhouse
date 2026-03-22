@@ -23,4 +23,10 @@ void displayPlayerSelect(uint8_t selectedPlayer);
 // Clear the display
 void displayClear();
 
+// Toggle OLED screen mode (NHD / SSD1322U) and save to NVS
+void displayToggleScreenMode();
+
+// Get current screen mode name
+const char* displayGetScreenModeName();
+
 #endif // DISPLAY_H
