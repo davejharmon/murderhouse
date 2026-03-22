@@ -51,7 +51,7 @@ function sendToScreen(type, payload) {
 const game = new Game(broadcast, sendToHost, sendToScreen);
 
 // Create handlers
-const handlers = createHandlers(game);
+const handlers = createHandlers(game, clients);
 
 console.log(`[Server] Running on ws://localhost:${PORT}`);
 

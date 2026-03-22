@@ -4,7 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 
 // Neopixel instance (1 pixel)
-static Adafruit_NeoPixel neopixel(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+static Adafruit_NeoPixel neopixel(1, PIN_NEOPIXEL, NEOPIXEL_ORDER + NEO_KHZ800);
 
 // Current LED states
 static LedState yesLedState = LedState::OFF;

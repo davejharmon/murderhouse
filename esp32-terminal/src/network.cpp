@@ -309,7 +309,7 @@ ConnectionState networkUpdate() {
 }
 
 void networkRetryJoin() {
-    if (connState == ConnectionState::ERROR) {
+    if (connState == ConnectionState::ERROR || connState == ConnectionState::RECONNECTING) {
         Serial.println("Retrying join...");
         lastError[0] = '\0';  // Clear error message
 

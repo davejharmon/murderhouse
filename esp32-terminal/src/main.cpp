@@ -470,10 +470,18 @@ void loop() {
         }
     }
     else if (connState == ConnectionState::ERROR) {
-        // In error state, any button press retries the join
+        // Auto-retry join after a short delay
+        static unsigned long lastRetryTime = 0;
+        unsigned long now = millis();
+        if (now - lastRetryTime >= WS_RECONNECT_MS) {
+            lastRetryTime = now;
+            Serial.println("Auto-retrying join...");
+            networkRetryJoin();
+        }
+        // Also allow manual retry via button press
         InputEvent event = inputPoll();
         if (event == InputEvent::YES || event == InputEvent::NO) {
-            Serial.println("Retrying join...");
+            Serial.println("Manual retry join...");
             networkRetryJoin();
         }
     }

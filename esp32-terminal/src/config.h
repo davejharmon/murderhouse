@@ -67,6 +67,7 @@
 #undef PIN_NEOPIXEL
 #endif
 #define PIN_NEOPIXEL    8   // WS2811 data pin
+#define NEOPIXEL_ORDER  NEO_RGB  // Color order: NEO_GRB for WS2812, NEO_RGB for WS2811
 
 // ============================================================================
 // PIN DEFINITIONS - PANEL INDICATOR LEDs (optional) - ESP32-S3

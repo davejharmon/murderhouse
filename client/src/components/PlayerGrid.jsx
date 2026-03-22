@@ -9,6 +9,7 @@ import {
 } from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
 import ItemManagerModal from './ItemManagerModal';
+import StatusLed from './StatusLed';
 import styles from './PlayerGrid.module.css';
 
 // Generate a stable key representing card state for comparison
@@ -55,6 +56,7 @@ function getCardStateKey(props) {
     invKey,
     eventsKey,
     targetersKey,
+    player.display?.statusLed,
   ].join('|');
 }
 
@@ -109,6 +111,9 @@ const PlayerCard = memo(function PlayerCard({
         />
         {!player.connected && <div className={styles.disconnected}>●</div>}
         {player.terminalConnected && <div className={styles.terminal}>▣</div>}
+        <div className={styles.neopixel}>
+          <StatusLed status={player.display?.statusLed} connected={player.connected} />
+        </div>
       </div>
 
       {/* Col 2: Name */}

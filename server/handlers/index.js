@@ -22,7 +22,7 @@ function requireHost(fn) {
   }
 }
 
-export function createHandlers(game) {
+export function createHandlers(game, clients) {
   const handlers = {
     // === Connection Handlers ===
 
@@ -362,11 +362,32 @@ export function createHandlers(game) {
 
     [ClientMsg.RESET_GAME]: requireHost(() => {
       game.reset();
-      // Broadcast to ALL clients so orphaned player connections clear stale state
-      game.broadcast(ServerMsg.PLAYER_STATE, null);
-      game.broadcast(ServerMsg.GAME_STATE, game.getGameState({ audience: 'public' }));
-      // Host and screen get their specific states
+
+      // Re-add connected player clients to the new lobby
+      for (const client of clients) {
+        if (client.readyState !== 1 || client.clientType !== 'player' || !client.playerId) continue;
+        const existing = game.getPlayer(client.playerId);
+        if (existing) {
+          // Additional connection for same player (e.g. web + terminal)
+          existing.addConnection(client);
+        } else {
+          const result = game.addPlayer(client.playerId, client);
+          if (!result.success) continue;
+        }
+        const player = game.getPlayer(client.playerId);
+        send(client, ServerMsg.WELCOME, {
+          playerId: client.playerId,
+          player: player.getPrivateState(game),
+        });
+        send(client, ServerMsg.PLAYER_STATE, player.getPrivateState(game));
+        if (client.source === 'terminal') {
+          send(client, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(client.playerId) });
+        }
+      }
+
+      // Broadcast updated state to all
       game.broadcastGameState();
+      game.broadcastPlayerList();
       game.broadcastSlides();
       return { success: true };
     }),
