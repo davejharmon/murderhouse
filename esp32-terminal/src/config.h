@@ -111,6 +111,9 @@
 // WebSocket reconnect delay
 #define WS_RECONNECT_MS 3000
 
+// WebSocket keepalive interval during target selection fast path
+#define WS_KEEPALIVE_MS 1000
+
 // ============================================================================
 // ROTARY ENCODER CONFIGURATION
 // ============================================================================

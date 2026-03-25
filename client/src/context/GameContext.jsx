@@ -6,6 +6,8 @@ import { ServerMsg, ClientMsg } from '@shared/constants.js';
 
 const GameContext = createContext(null);
 
+const LOG_MAX_ENTRIES = 200;  // Client-side log trim threshold
+
 const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:8080`
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
@@ -115,7 +117,7 @@ export function GameProvider({ children }) {
       case ServerMsg.LOG_APPEND:
         setLog(prev => {
           const next = [...prev, ...payload];
-          return next.length > 200 ? next.slice(-200) : next;
+          return next.length > LOG_MAX_ENTRIES ? next.slice(-LOG_MAX_ENTRIES) : next;
         });
         break;
 

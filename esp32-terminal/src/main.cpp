@@ -423,7 +423,7 @@ void loop() {
             }
 
             // Periodic keepalive — just process WebSocket pings, nothing else matters
-            if (millis() - lastKeepAlive >= 1000) {
+            if (millis() - lastKeepAlive >= WS_KEEPALIVE_MS) {
                 lastKeepAlive = millis();
                 networkUpdate();
             }
@@ -499,87 +499,44 @@ void loop() {
                           currentDisplay.statusLed != GameLedState::GAME_OVER &&
                           currentDisplay.statusLed != GameLedState::DEAD;
 
+            // Target selection (targetCount > 0) is handled by the fast path above.
+            // This switch handles idle scroll, action layer, confirm, and abstain.
             switch (event) {
                 case InputEvent::UP:
-                    Serial.println("Input: UP");
                     if (isIdle) {
                         networkSendIdleScrollUp();
-                    } else if (currentDisplay.targetCount > 0) {
-                        // Local prediction only — settle timer will sync server after dial stops.
-                        int newIdx = (currentDisplay.selectionIndex <= 0)
-                            ? currentDisplay.targetCount - 1
-                            : currentDisplay.selectionIndex - 1;
-                        currentDisplay.selectionIndex = newIdx;
-                        currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
-                        currentDisplay.line2.style = DisplayStyle::NORMAL;
-                        displayDirty = true;
-                        lastScrollMs = millis();
-                        settlePending = true;
                     } else {
                         networkSendSelectUp();
                     }
                     break;
 
                 case InputEvent::DOWN:
-                    Serial.println("Input: DOWN");
                     if (isIdle) {
                         networkSendIdleScrollDown();
-                    } else if (currentDisplay.targetCount > 0) {
-                        // Local prediction only — settle timer will sync server after dial stops.
-                        int newIdx = (currentDisplay.selectionIndex < 0 ||
-                                      currentDisplay.selectionIndex >= currentDisplay.targetCount - 1)
-                            ? 0
-                            : currentDisplay.selectionIndex + 1;
-                        currentDisplay.selectionIndex = newIdx;
-                        currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
-                        currentDisplay.line2.style = DisplayStyle::NORMAL;
-                        displayDirty = true;
-                        lastScrollMs = millis();
-                        settlePending = true;
                     } else {
                         networkSendSelectDown();
                     }
                     break;
 
                 case InputEvent::YES:
-                    Serial.println("Input: YES");
                     if (isIdle && currentDisplay.leds.yes == LedState::DIM) {
-                        // On a usable item slot - send useItem
                         uint8_t idx = currentDisplay.idleScrollIndex;
                         if (idx > 0 && idx <= 2) {
                             const char* itemId = currentDisplay.icons[idx].id.c_str();
                             networkSendUseItem(itemId);
                         }
-                    } else if (currentDisplay.targetCount > 0 &&
-                               currentDisplay.selectionIndex >= 0 &&
-                               currentDisplay.selectionIndex < currentDisplay.targetCount) {
-                        // Confirm with explicit targetId so server lands on the locally-shown
-                        // target regardless of how many rate-limited SELECTs it received
-                        const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
-                        networkSendConfirmWithTarget(targetId);
                     } else {
                         networkSendConfirm();
                     }
                     break;
 
                 case InputEvent::NO:
-                    Serial.println("Input: NO");
                     networkSendAbstain();
                     break;
 
                 case InputEvent::NONE:
                 default:
                     break;
-            }
-        }
-
-        // Settle timer: after dial stops for SCROLL_SETTLE_MS, sync selection to server
-        if (settlePending && (millis() - lastScrollMs >= SCROLL_SETTLE_MS)) {
-            settlePending = false;
-            if (currentDisplay.selectionIndex >= 0 &&
-                currentDisplay.selectionIndex < currentDisplay.targetCount) {
-                const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
-                networkSendSelectTo(targetId);
             }
         }
 

@@ -330,8 +330,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - **`main.cpp` has nested state machines with scattered globals** — 10+ static state variables for connection, selection, heartbeat, encoder. Extract `TargetSelectionState`, `ResetGestureDetector`, and `TimerManager` as focused modules.
 - **No linter or formatter configured** — No ESLint, no Prettier. 2-space indent convention is manual. Add config files and pre-commit hook.
 - **No unit tests for core game logic** — `Game.js` event resolution, `Player.js` display state generation, and role definitions have no automated tests. Priority: event resolution priority ordering, death cascade correctness, display state priorities.
-- **Magic numbers scattered across codebase** — Log trim at 500 entries, settle timer 150ms, heartbeat send 2s, debounce 120ms, keepalive 1s. Define named constants in `config.h` (ESP32) and `constants.js` (server).
-- **Hardcoded color values in multiple files** — `Game.js` (`_getRoleAbilities`), `constants.js` (`ROLE_DISPLAY`, `ITEM_DISPLAY`). Extract to a shared `theme.js` palette.
+- **Magic numbers scattered across codebase** — Many extracted (`BROADCAST_DEBOUNCE_MS`, `LOG_MAX_ENTRIES`, `ABILITY_COLOR`, `WS_KEEPALIVE_MS`). Remaining: `ROLE_DISPLAY`/`ITEM_DISPLAY` color codes in `constants.js`, slide style colors, and various timeouts in `Host.jsx`.
+- **Hardcoded color values in `constants.js`** — `ROLE_DISPLAY` and `ITEM_DISPLAY` objects have inline hex colors. Extract to a shared `theme.js` palette. (`Game.js` ability colors now use `ABILITY_COLOR` constants.)
 - **`shared/strings/gameStrings.js` has no validation** — 319 entries in a flat array with no check that `tokens` match `{placeholder}` usage in `default`, no unused string detection, and inconsistent key nesting depth. Add a `StringCatalogValidator` and audit tool.
 - **No structured logging** — Server uses `console.log` with manual prefix markers (`[Server]`, `[WS]`). No log levels. Add a lightweight logger with info/warn/error levels.
 

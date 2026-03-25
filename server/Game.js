@@ -4,6 +4,17 @@
 // Sentinel value that distinguishes "cache empty" from "no winner (null)".
 const WIN_CACHE_EMPTY = Symbol('WIN_CACHE_EMPTY');
 
+// Named constants for magic numbers
+const BROADCAST_DEBOUNCE_MS = 120;  // Coalesce rapid dial input broadcasts
+const LOG_MAX_ENTRIES = 500;        // Server-side log trim threshold
+
+// Ability color palette for role tutorial slides
+const ABILITY_COLOR = {
+  HOSTILE: '#c94c4c',   // Red — hurts (kill, hunt, vigil, block, clean, revenge)
+  HELPFUL: '#7eb8da',   // Blue — helps (protect, investigate, pardon)
+  NEUTRAL: '#d4af37',   // Yellow — fallback (vote, suspect, etc.)
+};
+
 import {
   GamePhase,
   Team,
@@ -3026,7 +3037,7 @@ export class Game {
 
   // Debounced version for rapid dial input: coalesces calls within a 120 ms
   // window so the host panel doesn't flicker on every encoder tick.
-  debouncedBroadcastGameState(delayMs = 120) {
+  debouncedBroadcastGameState(delayMs = BROADCAST_DEBOUNCE_MS) {
     if (this._broadcastDebounceTimer) {
       clearTimeout(this._broadcastDebounceTimer)
     }
@@ -3289,24 +3300,22 @@ export class Game {
 
   // Derive display ability labels from a role's events (and passives/flows)
   _getRoleAbilities(roleDef) {
-    // Color rules: red = hurts, blue = helps, yellow = fallback
     const abilityColors = {
-      vote: '#d4af37',
-      kill: '#c94c4c',
-      hunt: '#c94c4c',
-      vigil: '#c94c4c',
-      block: '#c94c4c',
-      clean: '#c94c4c',
-      revenge: '#c94c4c',
-      protect: '#7eb8da',
-      investigate: '#7eb8da',
-      pardon: '#7eb8da',
+      vote: ABILITY_COLOR.NEUTRAL,
+      kill: ABILITY_COLOR.HOSTILE,
+      hunt: ABILITY_COLOR.HOSTILE,
+      vigil: ABILITY_COLOR.HOSTILE,
+      block: ABILITY_COLOR.HOSTILE,
+      clean: ABILITY_COLOR.HOSTILE,
+      revenge: ABILITY_COLOR.HOSTILE,
+      protect: ABILITY_COLOR.HELPFUL,
+      investigate: ABILITY_COLOR.HELPFUL,
+      pardon: ABILITY_COLOR.HELPFUL,
     };
-    const fallbackColor = '#d4af37';
 
     const abilities = Object.keys(roleDef.events || {}).map((e) => ({
       label: e.toUpperCase(),
-      color: abilityColors[e] || fallbackColor,
+      color: abilityColors[e] || ABILITY_COLOR.NEUTRAL,
     }));
 
     // Roles whose key abilities are passive/flow-based, not in events
@@ -3324,8 +3333,8 @@ export class Game {
   addLog(message) {
     const entry = { timestamp: Date.now(), message };
     this.log.push(entry);
-    // Trim server-side log to prevent unbounded growth (keep last 500)
-    if (this.log.length > 500) this.log.splice(0, this.log.length - 500);
+    // Trim server-side log to prevent unbounded growth
+    if (this.log.length > LOG_MAX_ENTRIES) this.log.splice(0, this.log.length - LOG_MAX_ENTRIES);
     // Send only the new entry — clients append. Full snapshot sent on HOST_CONNECT.
     this.broadcast(ServerMsg.LOG_APPEND, [entry]);
   }
