@@ -42,6 +42,7 @@ export const ServerMsg = {
   SCORES: 'scores',
   CALIBRATION_STATE: 'calibrationState',
   HEARTRATE_MONITOR: 'heartrateMonitor',
+  UPDATE_FIRMWARE: 'updateFirmware',
 };
 
 // WebSocket message types - Client -> Server
@@ -137,6 +138,9 @@ export const ClientMsg = {
   // Scores
   SET_SCORE: 'setScore',
   PUSH_SCORE_SLIDE: 'pushScoreSlide',
+
+  // Firmware
+  TRIGGER_FIRMWARE_UPDATE: 'triggerFirmwareUpdate',
 
   // Debug actions (only when DEBUG_MODE enabled)
   DEBUG_AUTO_SELECT: 'debugAutoSelect',

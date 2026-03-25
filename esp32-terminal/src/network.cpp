@@ -6,7 +6,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <HTTPClient.h>
-#include <Update.h>
+#include <HTTPUpdate.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
@@ -73,6 +73,9 @@ static bool wsConnected = false;
 static bool gameJoined = false;
 static unsigned long lastReconnectAttempt = 0;
 static char lastError[128] = "";
+
+// OTA update flag — set by WebSocket handler, executed from main loop
+static bool otaRequested = false;
 
 // Display state callback
 static DisplayStateCallback displayCallback = nullptr;
@@ -192,10 +195,13 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
 
     // 1. Fetch version manifest
     HTTPClient http;
-    char url[64];
+    char url[128];
     snprintf(url, sizeof(url), "http://%s:%d/firmware/version", host, port);
-    http.begin(url);
+    Serial.printf("[OTA] Fetching %s\n", url);
+    http.begin(String(url));
+    http.setTimeout(5000);
     int httpCode = http.GET();
+    Serial.printf("[OTA] HTTP response: %d\n", httpCode);
 
     if (httpCode != 200) {
         Serial.printf("[OTA] Version check failed (HTTP %d), skipping\n", httpCode);
@@ -220,60 +226,34 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
         return;
     }
 
-    // 2. Download and apply firmware
+    // 2. Download and flash using httpUpdate (handles chunking, verify, retry internally)
     Serial.printf("[OTA] Updating to %s...\n", remoteVersion);
     displayMessage("OTA UPDATE", remoteVersion, "Downloading...");
 
     snprintf(url, sizeof(url), "http://%s:%d/firmware/firmware.bin", host, port);
-    http.begin(url);
-    httpCode = http.GET();
+    Serial.printf("[OTA] Downloading %s\n", url);
 
-    if (httpCode != 200) {
-        Serial.printf("[OTA] Download failed (HTTP %d)\n", httpCode);
-        displayMessage("OTA UPDATE", "FAILED", "Continuing boot...");
-        http.end();
-        delay(2000);
-        return;
+    WiFiClient client;
+    httpUpdate.setLedPin(-1);  // No LED
+    httpUpdate.rebootOnUpdate(true);
+    t_httpUpdate_return ret = httpUpdate.update(client, String(url));
+
+    switch (ret) {
+        case HTTP_UPDATE_OK:
+            Serial.println("[OTA] Update successful! Rebooting...");
+            displayMessage("OTA UPDATE", "SUCCESS", "Rebooting...");
+            delay(1000);
+            ESP.restart();
+            break;
+        case HTTP_UPDATE_FAILED:
+            Serial.printf("[OTA] Failed: %s\n", httpUpdate.getLastErrorString().c_str());
+            displayMessage("OTA UPDATE", "FAILED", httpUpdate.getLastErrorString().c_str());
+            delay(3000);
+            break;
+        case HTTP_UPDATE_NO_UPDATES:
+            Serial.println("[OTA] No update needed");
+            break;
     }
-
-    int contentLength = http.getSize();
-    if (contentLength <= 0) {
-        Serial.println("[OTA] Invalid content length");
-        http.end();
-        return;
-    }
-
-    if (!Update.begin(contentLength)) {
-        Serial.println("[OTA] Not enough space for update");
-        displayMessage("OTA UPDATE", "NO SPACE", "Continuing boot...");
-        http.end();
-        delay(2000);
-        return;
-    }
-
-    WiFiClient* stream = http.getStreamPtr();
-    size_t written = Update.writeStream(*stream);
-    http.end();
-
-    if (written != (size_t)contentLength) {
-        Serial.printf("[OTA] Write failed: %d/%d bytes\n", written, contentLength);
-        Update.abort();
-        displayMessage("OTA UPDATE", "WRITE FAIL", "Continuing boot...");
-        delay(2000);
-        return;
-    }
-
-    if (!Update.end(true)) {
-        Serial.printf("[OTA] Update finalize failed: %s\n", Update.errorString());
-        displayMessage("OTA UPDATE", "VERIFY FAIL", "Continuing boot...");
-        delay(2000);
-        return;
-    }
-
-    Serial.println("[OTA] Update successful! Rebooting...");
-    displayMessage("OTA UPDATE", "SUCCESS", "Rebooting...");
-    delay(1000);
-    ESP.restart();
 }
 
 ConnectionState networkUpdate() {
@@ -341,9 +321,6 @@ ConnectionState networkUpdate() {
 
                     udp.stop();
 
-                    // Check for firmware update before connecting to game
-                    checkFirmwareUpdate(serverHost, serverPort);
-
                     // Connect WebSocket
                     webSocket.begin(serverHost, serverPort, WS_PATH);
                     webSocket.onEvent(onWebSocketEvent);
@@ -363,6 +340,7 @@ ConnectionState networkUpdate() {
                     StaticJsonDocument<128> doc;
                     doc["playerId"] = playerId;
                     doc["source"] = "terminal";
+                    doc["firmwareVersion"] = FIRMWARE_VERSION;
                     JsonObject payload = doc.as<JsonObject>();
                     sendMessage(ClientMsg::JOIN, &payload);
                 }
@@ -536,6 +514,15 @@ const char* networkGetLastError() {
     return lastError;
 }
 
+bool networkOtaRequested() {
+    return otaRequested;
+}
+
+void networkExecuteOta() {
+    otaRequested = false;
+    checkFirmwareUpdate(serverHost, serverPort);
+}
+
 static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     switch (type) {
         case WStype_DISCONNECTED:
@@ -603,12 +590,15 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
                     heartrateDisable();
                 }
             }
+            else if (strcmp(msgType, ServerMsg::UPDATE_FIRMWARE) == 0) {
+                Serial.println("[OTA] Server requested firmware update");
+                otaRequested = true;
+            }
             else if (strcmp(msgType, ServerMsg::GAME_STATE) == 0) {
-                // Game state updates - we mainly care about playerState
-                Serial.println("Received game state update");
+                // Ignored by terminal — display is server-driven via PLAYER_STATE
             }
             else if (strcmp(msgType, ServerMsg::EVENT_PROMPT) == 0) {
-                Serial.println("Received event prompt");
+                // Ignored by terminal
             }
             break;
         }

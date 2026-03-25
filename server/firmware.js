@@ -39,13 +39,14 @@ export function handleFirmwareRequest(req, res) {
       res.end('No firmware available')
       return true
     }
-    const stat = fs.statSync(BINARY_FILE)
+    // Read entire file into memory — avoids chunked encoding issues with ESP32 OTA
+    const data = fs.readFileSync(BINARY_FILE)
     res.writeHead(200, {
       'Content-Type': 'application/octet-stream',
-      'Content-Length': stat.size,
+      'Content-Length': data.length,
     })
-    fs.createReadStream(BINARY_FILE).pipe(res)
-    console.log(`[Firmware] Serving firmware.bin (${(stat.size / 1024).toFixed(0)} KB)`)
+    res.end(data)
+    console.log(`[Firmware] Serving firmware.bin (${(data.length / 1024).toFixed(0)} KB)`)
     return true
   }
 

@@ -563,6 +563,11 @@ void loop() {
         }
     }
 
+    // Execute OTA update if requested by server (must run outside WebSocket callback)
+    if (networkOtaRequested()) {
+        networkExecuteOta();
+    }
+
     // Small delay to prevent tight looping
     delay(1);
 }

@@ -62,4 +62,8 @@ void networkSendOperatorClear();
 // Get last error message (if any)
 const char* networkGetLastError();
 
+// Check if an OTA update was requested by the server; execute from main loop
+bool networkOtaRequested();
+void networkExecuteOta();
+
 #endif // NETWORK_H

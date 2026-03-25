@@ -121,6 +121,12 @@ export class Player {
     return this.connections.some(ws => ws && ws.readyState === 1 && ws.source === 'terminal');
   }
 
+  // Firmware version of the connected terminal (if any)
+  get terminalFirmwareVersion() {
+    const terminal = this.connections.find(ws => ws && ws.readyState === 1 && ws.source === 'terminal');
+    return terminal?.firmwareVersion || null;
+  }
+
   // Legacy getter for backward compatibility
   get ws() {
     return this.connections[0] || null;
@@ -292,6 +298,7 @@ export class Player {
       isAlive: this.isAlive,
       connected: this.connected,
       terminalConnected: this.terminalConnected,
+      terminalFirmware: this.terminalFirmwareVersion,
       // Role only shown if dead and not cleaned by fixer
       role: showRole ? this.role?.id : null,
       roleName: showRole ? this.role?.name : null,

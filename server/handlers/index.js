@@ -27,8 +27,9 @@ export function createHandlers(game, clients) {
     // === Connection Handlers ===
 
     [ClientMsg.JOIN]: (ws, payload) => {
-      const { playerId, source } = payload;
+      const { playerId, source, firmwareVersion } = payload;
       ws.source = source || 'web';
+      if (firmwareVersion) ws.firmwareVersion = firmwareVersion;
 
       // Check if player already exists (reconnection)
       const existing = game.getPlayer(playerId);
@@ -678,6 +679,23 @@ export function createHandlers(game, clients) {
     [ClientMsg.PUSH_SCORE_SLIDE]: requireHost(() => {
       game.pushScoreSlide();
       return { success: true };
+    }),
+
+    // === Firmware Update ===
+
+    [ClientMsg.TRIGGER_FIRMWARE_UPDATE]: requireHost(() => {
+      // Send UPDATE_FIRMWARE to all terminal connections
+      let updated = 0;
+      for (const player of game.players.values()) {
+        for (const ws of player.connections) {
+          if (ws && ws.readyState === 1 && ws.source === 'terminal') {
+            ws.send(JSON.stringify({ type: ServerMsg.UPDATE_FIRMWARE, payload: {} }));
+            updated++;
+          }
+        }
+      }
+      console.log(`[Firmware] Triggered OTA update on ${updated} terminal(s)`);
+      return { success: true, terminalsUpdated: updated };
     }),
 
     // === Debug Actions ===

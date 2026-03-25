@@ -3161,7 +3161,18 @@ export class Game {
       heartbeatMode: this.heartbeatMode,
       heartbeatThreshold: this._hostSettings.heartbeatThreshold ?? 110,
       fakeHeartbeats: this._fakeHeartbeats,
+      ...(audience === 'host' ? { availableFirmware: this._getAvailableFirmwareVersion() } : {}),
     };
+  }
+
+  _getAvailableFirmwareVersion() {
+    try {
+      const versionPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'firmware', 'version.json');
+      const data = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
+      return data.version || null;
+    } catch {
+      return null;
+    }
   }
 
   getEventParticipantMap() {

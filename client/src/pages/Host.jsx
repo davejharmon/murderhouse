@@ -563,6 +563,27 @@ export default function Host() {
         onScoringConfigChange={handleScoringConfigChange}
       />
 
+      {/* Firmware update banner */}
+      {(() => {
+        const fw = gameState?.availableFirmware;
+        const outdated = (gameState?.players || []).filter(
+          p => p.terminalConnected && p.terminalFirmware && p.terminalFirmware !== fw
+        );
+        if (!fw || outdated.length === 0) return null;
+        return (
+          <div className={styles.firmwareBanner}>
+            <span>
+              {outdated.length} terminal{outdated.length > 1 ? 's' : ''} on old firmware
+              ({outdated.map(p => `P${p.seatNumber}:${p.terminalFirmware}`).join(', ')}
+              → {fw})
+            </span>
+            <button onClick={() => send(ClientMsg.TRIGGER_FIRMWARE_UPDATE)}>
+              UPDATE FIRMWARE
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Notifications */}
       <div className='notifications'>
         {notifications.map((n) => (

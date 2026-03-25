@@ -344,3 +344,6 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Add a go button
 
 ## Bugs
+
+- Terminal icon on dash doesn't show after server resets
+- **OTA firmware update not working end-to-end** — Infrastructure is in place (server HTTP endpoints, ESP32 `httpUpdate`, host dashboard banner, `TRIGGER_FIRMWARE_UPDATE` message) but two issues remain: (1) Host dashboard firmware mismatch banner doesn't appear — likely `availableFirmware` field not reaching the React client via `gameState`, or `terminalFirmware` not being set on the player public state correctly. Debug by checking browser console for `gameState.availableFirmware` and `player.terminalFirmware` values. (2) `httpUpdate.update()` may still be failing silently — previous attempts with manual `Update` class got VERIFY_FAIL. Check serial monitor (`pio device monitor -p COMx`) during OTA attempt for `[OTA]` log output. The manual chunked approach and `httpUpdate` high-level API both failed verification. Possible causes: firmware binary incompatibility with OTA partition layout, Content-Length mismatch, or ESP32-S3 specific OTA quirks. All terminals currently on v1.0.7 (COM7/F0) or v1.0.6 (COM5/0C, COM6/DC) via USB. Server deploys to `server/firmware/firmware.bin` + `version.json`.

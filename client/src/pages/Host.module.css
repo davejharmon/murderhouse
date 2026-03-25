@@ -1,5 +1,36 @@
 /* client/src/pages/Host.module.css */
 
+/* Firmware update banner */
+.firmwareBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0.5rem 1rem;
+  background: rgba(230, 168, 0, 0.12);
+  border: 1px solid rgba(230, 168, 0, 0.3);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  color: #e6a800;
+  margin: 0.5rem 1rem;
+}
+
+.firmwareBanner button {
+  background: #e6a800;
+  color: #000;
+  border: none;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--border-radius-sm);
+  font-weight: bold;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.firmwareBanner button:hover {
+  background: #ffc107;
+}
+
 /* Operator message feed panel */
 .operatorPanel {
   display: flex;
