@@ -319,10 +319,26 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - **Pack hint updates blocked for wolf terminals** — During HUNT/KILL events, `broadcastPackState` sends to all cell members without `skipTerminalIfSelecting`. The `onDisplayUpdate` guard rejects these. Wolves on ESP32 terminals won't see real-time pack hint updates while scrolling, but will see the correct hint on the next full state update after confirming. Web clients are unaffected.
 - **Idle scroll / action layer unaffected** — The fast path only activates when `terminalOwnsDisplay` is true (set when `targetCount > 0`). Idle item scrolling, action layer selection, and operator console all use the normal server-driven loop.
 
+### Open
+
+- **`Game.js` is a 3,300-line God Object** — Serves as state machine, event resolver, slide manager, persistence layer, and flow coordinator. Extract `EventResolver` (resolveEvent, skipEvent, resetEvent, flow handling), `SlideManager` (pushSlide variants, queue, auto-advance), and `PersistenceManager` (presets, scores, host settings) as separate classes.
+- **`handlers/index.js` has 70+ handlers in one flat object** — No grouping by domain (player actions, host commands, debug). Extract into `PlayerActionsHandler`, `HostCommandsHandler`, `DebugHandler`. Add per-message payload validation middleware instead of duplicated `if (!player)` checks in every handler.
+- **`Player.js` display logic is 400+ lines of tightly coupled methods** — 20+ `_display*` methods build display objects with repeated patterns. Extract a `DisplayStateBuilder` class with strategy/template pattern. Move `EVENT_ACTIONS` to `constants.js`.
+- **`Host.jsx` manages 6 modals and 8+ state variables** — Extract `AutoAdvanceManager` hook (timer, pause/resume, slide queue tracking), `ModalManager` or modal context, and `MobileTabNavigator` component (swipe detection, tab switching).
+- **`GameContext.jsx` has 30+ useState variables and a giant message switch** — Replace with `useReducer` grouped by domain. Extract `WebSocketManager` class for connection, reconnect, send logic. Extract message handlers into organized modules.
+- **`network.cpp` hardcodes 142 operator words** — Baked in at compile time with no way to update. Move to `shared/operatorWords.js` and send from server on connection, or load from SPIFFS. Also needs JSON parse error handling — currently assumes server sends valid JSON.
+- **`main.cpp` has nested state machines with scattered globals** — 10+ static state variables for connection, selection, heartbeat, encoder. Extract `TargetSelectionState`, `ResetGestureDetector`, and `TimerManager` as focused modules.
+- **No linter or formatter configured** — No ESLint, no Prettier. 2-space indent convention is manual. Add config files and pre-commit hook.
+- **No unit tests for core game logic** — `Game.js` event resolution, `Player.js` display state generation, and role definitions have no automated tests. Priority: event resolution priority ordering, death cascade correctness, display state priorities.
+- **Magic numbers scattered across codebase** — Log trim at 500 entries, settle timer 150ms, heartbeat send 2s, debounce 120ms, keepalive 1s. Define named constants in `config.h` (ESP32) and `constants.js` (server).
+- **Hardcoded color values in multiple files** — `Game.js` (`_getRoleAbilities`), `constants.js` (`ROLE_DISPLAY`, `ITEM_DISPLAY`). Extract to a shared `theme.js` palette.
+- **`shared/strings/gameStrings.js` has no validation** — 319 entries in a flat array with no check that `tokens` match `{placeholder}` usage in `default`, no unused string detection, and inconsistent key nesting depth. Add a `StringCatalogValidator` and audit tool.
+- **No structured logging** — Server uses `console.log` with manual prefix markers (`[Server]`, `[WS]`). No log levels. Add a lightweight logger with info/warn/error levels.
+
 ## Improvements
 
 - Add glyph for Jester
-  Add new role: Jailer
+- Add new role: Jailer
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
