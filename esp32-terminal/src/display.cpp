@@ -4,6 +4,7 @@
 #include "icons.h"
 #include <U8g2lib.h>
 #include <SPI.h>
+#include <esp_mac.h>
 #include <Preferences.h>
 
 static Preferences prefs;
@@ -322,7 +323,9 @@ void displayPlayerSelect(uint8_t selectedPlayer) {
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
     char selectTitle[32];
-    snprintf(selectTitle, sizeof(selectTitle), "%s > SELECT TERMINAL", FIRMWARE_VERSION);
+    uint8_t mac[6];
+    esp_efuse_mac_get_default(mac);
+    snprintf(selectTitle, sizeof(selectTitle), "%s:%02X > SELECT TERMINAL", FIRMWARE_VERSION, mac[5]);
     u8g2.drawStr(MARGIN_X, LINE1_Y, selectTitle);
 
     // === LINE 2: Selected player/operator (large, centered) ===

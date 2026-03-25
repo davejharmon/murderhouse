@@ -973,11 +973,16 @@ export class Player {
   send(type, payload) {
     if (this.connections.length === 0) return false;
 
+    // Skip GAME_STATE and EVENT_PROMPT for terminal connections —
+    // terminals don't use these and the JSON parse overhead is wasteful.
+    const skipTerminal = type === ServerMsg.GAME_STATE || type === ServerMsg.EVENT_PROMPT
+
     const message = JSON.stringify({ type, payload });
     let sentCount = 0;
 
     for (const ws of this.connections) {
       if (ws && ws.readyState === 1) {
+        if (skipTerminal && ws.source === 'terminal') continue
         try {
           ws.send(message);
           sentCount++;
@@ -996,14 +1001,18 @@ export class Player {
   // Terminal connections (ESP32) only receive { display } — the full private state
   // can exceed the terminal's JSON parse buffer and is not needed for rendering.
   // Web connections receive the full state as usual.
-  syncState(game) {
+  syncState(game, { skipTerminalIfSelecting = false } = {}) {
     if (this.connections.length === 0) return false
 
     const fullState = this.getPrivateState(game, { forSelf: true })
+    const hasTargets = fullState.display?.targetNames?.length > 0
 
     let sent = false
     for (const ws of this.connections) {
       if (!ws || ws.readyState !== 1) continue
+      // Skip terminal connections during broadcast-driven updates when the
+      // player is in target selection — the terminal is completely deaf anyway.
+      if (skipTerminalIfSelecting && hasTargets && ws.source === 'terminal') continue
       try {
         const payload = ws.source === 'terminal' ? { display: fullState.display } : fullState
         ws.send(JSON.stringify({ type: ServerMsg.PLAYER_STATE, payload }))

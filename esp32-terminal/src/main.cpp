@@ -27,6 +27,10 @@ static unsigned long lastScrollMs = 0;
 static bool settlePending = false;
 static const unsigned long SCROLL_SETTLE_MS = 150;
 
+// When true, the terminal owns display completely — ignores ALL server state.
+// Set when target selection starts, cleared only by confirm/abstain.
+static bool terminalOwnsDisplay = false;
+
 // Heartbeat send state
 static unsigned long lastHeartbeatSend = 0;
 static bool lastHeartbeatActive = false;
@@ -110,13 +114,18 @@ bool checkResetGesture() {
 
 // Callback when display state is received from server
 void onDisplayUpdate(const DisplayState& state) {
+    // When terminal owns display, ignore ALL server state. Period.
+    // Just like SELECT TERMINAL has no network at all.
+    if (terminalOwnsDisplay) {
+        ledsSetFromDisplay(state);
+        ledsSetGameState(state.statusLed);
+        return;
+    }
+
     currentDisplay = state;
     displayDirty = true;
 
-    // Update button LEDs from display state
     ledsSetFromDisplay(state);
-
-    // Update neopixel from game state
     ledsSetGameState(state.statusLed);
 }
 
@@ -346,6 +355,88 @@ void loop() {
 
     // Handle input based on connection state
     if (networkIsConnected()) {
+
+        // === TARGET SELECTION FAST PATH ===
+        // Mirrors the SELECT TERMINAL loop exactly: input → render → delay → return.
+        // Terminal owns display completely — no server state accepted.
+        if (terminalOwnsDisplay) {
+            static unsigned long lastKeepAlive = 0;
+            InputEvent event = inputPoll();
+            switch (event) {
+                case InputEvent::UP: {
+                    int newIdx = (currentDisplay.selectionIndex <= 0)
+                        ? currentDisplay.targetCount - 1
+                        : currentDisplay.selectionIndex - 1;
+                    currentDisplay.selectionIndex = newIdx;
+                    currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
+                    currentDisplay.line2.style = DisplayStyle::NORMAL;
+                    displayDirty = true;
+                    lastScrollMs = millis();
+                    settlePending = true;
+                    break;
+                }
+                case InputEvent::DOWN: {
+                    int newIdx = (currentDisplay.selectionIndex < 0 ||
+                                  currentDisplay.selectionIndex >= currentDisplay.targetCount - 1)
+                        ? 0
+                        : currentDisplay.selectionIndex + 1;
+                    currentDisplay.selectionIndex = newIdx;
+                    currentDisplay.line2.text  = currentDisplay.targetNames[newIdx];
+                    currentDisplay.line2.style = DisplayStyle::NORMAL;
+                    displayDirty = true;
+                    lastScrollMs = millis();
+                    settlePending = true;
+                    break;
+                }
+                case InputEvent::YES:
+                    terminalOwnsDisplay = false;  // Release ownership
+                    if (currentDisplay.selectionIndex >= 0 &&
+                        currentDisplay.selectionIndex < currentDisplay.targetCount) {
+                        const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
+                        networkSendConfirmWithTarget(targetId);
+                    } else {
+                        networkSendConfirm();
+                    }
+                    break;
+                case InputEvent::NO:
+                    terminalOwnsDisplay = false;  // Release ownership
+                    networkSendAbstain();
+                    break;
+                default:
+                    break;
+            }
+
+            // Settle timer: sync selection to server after dial stops
+            if (settlePending && (millis() - lastScrollMs >= SCROLL_SETTLE_MS)) {
+                settlePending = false;
+                if (currentDisplay.selectionIndex >= 0 &&
+                    currentDisplay.selectionIndex < currentDisplay.targetCount) {
+                    const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
+                    networkSendSelectTo(targetId);
+                }
+            }
+
+            // Render
+            if (displayDirty) {
+                displayRender(currentDisplay);
+                displayDirty = false;
+            }
+
+            // Periodic keepalive — just process WebSocket pings, nothing else matters
+            if (millis() - lastKeepAlive >= 1000) {
+                lastKeepAlive = millis();
+                networkUpdate();
+            }
+
+            delay(1);
+            return;  // Skip all other processing — just like SELECT TERMINAL
+        }
+
+        // Enter target selection fast path when server sends targets
+        if (currentDisplay.targetCount > 0) {
+            terminalOwnsDisplay = true;
+        }
+
         // Poll for input events
         InputEvent event = inputPoll();
 

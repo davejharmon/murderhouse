@@ -3007,9 +3007,11 @@ export class Game {
       player.send(ServerMsg.GAME_STATE, publicState);
     }
 
-    // Each player also gets their private state
+    // Each player also gets their private state.
+    // Skip terminal connections for players in target selection — they
+    // run a local-only input loop and ignore server state anyway.
     for (const player of this.players.values()) {
-      player.syncState(this);
+      player.syncState(this, { skipTerminalIfSelecting: true });
     }
 
     // Host gets full player info (only state update they receive)
