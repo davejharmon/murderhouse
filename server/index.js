@@ -1,18 +1,24 @@
 // server/index.js
 // WebSocket server entry point
 
+import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import dgram from 'dgram';
 import { Game } from './Game.js';
 import { createHandlers, handleMessage } from './handlers/index.js';
+import { handleFirmwareRequest } from './firmware.js';
 
 const PORT = process.env.PORT || 8080;
 
-// Create WebSocket server
-const wss = new WebSocketServer({
-  port: PORT,
-  perMessageDeflate: false // Disable compression for faster connections
+// Create HTTP server (serves firmware endpoints, upgrades WebSocket)
+const server = createServer((req, res) => {
+  if (handleFirmwareRequest(req, res)) return;
+  res.writeHead(404);
+  res.end();
 });
+
+// Create WebSocket server on the same HTTP server
+const wss = new WebSocketServer({ server, perMessageDeflate: false });
 
 // Track all connected clients
 const clients = new Set();
@@ -53,7 +59,9 @@ const game = new Game(broadcast, sendToHost, sendToScreen);
 // Create handlers
 const handlers = createHandlers(game, clients);
 
-console.log(`[Server] Running on ws://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`[Server] Running on http://localhost:${PORT} (WebSocket + firmware)`);
+});
 
 // UDP discovery listener - ESP32 terminals broadcast to find the server
 const DISCOVERY_PORT = 8089;

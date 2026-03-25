@@ -10,12 +10,14 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { Game } from './Game.js'
 import { createHandlers, handleMessage } from './handlers/index.js'
+import { firmwareRoutes } from './firmware.js'
 
 const PORT = process.env.PORT || 8080
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Serve built React client
 const app = express()
+firmwareRoutes(app)  // Firmware OTA endpoints (before static/catch-all)
 app.use(express.static(path.join(__dirname, '../client/dist')))
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'))

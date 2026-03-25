@@ -62,6 +62,11 @@ server/player-presets.json
 coverage/
 
 # =========================
+# ESP32 firmware binaries (OTA)
+# =========================
+server/firmware/firmware.bin
+
+# =========================
 # Generated concept art
 # =========================
 terminal_concept_art.svg

@@ -1,9 +1,12 @@
 // Network Layer Implementation
 #include "network.h"
 #include "config.h"
+#include "display.h"
 #include "heartrate.h"
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <HTTPClient.h>
+#include <Update.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
@@ -171,6 +174,108 @@ void networkSetDisplayCallback(DisplayStateCallback callback) {
     displayCallback = callback;
 }
 
+// Compare semver strings: returns true if remote > local
+static bool isNewerVersion(const char* remote, const char* local) {
+    int rMaj = 0, rMin = 0, rPat = 0;
+    int lMaj = 0, lMin = 0, lPat = 0;
+    sscanf(remote, "%d.%d.%d", &rMaj, &rMin, &rPat);
+    sscanf(local, "%d.%d.%d", &lMaj, &lMin, &lPat);
+    if (rMaj != lMaj) return rMaj > lMaj;
+    if (rMin != lMin) return rMin > lMin;
+    return rPat > lPat;
+}
+
+// Check server for firmware update; download and apply if newer version available.
+// Called once after server discovery, before WebSocket connection.
+static void checkFirmwareUpdate(const char* host, uint16_t port) {
+    Serial.println("[OTA] Checking for firmware update...");
+
+    // 1. Fetch version manifest
+    HTTPClient http;
+    char url[64];
+    snprintf(url, sizeof(url), "http://%s:%d/firmware/version", host, port);
+    http.begin(url);
+    int httpCode = http.GET();
+
+    if (httpCode != 200) {
+        Serial.printf("[OTA] Version check failed (HTTP %d), skipping\n", httpCode);
+        http.end();
+        return;
+    }
+
+    String body = http.getString();
+    http.end();
+
+    StaticJsonDocument<128> doc;
+    if (deserializeJson(doc, body)) {
+        Serial.println("[OTA] Failed to parse version JSON, skipping");
+        return;
+    }
+
+    const char* remoteVersion = doc["version"] | "0.0.0";
+    Serial.printf("[OTA] Local: %s, Server: %s\n", FIRMWARE_VERSION, remoteVersion);
+
+    if (!isNewerVersion(remoteVersion, FIRMWARE_VERSION)) {
+        Serial.println("[OTA] Firmware is up to date");
+        return;
+    }
+
+    // 2. Download and apply firmware
+    Serial.printf("[OTA] Updating to %s...\n", remoteVersion);
+    displayMessage("OTA UPDATE", remoteVersion, "Downloading...");
+
+    snprintf(url, sizeof(url), "http://%s:%d/firmware/firmware.bin", host, port);
+    http.begin(url);
+    httpCode = http.GET();
+
+    if (httpCode != 200) {
+        Serial.printf("[OTA] Download failed (HTTP %d)\n", httpCode);
+        displayMessage("OTA UPDATE", "FAILED", "Continuing boot...");
+        http.end();
+        delay(2000);
+        return;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength <= 0) {
+        Serial.println("[OTA] Invalid content length");
+        http.end();
+        return;
+    }
+
+    if (!Update.begin(contentLength)) {
+        Serial.println("[OTA] Not enough space for update");
+        displayMessage("OTA UPDATE", "NO SPACE", "Continuing boot...");
+        http.end();
+        delay(2000);
+        return;
+    }
+
+    WiFiClient* stream = http.getStreamPtr();
+    size_t written = Update.writeStream(*stream);
+    http.end();
+
+    if (written != (size_t)contentLength) {
+        Serial.printf("[OTA] Write failed: %d/%d bytes\n", written, contentLength);
+        Update.abort();
+        displayMessage("OTA UPDATE", "WRITE FAIL", "Continuing boot...");
+        delay(2000);
+        return;
+    }
+
+    if (!Update.end(true)) {
+        Serial.printf("[OTA] Update finalize failed: %s\n", Update.errorString());
+        displayMessage("OTA UPDATE", "VERIFY FAIL", "Continuing boot...");
+        delay(2000);
+        return;
+    }
+
+    Serial.println("[OTA] Update successful! Rebooting...");
+    displayMessage("OTA UPDATE", "SUCCESS", "Rebooting...");
+    delay(1000);
+    ESP.restart();
+}
+
 ConnectionState networkUpdate() {
     unsigned long now = millis();
 
@@ -235,6 +340,9 @@ ConnectionState networkUpdate() {
                     Serial.println(serverPort);
 
                     udp.stop();
+
+                    // Check for firmware update before connecting to game
+                    checkFirmwareUpdate(serverHost, serverPort);
 
                     // Connect WebSocket
                     webSocket.begin(serverHost, serverPort, WS_PATH);
