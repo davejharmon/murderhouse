@@ -6,7 +6,7 @@
 // FIRMWARE VERSION
 // ============================================================================
 
-#define FIRMWARE_VERSION "1.2.1"
+#define FIRMWARE_VERSION "1.2.2"
 
 // ============================================================================
 // NETWORK CONFIGURATION
@@ -106,7 +106,7 @@
 #define LED_PULSE_MS    1000
 
 // Neopixel fade duration in milliseconds
-#define LED_FADE_MS     500
+#define LED_FADE_MS     150
 
 // WiFi connection timeout
 #define WIFI_TIMEOUT_MS 30000
