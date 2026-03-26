@@ -119,8 +119,23 @@ ESP32-based physical terminals can be used alongside or instead of mobile device
 - **Arcade buttons** for YES/NO actions with LED feedback
 - **OLED display** shows same 3-line game state as mobile
 - **Multi-connection**: Web client and physical terminal can control the same player simultaneously
+- **OTA firmware updates**: Host dashboard shows a banner when terminals are running outdated firmware. Press "Update" to push new firmware to all connected terminals over WiFi — they download, flash, and reboot automatically.
 
 See `esp32-terminal/README.md` for hardware setup.
+
+#### OTA Firmware Deployment
+
+To deploy a new firmware version over the air:
+
+1. Bump `FIRMWARE_VERSION` in `esp32-terminal/src/config.h`
+2. Build: `pio run` (in `esp32-terminal/`)
+3. Copy binary: `cp .pio/build/esp32/firmware.bin ../server/firmware/firmware.bin`
+4. Update `server/firmware/version.json` to match the new version
+5. Restart the server
+6. Open the host dashboard — a yellow banner appears showing outdated terminals
+7. Click "Update" — terminals download, flash, reboot, and reconnect
+
+**First-time setup**: Terminals must be USB-flashed once with the OTA-capable partition table (`default_8MB.csv`). After that, all future updates can go over WiFi.
 
 ### Items & Custom Votes
 
@@ -178,6 +193,8 @@ murderhouse/
 │   │   ├── roles.js              # 15 roles with events, passives, win conditions
 │   │   ├── events.js             # 14 events with resolution logic
 │   │   └── items.js              # 8 items
+│   ├── firmware.js               # HTTP handler for OTA version check + binary download
+│   ├── firmware/                 # OTA deployment: version.json + firmware.bin
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
 │   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill
@@ -296,7 +313,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**`Screen.jsx` is a 1200-line monolith**~~ — All 14 slide types extracted into individual components under `client/src/components/slides/`. `Screen.jsx` is now ~145 lines. A `/slides` dev tool at `/slides` lets you preview all slide types with mock data and edit strings live.
 - ~~**`broadcastGameState()` called excessively**~~ — Schedules via `queueMicrotask()` with a `_broadcastScheduled` flag; multiple calls per synchronous handler now coalesce into one send.
 - ~~**ABSTAINED state lost on fast event resolve**~~ — `player.syncState()` now called before `player.clearFromEvent()` in `resolveEvent` so `getActiveResult()` can read the null result and display ABSTAINED correctly.
-- ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`.
+- ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`. Additionally, `addConnection()` now explicitly closes and removes stale terminal sockets when a terminal reconnects (e.g. after OTA reboot), preventing ghost connections from lingering until TCP keepalive timeout.
 - ~~**No error handling around file I/O**~~ — Read paths have try/catch with safe fallbacks; write failures are caught by the top-level handler try/catch in `handleMessage`.
 - ~~**`DEBUG_MODE` hardcoded to `true`**~~ — Now reads `process.env.NODE_ENV !== 'production'`; set `NODE_ENV=production` to disable debug routes and auto-select buttons.
 - ~~**Host-auth check repeated 40+ times**~~ — Replaced with `requireHost(fn)` decorator in `server/handlers/index.js`; all 40 host handlers wrapped.
@@ -318,6 +335,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - **Target list changes mid-selection** — If a player dies during a vote (e.g. shot by pistol), the terminal's cached `targetNames`/`targetIds` become stale. The player can still confirm; `confirmWithTarget` sends the explicit targetId which the server validates. Invalid targets are rejected server-side. A future improvement could accept target list updates without accepting selection state.
 - **Pack hint updates blocked for wolf terminals** — During HUNT/KILL events, `broadcastPackState` sends to all cell members without `skipTerminalIfSelecting`. The `onDisplayUpdate` guard rejects these. Wolves on ESP32 terminals won't see real-time pack hint updates while scrolling, but will see the correct hint on the next full state update after confirming. Web clients are unaffected.
 - **Idle scroll / action layer unaffected** — The fast path only activates when `terminalOwnsDisplay` is true (set when `targetCount > 0`). Idle item scrolling, action layer selection, and operator console all use the normal server-driven loop.
+- ~~**OTA firmware update not working end-to-end**~~ — Required OTA-capable partition table (`default_8MB.csv` with dual `ota_0`/`ota_1` slots) flashed via USB once per terminal. Fixed stale connection handling: `addConnection()` now closes prior terminal sockets on reconnect so the host sees the updated firmware version immediately. REJOIN handler now extracts `firmwareVersion` from payload. Host banner clears correctly after OTA reboot cycle.
 
 ### Open
 
@@ -346,4 +364,3 @@ npm run test:watch    # Watch mode (re-runs on file change)
 ## Bugs
 
 - Terminal icon on dash doesn't show after server resets
-- **OTA firmware update not working end-to-end** — Infrastructure is in place (server HTTP endpoints, ESP32 `httpUpdate`, host dashboard banner, `TRIGGER_FIRMWARE_UPDATE` message) but two issues remain: (1) Host dashboard firmware mismatch banner doesn't appear — likely `availableFirmware` field not reaching the React client via `gameState`, or `terminalFirmware` not being set on the player public state correctly. Debug by checking browser console for `gameState.availableFirmware` and `player.terminalFirmware` values. (2) `httpUpdate.update()` may still be failing silently — previous attempts with manual `Update` class got VERIFY_FAIL. Check serial monitor (`pio device monitor -p COMx`) during OTA attempt for `[OTA]` log output. The manual chunked approach and `httpUpdate` high-level API both failed verification. Possible causes: firmware binary incompatibility with OTA partition layout, Content-Length mismatch, or ESP32-S3 specific OTA quirks. All terminals currently on v1.0.7 (COM7/F0) or v1.0.6 (COM5/0C, COM6/DC) via USB. Server deploys to `server/firmware/firmware.bin` + `version.json`.

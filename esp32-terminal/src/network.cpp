@@ -76,6 +76,8 @@ static char lastError[128] = "";
 
 // OTA update flag — set by WebSocket handler, executed from main loop
 static bool otaRequested = false;
+// Prevent infinite REJOIN→JOIN fallback loop
+static bool triedJoinFallback = false;
 
 // Display state callback
 static DisplayStateCallback displayCallback = nullptr;
@@ -378,6 +380,7 @@ ConnectionState networkUpdate() {
                     StaticJsonDocument<128> doc;
                     doc["playerId"] = playerId;
                     doc["source"] = "terminal";
+                    doc["firmwareVersion"] = FIRMWARE_VERSION;
                     JsonObject payload = doc.as<JsonObject>();
                     sendMessage(ClientMsg::REJOIN, &payload);
                 }
@@ -405,6 +408,8 @@ void networkRetryJoin() {
             } else {
                 StaticJsonDocument<128> doc;
                 doc["playerId"] = playerId;
+                doc["source"] = "terminal";
+                doc["firmwareVersion"] = FIRMWARE_VERSION;
                 JsonObject payload = doc.as<JsonObject>();
                 sendMessage(ClientMsg::JOIN, &payload);
             }
@@ -529,6 +534,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             Serial.println("WebSocket disconnected");
             wsConnected = false;
             gameJoined = false;
+            triedJoinFallback = false;
             break;
 
         case WStype_CONNECTED:
@@ -564,6 +570,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             if (strcmp(msgType, ServerMsg::WELCOME) == 0) {
                 Serial.println("Received welcome - joined game");
                 gameJoined = true;
+                triedJoinFallback = false;
             }
             else if (strcmp(msgType, ServerMsg::ERROR) == 0) {
                 const char* errorMsg = msgPayload["message"] | "Unknown error";
@@ -571,8 +578,17 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
                 lastError[sizeof(lastError) - 1] = '\0';  // Ensure null termination
                 Serial.print("Server error: ");
                 Serial.println(errorMsg);
-                // If we were trying to join, transition to error state
-                if (connState == ConnectionState::JOINING) {
+                // If REJOIN failed (e.g. server restarted), fall back to JOIN once
+                if (connState == ConnectionState::JOINING && !triedJoinFallback) {
+                    triedJoinFallback = true;
+                    Serial.println("REJOIN failed, falling back to JOIN...");
+                    StaticJsonDocument<128> fallbackDoc;
+                    fallbackDoc["playerId"] = playerId;
+                    fallbackDoc["source"] = "terminal";
+                    fallbackDoc["firmwareVersion"] = FIRMWARE_VERSION;
+                    JsonObject fallbackPayload = fallbackDoc.as<JsonObject>();
+                    sendMessage(ClientMsg::JOIN, &fallbackPayload);
+                } else if (connState == ConnectionState::JOINING) {
                     connState = ConnectionState::ERROR;
                 }
             }

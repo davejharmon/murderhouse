@@ -222,6 +222,7 @@ export class Game {
     const via = ws.source === 'terminal' ? 'terminal' : 'web';
     this.addLog(str('log', 'playerJoined', { name: player.name, via }));
     this.broadcastPlayerList();
+    this.broadcastGameState();
 
     return { success: true, player };
   }

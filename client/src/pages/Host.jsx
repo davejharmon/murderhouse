@@ -566,14 +566,16 @@ export default function Host() {
       {/* Firmware update banner */}
       {(() => {
         const fw = gameState?.availableFirmware;
-        const outdated = (gameState?.players || []).filter(
+        const players = gameState?.players || [];
+        const outdated = players.filter(
           p => p.terminalConnected && p.terminalFirmware && p.terminalFirmware !== fw
         );
+        const terminalCount = outdated.reduce((n, p) => n + (p.terminalCount || 1), 0);
         if (!fw || outdated.length === 0) return null;
         return (
           <div className={styles.firmwareBanner}>
             <span>
-              {outdated.length} terminal{outdated.length > 1 ? 's' : ''} on old firmware
+              {terminalCount} terminal{terminalCount > 1 ? 's' : ''} on old firmware
               ({outdated.map(p => `P${p.seatNumber}:${p.terminalFirmware}`).join(', ')}
               → {fw})
             </span>

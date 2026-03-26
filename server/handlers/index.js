@@ -77,8 +77,9 @@ export function createHandlers(game, clients) {
     },
 
     [ClientMsg.REJOIN]: (ws, payload) => {
-      const { playerId, source } = payload;
+      const { playerId, source, firmwareVersion } = payload;
       ws.source = source || 'web';
+      if (firmwareVersion) ws.firmwareVersion = firmwareVersion;
       const result = game.reconnectPlayer(playerId, ws);
 
       if (result.success) {

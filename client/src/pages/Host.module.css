@@ -2,17 +2,21 @@
 
 /* Firmware update banner */
 .firmwareBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
   padding: 0.5rem 1rem;
-  background: rgba(230, 168, 0, 0.12);
-  border: 1px solid rgba(230, 168, 0, 0.3);
-  border-radius: var(--border-radius-sm);
+  background: rgba(230, 168, 0, 0.15);
+  border-bottom: 1px solid rgba(230, 168, 0, 0.3);
   font-size: 0.8rem;
   color: #e6a800;
-  margin: 0.5rem 1rem;
+  backdrop-filter: blur(8px);
 }
 
 .firmwareBanner button {

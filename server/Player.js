@@ -298,6 +298,7 @@ export class Player {
       isAlive: this.isAlive,
       connected: this.connected,
       terminalConnected: this.terminalConnected,
+      terminalCount: this.connections.filter(ws => ws && ws.readyState === 1 && ws.source === 'terminal').length,
       terminalFirmware: this.terminalFirmwareVersion,
       // Role only shown if dead and not cleaned by fixer
       role: showRole ? this.role?.id : null,
@@ -1037,6 +1038,18 @@ export class Player {
 
     // Don't add duplicates
     if (!this.connections.includes(ws)) {
+      // When a terminal reconnects (e.g. after OTA reboot), close and remove
+      // any prior terminal connections — the old socket may still appear OPEN
+      // until TCP keepalive fires, causing stale firmwareVersion to linger.
+      if (ws.source === 'terminal') {
+        const stale = this.connections.filter(c => c && c !== ws && c.source === 'terminal');
+        for (const old of stale) {
+          try { old.close(); } catch {}
+        }
+        this.connections = this.connections.filter(c => !stale.includes(c));
+      }
+      // Prune dead/closed connections before adding
+      this.connections = this.connections.filter(c => c && c.readyState <= 1);
       this.connections.push(ws);
     }
     this.lastSeen = Date.now();
