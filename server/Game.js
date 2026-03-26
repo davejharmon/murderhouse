@@ -2000,6 +2000,12 @@ export class Game {
       });
     }
 
+    // Sync each player without skipTerminalIfSelecting — terminals may still
+    // be in the fast path from the previous vote round and need the new targets.
+    for (const pid of participants) {
+      const player = this.getPlayer(pid);
+      if (player) player.syncState(this);
+    }
     this.broadcastGameState();
   }
 

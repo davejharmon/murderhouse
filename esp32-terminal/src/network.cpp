@@ -244,9 +244,14 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
     webSocket.disconnect();
     wsConnected = false;
     gameJoined = false;
-    delay(100);  // Let WiFi stack settle
 
-    // 4. Download and flash
+    // 5. Stagger downloads — random delay so multiple terminals don't hit
+    //    the server simultaneously (causes corrupt transfers)
+    int staggerMs = random(100, 3000);
+    Serial.printf("[OTA] Staggering %d ms...\n", staggerMs);
+    delay(staggerMs);
+
+    // 6. Download and flash
     Serial.printf("[OTA] Updating to %s...\n", remoteVersion);
     displayMessage("OTA UPDATE", remoteVersion, "Downloading...");
 

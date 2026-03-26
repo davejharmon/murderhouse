@@ -10,8 +10,9 @@ static Adafruit_NeoPixel neopixel(1, PIN_NEOPIXEL, NEOPIXEL_ORDER + NEO_KHZ800);
 static LedState yesLedState = LedState::OFF;
 static LedState noLedState = LedState::OFF;
 
-// Current neopixel target color
-static uint8_t statusR = 0, statusG = 0, statusB = 0;
+// Neopixel fade: current (display) and target colors
+static float curR = 0, curG = 0, curB = 0;
+static float tgtR = 0, tgtG = 0, tgtB = 0;
 static bool statusPulse = false;
 
 // Pulse animation state
@@ -73,7 +74,7 @@ void ledsInit() {
 void ledsUpdate() {
     unsigned long now = millis();
 
-    // Update pulse animation (~60 fps)
+    // Update at ~60 fps
     if (now - lastPulseUpdate > 16) {
         lastPulseUpdate = now;
 
@@ -83,16 +84,21 @@ void ledsUpdate() {
             pulsePhase -= 2.0f * PI;
         }
 
-        // Update neopixel if pulsing
-        if (statusPulse) {
-            float brightness = getPulseBrightness();
-            neopixel.setPixelColor(0, neopixel.Color(
-                (uint8_t)(statusR * brightness),
-                (uint8_t)(statusG * brightness),
-                (uint8_t)(statusB * brightness)
-            ));
-            neopixel.show();
-        }
+        // Fade current color toward target (~500ms transition)
+        float step = 16.0f / LED_FADE_MS;  // fraction per frame at ~60fps
+        if (step > 1.0f) step = 1.0f;
+        curR += (tgtR - curR) * step;
+        curG += (tgtG - curG) * step;
+        curB += (tgtB - curB) * step;
+
+        // Apply pulse modulation or solid color
+        float brightness = statusPulse ? getPulseBrightness() : 1.0f;
+        neopixel.setPixelColor(0, neopixel.Color(
+            (uint8_t)(curR * brightness),
+            (uint8_t)(curG * brightness),
+            (uint8_t)(curB * brightness)
+        ));
+        neopixel.show();
     }
 }
 
@@ -112,69 +118,59 @@ void ledsSetFromDisplay(const DisplayState& state) {
 }
 
 void ledsSetStatusColor(uint8_t r, uint8_t g, uint8_t b) {
-    statusR = r;
-    statusG = g;
-    statusB = b;
+    tgtR = r; tgtG = g; tgtB = b;
     statusPulse = false;
-
-    neopixel.setPixelColor(0, neopixel.Color(r, g, b));
-    neopixel.show();
 }
 
 void ledsSetStatus(ConnectionState state) {
     switch (state) {
         case ConnectionState::BOOT:
             // White - initializing
-            statusR = 100; statusG = 100; statusB = 100;
+            tgtR = 100; tgtG = 100; tgtB = 100;
             statusPulse = false;
             break;
 
         case ConnectionState::PLAYER_SELECT:
             // Purple - selecting player
-            statusR = 150; statusG = 0; statusB = 255;
+            tgtR = 150; tgtG = 0; tgtB = 255;
             statusPulse = true;
             break;
 
         case ConnectionState::WIFI_CONNECTING:
             // Blue - connecting to WiFi
-            statusR = 0; statusG = 0; statusB = 255;
+            tgtR = 0; tgtG = 0; tgtB = 255;
             statusPulse = true;
             break;
 
         case ConnectionState::WS_CONNECTING:
             // Yellow - connecting to WebSocket
-            statusR = 255; statusG = 200; statusB = 0;
+            tgtR = 255; tgtG = 200; tgtB = 0;
             statusPulse = true;
             break;
 
         case ConnectionState::JOINING:
             // Cyan - joining game
-            statusR = 0; statusG = 255; statusB = 255;
+            tgtR = 0; tgtG = 255; tgtB = 255;
             statusPulse = false;
             break;
 
         case ConnectionState::CONNECTED:
             // Green - connected
-            statusR = 0; statusG = 255; statusB = 0;
+            tgtR = 0; tgtG = 255; tgtB = 0;
             statusPulse = false;
             break;
 
         case ConnectionState::RECONNECTING:
             // Orange - reconnecting
-            statusR = 255; statusG = 100; statusB = 0;
+            tgtR = 255; tgtG = 100; tgtB = 0;
             statusPulse = true;
             break;
 
         case ConnectionState::ERROR:
             // Red - error
-            statusR = 255; statusG = 0; statusB = 0;
+            tgtR = 255; tgtG = 0; tgtB = 0;
             statusPulse = false;
             break;
-    }
-
-    if (!statusPulse) {
-        neopixel.setPixelColor(0, neopixel.Color(statusR, statusG, statusB));
-        neopixel.show();
     }
 }
 
@@ -185,60 +181,57 @@ void ledsSetGameState(GameLedState state) {
             return;
 
         case GameLedState::OFF:
-            statusR = 0; statusG = 0; statusB = 0;
+            tgtR = 0; tgtG = 0; tgtB = 0;
             statusPulse = false;
             break;
 
         case GameLedState::LOBBY:
-            statusR = 100; statusG = 100; statusB = 100;
+            tgtR = 100; tgtG = 100; tgtB = 100;
             statusPulse = false;
             break;
 
         case GameLedState::DAY:
-            statusR = 0; statusG = 255; statusB = 0;
+            tgtR = 0; tgtG = 255; tgtB = 0;
             statusPulse = false;
             break;
 
         case GameLedState::NIGHT:
-            statusR = 0; statusG = 0; statusB = 255;
+            tgtR = 0; tgtG = 0; tgtB = 255;
             statusPulse = false;
             break;
 
         case GameLedState::VOTING:
-            statusR = 255; statusG = 200; statusB = 0;
+            tgtR = 255; tgtG = 200; tgtB = 0;
             statusPulse = true;
             break;
 
         case GameLedState::LOCKED:
-            statusR = 0; statusG = 255; statusB = 0;
+            tgtR = 0; tgtG = 255; tgtB = 0;
             statusPulse = false;
             break;
 
         case GameLedState::ABSTAINED:
-            statusR = 60; statusG = 60; statusB = 60;
+            tgtR = 60; tgtG = 60; tgtB = 60;
             statusPulse = false;
             break;
 
         case GameLedState::DEAD:
-            statusR = 255; statusG = 0; statusB = 0;
+            tgtR = 255; tgtG = 0; tgtB = 0;
             statusPulse = false;
             break;
 
         case GameLedState::GAME_OVER:
-            statusR = 100; statusG = 100; statusB = 100;
+            tgtR = 100; tgtG = 100; tgtB = 100;
             statusPulse = false;
             break;
-    }
-
-    if (!statusPulse) {
-        neopixel.setPixelColor(0, neopixel.Color(statusR, statusG, statusB));
-        neopixel.show();
     }
 }
 
 void ledsOff() {
     ledsSetYes(LedState::OFF);
     ledsSetNo(LedState::OFF);
+    tgtR = 0; tgtG = 0; tgtB = 0;
+    curR = 0; curG = 0; curB = 0;
     statusPulse = false;
     neopixel.clear();
     neopixel.show();

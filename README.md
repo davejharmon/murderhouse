@@ -363,10 +363,10 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Terminal fast path: keep YES and NO button LEDs lit while target selection is active~~
 - ~~Players should be able to vote for themselves in elimination votes (currently excluded from their own target list)~~
 - ~~Dead player's neopixel status LED should turn off after the phase they die in~~ — Red on death phase, off from next phase onwards
-- Neopixel status LED should fade between states over ~500ms instead of cutting
+- ~~Neopixel status LED should fade between states over ~500ms instead of cutting~~
 
 ## Bugs
 
 - Kicking a player does not cause their ESP32 terminal to return to the select terminal screen
-- Runoff vote: terminal line 2 still shows the confirmed selection from the previous round instead of updating for the new vote
+- ~~Runoff vote: terminal line 2 still shows the confirmed selection from the previous round instead of updating for the new vote~~ — `_activateRunoff` now syncs terminal state without `skipTerminalIfSelecting`
 - ~~**OTA firmware updates fail with "Could not Activate the Firmware"**~~ — Root cause: ESP32-S3 QIO flash mode causes `esp_image_verify()` to read back 0xFF from newly written OTA partition ([espressif/esp-idf#8509](https://github.com/espressif/esp-idf/issues/8509)). Fixed by setting `board_build.flash_mode = dio` in `platformio.ini`.
