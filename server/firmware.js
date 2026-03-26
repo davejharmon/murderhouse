@@ -3,6 +3,7 @@
 // Serves version manifest and firmware binary from server/firmware/.
 
 import fs from 'fs'
+import crypto from 'crypto'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -39,14 +40,19 @@ export function handleFirmwareRequest(req, res) {
       res.end('No firmware available')
       return true
     }
-    // Read entire file into memory — avoids chunked encoding issues with ESP32 OTA
+    // Read entire file into memory and send with explicit binary headers.
+    // Connection: close prevents HTTP keep-alive from interfering with the
+    // ESP32's HTTPClient, which can misframe the response on reuse.
     const data = fs.readFileSync(BINARY_FILE)
+    const md5 = crypto.createHash('md5').update(data).digest('hex')
     res.writeHead(200, {
       'Content-Type': 'application/octet-stream',
       'Content-Length': data.length,
+      'Connection': 'close',
+      'x-MD5': md5,
     })
     res.end(data)
-    console.log(`[Firmware] Serving firmware.bin (${(data.length / 1024).toFixed(0)} KB)`)
+    console.log(`[Firmware] Serving firmware.bin (${(data.length / 1024).toFixed(0)} KB, md5: ${md5})`)
     return true
   }
 

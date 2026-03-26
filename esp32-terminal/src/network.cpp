@@ -231,9 +231,22 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
     const esp_partition_t* running = esp_ota_get_running_partition();
     const esp_partition_t* target = esp_ota_get_next_update_partition(NULL);
     Serial.printf("[OTA] Running partition: %s (0x%06x)\n", running ? running->label : "?", running ? running->address : 0);
-    Serial.printf("[OTA] Target partition:  %s (0x%06x)\n", target ? target->label : "?", target ? target->address : 0);
+    Serial.printf("[OTA] Target partition:  %s (0x%06x, size 0x%06x)\n",
+        target ? target->label : "?", target ? target->address : 0, target ? target->size : 0);
 
-    // 3. Download and flash using httpUpdate (handles chunking, verify, retry internally)
+    // 3. Log heap state for debugging
+    Serial.printf("[OTA] Free heap: %d, largest block: %d\n",
+        ESP.getFreeHeap(), heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT));
+
+    // 4. Disconnect WebSocket before OTA — frees RAM and prevents WiFi stack
+    //    contention between WebSocket frames and HTTP download
+    Serial.println("[OTA] Disconnecting WebSocket for clean OTA...");
+    webSocket.disconnect();
+    wsConnected = false;
+    gameJoined = false;
+    delay(100);  // Let WiFi stack settle
+
+    // 4. Download and flash
     Serial.printf("[OTA] Updating to %s...\n", remoteVersion);
     displayMessage("OTA UPDATE", remoteVersion, "Downloading...");
 
