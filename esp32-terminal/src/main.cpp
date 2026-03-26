@@ -114,12 +114,17 @@ bool checkResetGesture() {
 
 // Callback when display state is received from server
 void onDisplayUpdate(const DisplayState& state) {
-    // When terminal owns display, ignore ALL server state. Period.
-    // Just like SELECT TERMINAL has no network at all.
+    // When terminal owns display during target selection, ignore server state
+    // UNLESS the server has cleared the targets (game reset, event resolved, kick).
     if (terminalOwnsDisplay) {
-        ledsSetFromDisplay(state);
-        ledsSetGameState(state.statusLed);
-        return;
+        if (state.targetCount == 0) {
+            // Server cleared targets — exit fast path, accept new state
+            terminalOwnsDisplay = false;
+        } else {
+            ledsSetFromDisplay(state);
+            ledsSetGameState(state.statusLed);
+            return;
+        }
     }
 
     currentDisplay = state;
@@ -426,14 +431,21 @@ void loop() {
                 displayDirty = false;
             }
 
-            // Periodic keepalive — just process WebSocket pings, nothing else matters
+            // Periodic keepalive — process WebSocket pings and detect disconnects
             if (millis() - lastKeepAlive >= WS_KEEPALIVE_MS) {
                 lastKeepAlive = millis();
                 networkUpdate();
             }
 
-            delay(1);
-            return;  // Skip all other processing — just like SELECT TERMINAL
+            // Connection lost (server restart, kick, etc.) — exit fast path
+            if (!networkIsConnected()) {
+                terminalOwnsDisplay = false;
+                currentDisplay.targetCount = 0;
+                // Fall through to normal connection handling below
+            } else {
+                delay(1);
+                return;  // Skip all other processing — just like SELECT TERMINAL
+            }
         }
 
         // Enter target selection fast path when server sends targets

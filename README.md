@@ -331,11 +331,11 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ### Terminal fast path: known edge cases and future cleanup
 
-- **Event resolves while player is scrolling** — If the event timer expires or all other players vote while the terminal is in the fast path, `terminalOwnsDisplay` stays true until the player presses YES/NO. The confirm/abstain will fail gracefully (event already resolved), ownership releases, and the next server state comes through. In practice this resolves instantly. A future improvement could add a server-initiated `EVENT_ENDED` message type that bypasses the guard.
+- ~~**Event resolves while player is scrolling**~~ — `onDisplayUpdate` now exits the fast path when the server sends state with `targetCount == 0` (event resolved, game reset, kick). No need for a dedicated `EVENT_ENDED` message — the normal player state update handles it.
 - **Target list changes mid-selection** — If a player dies during a vote (e.g. shot by pistol), the terminal's cached `targetNames`/`targetIds` become stale. The player can still confirm; `confirmWithTarget` sends the explicit targetId which the server validates. Invalid targets are rejected server-side. A future improvement could accept target list updates without accepting selection state.
 - **Pack hint updates blocked for wolf terminals** — During HUNT/KILL events, `broadcastPackState` sends to all cell members without `skipTerminalIfSelecting`. The `onDisplayUpdate` guard rejects these. Wolves on ESP32 terminals won't see real-time pack hint updates while scrolling, but will see the correct hint on the next full state update after confirming. Web clients are unaffected.
 - **Idle scroll / action layer unaffected** — The fast path only activates when `terminalOwnsDisplay` is true (set when `targetCount > 0`). Idle item scrolling, action layer selection, and operator console all use the normal server-driven loop.
-- ~~**OTA firmware update not working end-to-end**~~ — Required OTA-capable partition table (`default_8MB.csv` with dual `ota_0`/`ota_1` slots) flashed via USB once per terminal. Fixed stale connection handling: `addConnection()` now closes prior terminal sockets on reconnect so the host sees the updated firmware version immediately. REJOIN handler now extracts `firmwareVersion` from payload. Host banner clears correctly after OTA reboot cycle.
+- ~~**OTA firmware update not working end-to-end**~~ — Infrastructure works (host banner, version check, binary serving, download). `esp_ota_set_boot_partition()` fails with "Could not Activate the Firmware" after download completes. Worked once (1.0.9→1.1.0) but fails on all subsequent attempts. Stale connection handling fixed: `addConnection()` closes prior terminal sockets on reconnect. Host banner and firmware version tracking work correctly. USB flash remains reliable for deployment.
 
 ### Open
 
@@ -363,4 +363,5 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ## Bugs
 
-- Terminal icon on dash doesn't show after server resets
+- Kicking a player does not cause their ESP32 terminal to return to the select terminal screen
+- **OTA firmware updates fail with "Could not Activate the Firmware"** — Initial OTA (1.0.9→1.1.0, ota_0→ota_1) succeeded, but all subsequent OTA attempts fail on all terminals regardless of partition direction. `esp_ota_set_boot_partition()` is failing. Debug logging added (partition info + error code in `[OTA]` serial output). Needs serial monitor investigation. USB flash remains reliable.

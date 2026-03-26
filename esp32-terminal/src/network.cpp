@@ -7,6 +7,7 @@
 #include <WiFiUdp.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
+#include <esp_ota_ops.h>
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
@@ -76,8 +77,6 @@ static char lastError[128] = "";
 
 // OTA update flag — set by WebSocket handler, executed from main loop
 static bool otaRequested = false;
-// Prevent infinite REJOIN→JOIN fallback loop
-static bool triedJoinFallback = false;
 
 // Display state callback
 static DisplayStateCallback displayCallback = nullptr;
@@ -228,7 +227,13 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
         return;
     }
 
-    // 2. Download and flash using httpUpdate (handles chunking, verify, retry internally)
+    // 2. Log partition info for debugging
+    const esp_partition_t* running = esp_ota_get_running_partition();
+    const esp_partition_t* target = esp_ota_get_next_update_partition(NULL);
+    Serial.printf("[OTA] Running partition: %s (0x%06x)\n", running ? running->label : "?", running ? running->address : 0);
+    Serial.printf("[OTA] Target partition:  %s (0x%06x)\n", target ? target->label : "?", target ? target->address : 0);
+
+    // 3. Download and flash using httpUpdate (handles chunking, verify, retry internally)
     Serial.printf("[OTA] Updating to %s...\n", remoteVersion);
     displayMessage("OTA UPDATE", remoteVersion, "Downloading...");
 
@@ -237,18 +242,19 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
 
     WiFiClient client;
     httpUpdate.setLedPin(-1);  // No LED
-    httpUpdate.rebootOnUpdate(true);
+    httpUpdate.rebootOnUpdate(false);  // We handle reboot manually
     t_httpUpdate_return ret = httpUpdate.update(client, String(url));
 
     switch (ret) {
         case HTTP_UPDATE_OK:
             Serial.println("[OTA] Update successful! Rebooting...");
             displayMessage("OTA UPDATE", "SUCCESS", "Rebooting...");
-            delay(1000);
+            delay(500);
             ESP.restart();
             break;
         case HTTP_UPDATE_FAILED:
-            Serial.printf("[OTA] Failed: %s\n", httpUpdate.getLastErrorString().c_str());
+            Serial.printf("[OTA] Failed (err %d): %s\n",
+                httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
             displayMessage("OTA UPDATE", "FAILED", httpUpdate.getLastErrorString().c_str());
             delay(3000);
             break;
@@ -374,6 +380,9 @@ ConnectionState networkUpdate() {
                 WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
                 connState = ConnectionState::WIFI_CONNECTING;
             } else if (wsConnected) {
+                // Always use JOIN — server-side JOIN handler already checks for
+                // existing players and reconnects them. REJOIN was fragile
+                // (double-error race, fallback flag issues on server restart).
                 if (isOperatorMode) {
                     sendMessage(ClientMsg::OPERATOR_JOIN);
                 } else {
@@ -382,7 +391,7 @@ ConnectionState networkUpdate() {
                     doc["source"] = "terminal";
                     doc["firmwareVersion"] = FIRMWARE_VERSION;
                     JsonObject payload = doc.as<JsonObject>();
-                    sendMessage(ClientMsg::REJOIN, &payload);
+                    sendMessage(ClientMsg::JOIN, &payload);
                 }
                 connState = ConnectionState::JOINING;
             }
@@ -534,7 +543,6 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             Serial.println("WebSocket disconnected");
             wsConnected = false;
             gameJoined = false;
-            triedJoinFallback = false;
             break;
 
         case WStype_CONNECTED:
@@ -570,7 +578,6 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             if (strcmp(msgType, ServerMsg::WELCOME) == 0) {
                 Serial.println("Received welcome - joined game");
                 gameJoined = true;
-                triedJoinFallback = false;
             }
             else if (strcmp(msgType, ServerMsg::ERROR) == 0) {
                 const char* errorMsg = msgPayload["message"] | "Unknown error";
@@ -578,17 +585,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
                 lastError[sizeof(lastError) - 1] = '\0';  // Ensure null termination
                 Serial.print("Server error: ");
                 Serial.println(errorMsg);
-                // If REJOIN failed (e.g. server restarted), fall back to JOIN once
-                if (connState == ConnectionState::JOINING && !triedJoinFallback) {
-                    triedJoinFallback = true;
-                    Serial.println("REJOIN failed, falling back to JOIN...");
-                    StaticJsonDocument<128> fallbackDoc;
-                    fallbackDoc["playerId"] = playerId;
-                    fallbackDoc["source"] = "terminal";
-                    fallbackDoc["firmwareVersion"] = FIRMWARE_VERSION;
-                    JsonObject fallbackPayload = fallbackDoc.as<JsonObject>();
-                    sendMessage(ClientMsg::JOIN, &fallbackPayload);
-                } else if (connState == ConnectionState::JOINING) {
+                if (connState == ConnectionState::JOINING) {
                     connState = ConnectionState::ERROR;
                 }
             }

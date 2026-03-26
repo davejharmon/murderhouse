@@ -513,6 +513,13 @@ export class Game {
     const player = this.players.get(id);
     if (!player) return { success: false, error: 'Player not found' };
 
+    // Close all WebSocket connections so terminals detect the kick
+    for (const ws of player.connections) {
+      if (ws && ws.readyState <= 1) {
+        try { ws.close(); } catch {}
+      }
+    }
+
     this.players.delete(id);
     this.addLog(str('log', 'playerLeft', { name: player.name }));
     this.broadcastPlayerList();
