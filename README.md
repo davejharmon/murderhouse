@@ -313,7 +313,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**`Screen.jsx` is a 1200-line monolith**~~ — All 14 slide types extracted into individual components under `client/src/components/slides/`. `Screen.jsx` is now ~145 lines. A `/slides` dev tool at `/slides` lets you preview all slide types with mock data and edit strings live.
 - ~~**`broadcastGameState()` called excessively**~~ — Schedules via `queueMicrotask()` with a `_broadcastScheduled` flag; multiple calls per synchronous handler now coalesce into one send.
 - ~~**ABSTAINED state lost on fast event resolve**~~ — `player.syncState()` now called before `player.clearFromEvent()` in `resolveEvent` so `getActiveResult()` can read the null result and display ABSTAINED correctly.
-- ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`. Additionally, `addConnection()` now explicitly closes and removes stale terminal sockets when a terminal reconnects (e.g. after OTA reboot), preventing ghost connections from lingering until TCP keepalive timeout.
+- ~~**Dead WebSocket connections accumulate**~~ — Not an issue: `on('close')` in `server/index.js` already calls `player.removeConnection(ws)`.
 - ~~**No error handling around file I/O**~~ — Read paths have try/catch with safe fallbacks; write failures are caught by the top-level handler try/catch in `handleMessage`.
 - ~~**`DEBUG_MODE` hardcoded to `true`**~~ — Now reads `process.env.NODE_ENV !== 'production'`; set `NODE_ENV=production` to disable debug routes and auto-select buttons.
 - ~~**Host-auth check repeated 40+ times**~~ — Replaced with `requireHost(fn)` decorator in `server/handlers/index.js`; all 40 host handlers wrapped.
@@ -327,15 +327,16 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~**Item consumption rules are implicit**~~ — Documented `IMMEDIATE / ON_RESOLVE / ON_TRIGGER` consumption timing in `server/definitions/items.js` schema comment with concrete examples per item type.
 - ~~**Win condition polling**~~ — `checkWinCondition()` now caches its result via a `Symbol` sentinel; cache invalidates on kill, revive, role change, and coward item give/remove. `removeItem()` promoted to a game-level method so removal always flows through a single invalidating path.
 - ~~**Log broadcasting**~~ — Server `addLog()` broadcasts `LOG_APPEND` with a single entry array (instead of full log on every state change); client appends to local log state. Full `LOG` snapshot still sent on initial connect. Server trims log to 500 entries; client trims to 200.
-- ~~**Terminal display flicker during target selection**~~ — ESP32 terminals now run a dedicated "fast path" loop during target selection that mirrors the SELECT TERMINAL boot screen: `inputPoll → render → delay → return`. The terminal takes full ownership of display state (`terminalOwnsDisplay` flag) and ignores all server messages until the player confirms or abstains. Server-side: `_executeBroadcast` skips terminal connections for players in target selection (`skipTerminalIfSelecting`); `player.send()` skips `GAME_STATE` and `EVENT_PROMPT` for all terminal connections (they never use these). Device MAC suffix shown on select screen (`1.0.1:XX`).
+- ~~**Terminal display flicker during target selection**~~ — ESP32 terminals now run a dedicated "fast path" loop during target selection that mirrors the SELECT TERMINAL boot screen: `inputPoll → render → delay → return`. The terminal takes full ownership of display state (`terminalOwnsDisplay` flag) and ignores all server messages until the player confirms or abstains. Fast path exits automatically when server sends `targetCount == 0` (event resolved, game reset, kick) or on WebSocket disconnect. Server-side: `_executeBroadcast` skips terminal connections for players in target selection (`skipTerminalIfSelecting`); `player.send()` skips `GAME_STATE` and `EVENT_PROMPT` for all terminal connections (they never use these). Device MAC suffix shown on select screen (`1.0.1:XX`).
+- ~~**OTA firmware updates**~~ — `board_build.flash_mode = dio` in `platformio.ini` fixes ESP32-S3 flash read-back failures during OTA verification ([espressif/esp-idf#8509](https://github.com/espressif/esp-idf/issues/8509)). Server sends `x-MD5` header and `Connection: close`. Terminal disconnects WebSocket before OTA and staggers download with random delay. Stale connections pruned on reconnect. Host dashboard shows firmware banner with per-terminal version tracking.
+- ~~**Runoff vote terminal display stale**~~ — `_activateRunoff` now syncs terminal state without `skipTerminalIfSelecting` so terminals exit fast path and receive new runoff targets.
+- ~~**Dead WebSocket connections linger after OTA reboot**~~ — Server-side WebSocket ping/pong heartbeat (15s interval) detects dead connections. `addConnection()` explicitly closes prior terminal sockets on reconnect.
+- ~~**Terminal stuck on JOINING after server restart**~~ — Reconnect always sends JOIN instead of fragile REJOIN→JOIN fallback. Removed double-error bug in handleMessage that broke the fallback.
 
-### Terminal fast path: known edge cases and future cleanup
+### Terminal fast path: known edge cases
 
-- ~~**Event resolves while player is scrolling**~~ — `onDisplayUpdate` now exits the fast path when the server sends state with `targetCount == 0` (event resolved, game reset, kick). No need for a dedicated `EVENT_ENDED` message — the normal player state update handles it.
-- **Target list changes mid-selection** — If a player dies during a vote (e.g. shot by pistol), the terminal's cached `targetNames`/`targetIds` become stale. The player can still confirm; `confirmWithTarget` sends the explicit targetId which the server validates. Invalid targets are rejected server-side. A future improvement could accept target list updates without accepting selection state.
+- **Target list changes mid-selection** — If a player dies during a vote (e.g. shot by pistol), the terminal's cached `targetNames`/`targetIds` become stale. The player can still confirm; `confirmWithTarget` sends the explicit targetId which the server validates. Invalid targets are rejected server-side.
 - **Pack hint updates blocked for wolf terminals** — During HUNT/KILL events, `broadcastPackState` sends to all cell members without `skipTerminalIfSelecting`. The `onDisplayUpdate` guard rejects these. Wolves on ESP32 terminals won't see real-time pack hint updates while scrolling, but will see the correct hint on the next full state update after confirming. Web clients are unaffected.
-- **Idle scroll / action layer unaffected** — The fast path only activates when `terminalOwnsDisplay` is true (set when `targetCount > 0`). Idle item scrolling, action layer selection, and operator console all use the normal server-driven loop.
-- ~~**OTA firmware update not working end-to-end**~~ — Fixed: `board_build.flash_mode = dio` in `platformio.ini` resolves ESP32-S3 flash read-back failures during OTA verification ([espressif/esp-idf#8509](https://github.com/espressif/esp-idf/issues/8509)). Server sends `x-MD5` header for download verification. WebSocket disconnected before OTA for clean WiFi. Stale connection handling: `addConnection()` closes prior terminal sockets on reconnect. Host banner and firmware version tracking work correctly.
 
 ### Open
 
@@ -360,13 +361,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
-- ~~Terminal fast path: keep YES and NO button LEDs lit while target selection is active~~
-- ~~Players should be able to vote for themselves in elimination votes (currently excluded from their own target list)~~
-- ~~Dead player's neopixel status LED should turn off after the phase they die in~~ — Red on death phase, off from next phase onwards
-- ~~Neopixel status LED should fade between states over ~500ms instead of cutting~~
 
 ## Bugs
 
 - Kicking a player does not cause their ESP32 terminal to return to the select terminal screen
-- ~~Runoff vote: terminal line 2 still shows the confirmed selection from the previous round instead of updating for the new vote~~ — `_activateRunoff` now syncs terminal state without `skipTerminalIfSelecting`
-- ~~**OTA firmware updates fail with "Could not Activate the Firmware"**~~ — Root cause: ESP32-S3 QIO flash mode causes `esp_image_verify()` to read back 0xFF from newly written OTA partition ([espressif/esp-idf#8509](https://github.com/espressif/esp-idf/issues/8509)). Fixed by setting `board_build.flash_mode = dio` in `platformio.ini`.
