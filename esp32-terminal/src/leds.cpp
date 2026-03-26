@@ -184,6 +184,11 @@ void ledsSetGameState(GameLedState state) {
             // No game state - don't change neopixel
             return;
 
+        case GameLedState::OFF:
+            statusR = 0; statusG = 0; statusB = 0;
+            statusPulse = false;
+            break;
+
         case GameLedState::LOBBY:
             statusR = 100; statusG = 100; statusB = 100;
             statusPulse = false;

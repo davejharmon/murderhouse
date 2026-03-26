@@ -451,6 +451,8 @@ void loop() {
         // Enter target selection fast path when server sends targets
         if (currentDisplay.targetCount > 0) {
             terminalOwnsDisplay = true;
+            ledsSetYes(LedState::BRIGHT);
+            ledsSetNo(LedState::BRIGHT);
         }
 
         // Poll for input events

@@ -2323,6 +2323,7 @@ export class Game {
 
     player.kill(cause);
     player.deathDay = this.dayCount;
+    player.deathPhase = this.phase;
     this._invalidateWinCache();
     this._deathQueue.push({ player, cause });
 

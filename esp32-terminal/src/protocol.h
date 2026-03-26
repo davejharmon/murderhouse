@@ -95,6 +95,7 @@ inline DisplayStyle parseDisplayStyle(const String& style) {
 
 enum class GameLedState {
     NONE,       // No game state (use connection colour)
+    OFF,        // Explicitly turn off neopixel
     LOBBY,
     DAY,
     NIGHT,
@@ -107,6 +108,7 @@ enum class GameLedState {
 
 // Parse game LED state from string
 inline GameLedState parseGameLedState(const String& state) {
+    if (state == "off") return GameLedState::OFF;
     if (state == "lobby") return GameLedState::LOBBY;
     if (state == "day") return GameLedState::DAY;
     if (state == "night") return GameLedState::NIGHT;

@@ -433,7 +433,7 @@ export class Player {
     // Priority-ordered state dispatch
     if (phase === GamePhase.LOBBY)          return this._displayLobby(getLine1);
     if (phase === GamePhase.GAME_OVER)      return this._displayGameOver(getLine1);
-    if (!this.isAlive && !hasActiveEvent)    return this._displayDead(getLine1);
+    if (!this.isAlive && !hasActiveEvent)    return this._displayDead(getLine1, ctx.dayCount, phase);
     if (isAbstained)                         return this._displayAbstained(getLine1, eventName, activeEventId);
     if (confirmedTargetId)                   return this._displayConfirmed(game, getLine1, eventName, activeEventId, confirmedTargetId);
     if (hasActiveEvent && this.currentSelection)
@@ -527,13 +527,15 @@ export class Player {
     );
   }
 
-  _displayDead(getLine1) {
+  _displayDead(getLine1, dayCount, phase) {
+    // Red neopixel during the phase they die, off from the next phase onwards
+    const diedThisPhase = this.deathDay === dayCount && this.deathPhase === phase;
     return this._display(
       { left: getLine1(), right: '' },
       { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
       { text: 'Watch the game unfold' },
       { yes: LedState.OFF, no: LedState.OFF },
-      StatusLed.DEAD
+      diedThisPhase ? StatusLed.DEAD : StatusLed.OFF
     );
   }
 

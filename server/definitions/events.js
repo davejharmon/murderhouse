@@ -126,10 +126,10 @@ const events = {
       if (runoffTargets) {
         return runoffTargets
           .map((id) => game.getPlayer(id))
-          .filter((p) => p && p.id !== actor.id && !p.hasItem(ItemId.COWARD));
+          .filter((p) => p && !p.hasItem(ItemId.COWARD));
       }
 
-      return game.getAlivePlayers().filter((p) => p.id !== actor.id && !p.hasItem(ItemId.COWARD));
+      return game.getAlivePlayers().filter((p) => !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'majority',

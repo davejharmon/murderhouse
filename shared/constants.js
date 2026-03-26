@@ -301,6 +301,7 @@ export const LedState = {
 
 // Status LED states for neopixel (game state indicator)
 export const StatusLed = {
+  OFF: 'off',
   LOBBY: 'lobby',
   DAY: 'day',
   NIGHT: 'night',
