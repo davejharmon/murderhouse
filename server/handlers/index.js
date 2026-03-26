@@ -70,9 +70,8 @@ export function createHandlers(game, clients) {
         if (ws.source === 'terminal') {
           send(ws, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(playerId) });
         }
-      } else {
-        send(ws, ServerMsg.ERROR, { message: result.error });
       }
+      // Don't send error here — handleMessage sends it from the returned result.
       return result;
     },
 
@@ -99,9 +98,10 @@ export function createHandlers(game, clients) {
         // ensures host gets role info (PLAYER_LIST only has public state)
         game.broadcastPlayerList();
         game.broadcastGameState();
-      } else {
-        send(ws, ServerMsg.ERROR, { message: result.error });
       }
+      // Don't send error here — handleMessage sends it from the returned result.
+      // Sending it explicitly caused a double-error that broke the terminal's
+      // REJOIN→JOIN fallback (second error arrived after triedJoinFallback was set).
       return result;
     },
 

@@ -76,7 +76,24 @@ udpServer.on('message', (msg, rinfo) => {
 
 udpServer.bind(DISCOVERY_PORT);
 
+// Ping all clients every 15 seconds to detect dead connections promptly
+// (e.g. terminals that rebooted after OTA without a clean WebSocket close).
+const PING_INTERVAL_MS = 15000;
+setInterval(() => {
+  for (const ws of clients) {
+    if (ws.isAlive === false) {
+      // Didn't respond to last ping — terminate
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, PING_INTERVAL_MS);
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   clients.add(ws);
 
   ws.on('message', (message) => {

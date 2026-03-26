@@ -388,18 +388,22 @@ void loop() {
                     settlePending = true;
                     break;
                 }
-                case InputEvent::YES:
+                case InputEvent::YES: {
                     terminalOwnsDisplay = false;  // Release ownership
-                    if (currentDisplay.selectionIndex >= 0 &&
-                        currentDisplay.selectionIndex < currentDisplay.targetCount) {
-                        const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
+                    int idx = currentDisplay.selectionIndex;
+                    int count = currentDisplay.targetCount;
+                    currentDisplay.targetCount = 0;  // Prevent re-entry into fast path
+                    if (idx >= 0 && idx < count) {
+                        const char* targetId = currentDisplay.targetIds[idx].c_str();
                         networkSendConfirmWithTarget(targetId);
                     } else {
                         networkSendConfirm();
                     }
                     break;
+                }
                 case InputEvent::NO:
                     terminalOwnsDisplay = false;  // Release ownership
+                    currentDisplay.targetCount = 0;  // Prevent re-entry into fast path
                     networkSendAbstain();
                     break;
                 default:
