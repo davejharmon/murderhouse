@@ -57,13 +57,15 @@ export default function Host() {
   const autoAdvancePausedRef = useRef(false);
   const prevQueueLengthRef = useRef(0);
 
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTutorialSlides, setShowTutorialSlides] = useState(false);
   const [showHeartbeat, setShowHeartbeat] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const [showScores, setShowScores] = useState(false);
   const [showScreenPreview, setShowScreenPreview] = useState(
-    () => localStorage.getItem('host.showScreenPreview') === 'true',
+    () => localStorage.getItem('host.showScreenPreview') !== 'false',
   );
   const [showOperator, setShowOperator] = useState(true);
   const toggleScreenPreview = (v) => {
@@ -634,9 +636,15 @@ export default function Host() {
         ))}
       </div>
 
-      {/* Desktop layout (3-column grid) */}
+      {/* Desktop layout (3-column grid, collapses to overlay sidebar on tablet) */}
+      <button className={styles.tabletMenuBtn} onClick={() => setShowSidebar(v => !v)}>☰</button>
+      <button className={styles.tabletLogBtn} onClick={() => setShowLog(v => !v)}>📋</button>
+      <div
+        className={`${styles.sidebarOverlay} ${showSidebar ? styles.sidebarOverlayVisible : ''}`}
+        onClick={() => setShowSidebar(false)}
+      />
       <div className={styles.layout}>
-        <aside className={styles.sidebar}>{controlsPanel}</aside>
+        <aside className={`${styles.sidebar} ${showSidebar ? styles.sidebarOpen : ''}`}>{controlsPanel}</aside>
         <main className={styles.main}>
           <div className={styles.mainScrollable}>
             {playersPanel}
@@ -684,7 +692,7 @@ export default function Host() {
             )}
           </div>
         </main>
-        <aside className={styles.logPanel}>
+        <aside className={`${styles.logPanel} ${showLog ? styles.logOpen : ''}`}>
           <GameLog entries={log} />
         </aside>
       </div>

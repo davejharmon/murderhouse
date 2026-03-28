@@ -321,6 +321,30 @@
   overflow-y: auto;
 }
 
+/* Tablet sidebar toggle button */
+.tabletMenuBtn {
+  display: none;
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 801;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.tabletMenuBtn:hover {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
+
 /* === Mobile layout (hidden on desktop) === */
 
 .mobileLayout {
@@ -352,26 +376,124 @@
   }
 }
 
-@media (max-width: 900px) {
+/* === iPad / Tablet layout (768-1024px) === */
+@media (max-width: 1024px) {
   .layout {
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 1fr;
+    position: relative;
   }
 
   .sidebar {
-    padding: var(--space-sm) var(--space-md);
-    gap: var(--space-sm);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 800;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    padding: var(--space-md);
+    gap: var(--space-md);
+    border-right: 1px solid var(--border-color);
+    background: var(--color-bg-medium);
   }
 
-  .header {
-    padding-bottom: var(--space-sm);
+  .sidebar.sidebarOpen {
+    transform: translateX(0);
   }
 
-  .section {
-    gap: var(--space-sm);
+  .sidebarOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 799;
+  }
+
+  .sidebarOverlay.sidebarOverlayVisible {
+    display: block;
+  }
+
+  .logPanel {
+    display: none;
+  }
+
+  .main {
+    padding: var(--space-md);
+  }
+
+  /* Floating buttons */
+  .tabletMenuBtn {
+    display: flex;
+  }
+
+  .tabletLogBtn {
+    display: flex;
+  }
+
+  /* Log drawer from right */
+  .logPanel {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 800;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    background: var(--color-bg-medium);
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
+  }
+
+  .logPanel.logOpen {
+    transform: translateX(0);
   }
 }
 
-@media (max-width: 768px) {
+/* Log toggle button (tablet only) */
+.tabletLogBtn {
+  display: none;
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 801;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.tabletLogBtn:hover {
+  background: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+}
+
+@media (min-width: 1025px) {
+  .tabletMenuBtn {
+    display: none;
+  }
+
+  .tabletLogBtn {
+    display: none;
+  }
+
+  .sidebarOverlay {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
   /* Hide desktop grid */
   .layout {
     display: none;

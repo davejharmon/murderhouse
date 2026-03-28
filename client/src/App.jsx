@@ -4,6 +4,7 @@ import { GameProvider } from './context/GameContext';
 import Landing from './pages/Landing';
 import Player from './pages/Player';
 import Host from './pages/Host';
+import HostPad from './pages/HostPad';
 import Screen from './pages/Screen';
 import DebugGrid from './pages/DebugGrid';
 import Operator from './pages/Operator';
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/player/:id" element={<Player />} />
           <Route path="/host" element={<Host />} />
+          <Route path="/hostpad" element={<HostPad />} />
           <Route path="/screen" element={<Screen />} />
           <Route path="/debug" element={<DebugGrid />} />
           <Route path="/operator" element={<Operator />} />

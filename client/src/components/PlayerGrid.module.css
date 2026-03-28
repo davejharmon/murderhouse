@@ -306,6 +306,7 @@
   transition: all 0.2s ease;
   text-transform: capitalize;
   width: 100%;
+  max-width: 120px;
 }
 
 .roleSelect:hover {

@@ -23,9 +23,10 @@ export default function Player() {
     rejoinAsPlayer,
   } = useGame();
 
-  // Set page title
+  // Set page title and request landscape orientation
   useEffect(() => {
     document.title = `Player ${playerId} - MURDERHOUSE`;
+    try { screen.orientation?.lock?.('landscape').catch(() => {}) } catch {}
   }, [playerId]);
 
   // Join game on mount
