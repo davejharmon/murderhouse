@@ -622,7 +622,7 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
                 parsePlayerState(msgPayload);
             }
             else if (strcmp(msgType, ServerMsg::OPERATOR_STATE) == 0) {
-                parseOperatorState(msgPayload);
+                if (isOperatorMode) parseOperatorState(msgPayload);
             }
             else if (strcmp(msgType, ServerMsg::HEARTRATE_MONITOR) == 0) {
                 bool enabled = msgPayload["enabled"] | false;

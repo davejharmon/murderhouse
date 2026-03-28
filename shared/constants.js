@@ -207,7 +207,7 @@ export const EventId = {
   PROTECT: 'protect',
   INVESTIGATE: 'investigate',
   SHOOT: 'shoot',
-  HUNT: 'hunt',
+  SUGGEST: 'hunt', // Renamed from HUNT; string value kept for backwards compatibility
   VIGIL: 'vigil',
   SUSPECT: 'suspect',
   CUSTOM_EVENT: 'customEvent',
@@ -216,6 +216,7 @@ export const EventId = {
   POISON: 'poison',
   STUMBLE: 'stumble',
   JAIL: 'jail',
+  INJECT: 'inject',
 };
 
 export const ItemId = {
@@ -228,6 +229,8 @@ export const ItemId = {
   HARDENED: 'hardened',
   NOVOTE: 'novote',
   WARDEN: 'warden',
+  POISONED: 'poisoned',
+  SYRINGE: 'syringe',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -263,7 +266,7 @@ export const DEBUG_MODE = process.env.NODE_ENV !== 'production';
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.GAVEL, ItemId.CLUE, ItemId.WARDEN, ItemId.COWARD, ItemId.MARKED, ItemId.PROSPECT, ItemId.HARDENED, ItemId.NOVOTE];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.GAVEL, ItemId.CLUE, ItemId.WARDEN, ItemId.SYRINGE, ItemId.COWARD, ItemId.MARKED, ItemId.PROSPECT, ItemId.HARDENED, ItemId.NOVOTE, ItemId.POISONED];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
@@ -276,6 +279,8 @@ export const ITEM_DISPLAY = {
   [ItemId.HARDENED]: { name: 'Hardened', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, it absorbs the blow instead.' },
   [ItemId.WARDEN]: { name: 'Warden', emoji: '🔒', description: 'Lock someone away for the night. Target is protected and roleblocked.' },
   [ItemId.NOVOTE]: { name: 'No Vote', emoji: '🚷', description: 'Hidden restraint. This player cannot vote in the next elimination vote.' },
+  [ItemId.SYRINGE]: { name: 'Syringe', emoji: '💉', description: 'Inject a player with poison. They die when next night events resolve.' },
+  [ItemId.POISONED]: { name: 'Poisoned', emoji: '☠️', description: 'Slow-acting toxin. Dies when next night events resolve.' },
 };
 
 // Available roles (for host pre-assignment UI)

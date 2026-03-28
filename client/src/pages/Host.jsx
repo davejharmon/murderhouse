@@ -526,6 +526,8 @@ export default function Host() {
         onTimerDurationChange={handleTimerDurationChange}
         onOpenCalibration={() => { setShowSettings(false); setShowCalibration(true); }}
         onOpenScores={() => { setShowSettings(false); setShowScores(true); }}
+        hostSettings={hostSettings}
+        onSaveSettings={(settings) => send(ClientMsg.SAVE_HOST_SETTINGS, settings)}
       />
 
       <TutorialSlidesModal
@@ -599,47 +601,51 @@ export default function Host() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>{controlsPanel}</aside>
         <main className={styles.main}>
-          {playersPanel}
-          <div className={styles.screenPreviewBar}>
-            <button
-              className={styles.screenPreviewToggle}
-              onClick={() => toggleScreenPreview()}
-            >
-              {showScreenPreview ? '▲' : '▼'} SCREEN
-            </button>
-          </div>
-          {showScreenPreview && <ScreenPreview />}
-          <div className={styles.screenPreviewBar}>
-            <button
-              className={styles.screenPreviewToggle}
-              onClick={() => setShowOperator(v => !v)}
-            >
-              {showOperator ? '▲' : '▼'} OPERATOR
-              {operatorState?.ready ? (
-                <span className={styles.operatorReadyDot}> ● READY</span>
-              ) : null}
-            </button>
-            <button
-              className={styles.operatorSendBtn}
-              disabled={!(operatorState?.words?.length > 0)}
-              onClick={() => send(ClientMsg.OPERATOR_SEND)}
-            >
-              👻
-            </button>
-          </div>
-          {showOperator && (
-            <div
-              className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}
-            >
-              <div className={styles.operatorMessage}>
-                {operatorState?.words?.length > 0 ? (
-                  operatorState.words.join(' ')
-                ) : (
-                  <span className={styles.operatorEmpty}>{getStr('host', 'noMessage')}</span>
-                )}
-              </div>
+          <div className={styles.mainScrollable}>
+            {playersPanel}
+            <div className={styles.screenPreviewBar}>
+              <button
+                className={styles.screenPreviewToggle}
+                onClick={() => toggleScreenPreview()}
+              >
+                {showScreenPreview ? '▲' : '▼'} SCREEN
+              </button>
             </div>
-          )}
+            {showScreenPreview && <ScreenPreview />}
+          </div>
+          <div className={styles.mainFixed}>
+            <div className={styles.screenPreviewBar}>
+              <button
+                className={styles.screenPreviewToggle}
+                onClick={() => setShowOperator(v => !v)}
+              >
+                {showOperator ? '▲' : '▼'} OPERATOR
+                {operatorState?.ready ? (
+                  <span className={styles.operatorReadyDot}> ● READY</span>
+                ) : null}
+              </button>
+              <button
+                className={styles.operatorSendBtn}
+                disabled={!(operatorState?.words?.length > 0)}
+                onClick={() => send(ClientMsg.OPERATOR_SEND)}
+              >
+                👻
+              </button>
+            </div>
+            {showOperator && (
+              <div
+                className={`${styles.operatorPanel} ${operatorState?.ready ? styles.operatorReady : ''}`}
+              >
+                <div className={styles.operatorMessage}>
+                  {operatorState?.words?.length > 0 ? (
+                    operatorState.words.join(' ')
+                  ) : (
+                    <span className={styles.operatorEmpty}>{getStr('host', 'noMessage')}</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </main>
         <aside className={styles.logPanel}>
           <GameLog entries={log} />

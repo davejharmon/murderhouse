@@ -482,8 +482,8 @@ const events = {
           };
         }
 
-        // Apply poison state — victim dies at end of next night
-        victim.isPoisoned = true;
+        // Apply poison via item — victim dies when next night's events resolve
+        game.giveItem(victim.id, ItemId.POISONED);
         victim.poisonedAt = game.dayCount;
         const chemist = [...game.players.values()].find((p) => p.role?.id === RoleId.CHEMIST && p.isAlive);
         return {
@@ -855,6 +855,59 @@ const events = {
 
       const messages = blocks.map(
         (b) => str('log', 'handlerBlocked', { blocker: b.blocker.getNameWithEmoji(), target: b.target.getNameWithEmoji() }),
+      );
+
+      return {
+        success: true,
+        message: messages.join(', '),
+        silent: false,
+      };
+    },
+  },
+
+  inject: {
+    id: 'inject',
+    get name() { return str('events', 'inject.name') },
+    get description() { return str('events', 'inject.description') },
+    verb: 'inject',
+    verbPastTense: 'injected',
+    phase: [GamePhase.NIGHT],
+    priority: 55, // Mid-night, same window as vigil/suggest
+
+    participants: (game) => {
+      // Item-based only — getEventParticipants adds syringe holders via startsEvent
+      return [];
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const injections = [];
+
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+        const actor = game.getPlayer(actorId);
+        const target = game.getPlayer(targetId);
+        if (!actor || !target || !target.isAlive) continue;
+
+        // Give POISONED item to target
+        game.giveItem(target.id, ItemId.POISONED);
+        target.poisonedAt = game.dayCount;
+
+        injections.push({ actor, target });
+      }
+
+      if (injections.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const messages = injections.map(
+        (i) => str('log', 'syringeInjected', { actor: i.actor.getNameWithEmoji(), target: i.target.getNameWithEmoji() }),
       );
 
       return {

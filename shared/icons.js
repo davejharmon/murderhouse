@@ -530,6 +530,7 @@ export const Icons = {
   chemist: ICON_CHEMIST,
   jester: ICON_JESTER,
   jailer: ICON_JAILER,
+  syringe: ICON_CHEMIST, // Same chemist icon for the item version
   warden: ICON_JAILER, // Same jail bars icon for the item version
   pistol: ICON_PISTOL,
   gavel: ICON_GAVEL,

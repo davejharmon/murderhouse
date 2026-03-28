@@ -29,7 +29,7 @@ function fitRoleName(role, maxChars) {
 const EVENT_ACTIONS = {
   [EventId.VOTE]:         { confirm: 'VOTE',    abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
   pardon:                 { confirm: 'PARDON',  abstain: 'CONDEMN', prompt: 'PARDON' },
-  [EventId.HUNT]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
+  [EventId.SUGGEST]:      { confirm: 'SUGGEST', abstain: 'ABSTAIN', prompt: 'SUGGEST SOMEONE' },
   [EventId.KILL]:         { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'TARGET SOMEONE' },
   [EventId.INVESTIGATE]:  { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
   [EventId.STUMBLE]:      { confirm: 'REVEAL',  abstain: 'ABSTAIN', prompt: 'INVESTIGATE SOMEONE' },
@@ -38,8 +38,9 @@ const EVENT_ACTIONS = {
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
   [EventId.BLOCK]:        { confirm: 'BLOCK',   abstain: 'ABSTAIN', prompt: 'BLOCK SOMEONE' },
   [EventId.JAIL]:         { confirm: 'JAIL',    abstain: 'ABSTAIN', prompt: 'JAIL SOMEONE' },
-  [EventId.CLEAN]:        { confirm: 'YES',     abstain: 'NO',      prompt: 'CLEAN UP?' },
-  [EventId.POISON]:       { confirm: 'YES',     abstain: 'NO',      prompt: 'USE POISON?' },
+  [EventId.INJECT]:       { confirm: 'INJECT',  abstain: 'ABSTAIN', prompt: 'SELECT TARGET' },
+  [EventId.CLEAN]:        { confirm: 'YES',     abstain: 'NO',      prompt: 'CLEAN UP?',    negPrompt: "DON'T CLEAN" },
+  [EventId.POISON]:       { confirm: 'YES',     abstain: 'NO',      prompt: 'USE POISON?', negPrompt: "DON'T POISON" },
   [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.CUSTOM_EVENT]: { confirm: 'CONFIRM', abstain: 'ABSTAIN', prompt: 'VOTE FOR SOMEONE' },
   hunterRevenge:          { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
@@ -100,7 +101,6 @@ export class Player {
 
     // Role-specific state
     this.vigilanteUsed = false;
-    this.isPoisoned = false;
     this.poisonedAt = null; // dayCount value of the night poison was applied
 
     // Inventory
@@ -157,7 +157,6 @@ export class Player {
     this.suspicions = [];
     this.lastProtected = null;
     this.vigilanteUsed = false;
-    this.isPoisoned = false;
     this.poisonedAt = null;
     this.inventory = [];
     this.hiddenInventory = [];
@@ -221,7 +220,9 @@ export class Player {
   }
 
   confirmSelection() {
-    return this.currentSelection;
+    const selection = this.currentSelection;
+    this.currentSelection = null;
+    return selection;
   }
 
   abstain() {
@@ -309,7 +310,7 @@ export class Player {
       roleColor: showRole ? this.role?.color : null,
       roleTeam: showRole ? this.role?.team : null,
       deathTimestamp: isDead ? this.deathTimestamp : null,
-      isPoisoned: this.isPoisoned,
+      isPoisoned: this.hasItem(ItemId.POISONED),
       isCowering: this.hasItem(ItemId.COWARD),
       hasNovote: this.hasItem(ItemId.NOVOTE),
     };
@@ -432,6 +433,8 @@ export class Player {
     // advance to the next unresolved event instead of showing the locked/abstained screen.
     let displayEventId = activeEventId;
     let displayEventName = eventName;
+    let displayConfirmedId = confirmedTargetId;
+    let displayConfirmedNames = null;
     let advancedToNext = false;
     if ((isAbstained || confirmedTargetId) && this.pendingEvents.size > 1) {
       for (const eid of this.pendingEvents) {
@@ -443,6 +446,22 @@ export class Player {
           advancedToNext = true;
           break;
         }
+      }
+      // All events resolved: collect all confirmed target names for summary display
+      if (!advancedToNext) {
+        const allTargetNames = [];
+        for (const eid of this.pendingEvents) {
+          const inst = game?.activeEvents?.get(eid);
+          if (inst && this.id in inst.results) {
+            const tid = inst.results[this.id];
+            if (tid) {
+              const t = game.getPlayer(tid);
+              if (t) allTargetNames.push(t.name.toUpperCase());
+            }
+          }
+        }
+        displayConfirmedId = '__summary__';
+        displayConfirmedNames = allTargetNames;
       }
     }
 
@@ -458,8 +477,20 @@ export class Player {
 
     // Only show confirmed/abstained if there's no next event to advance to
     if (!advancedToNext) {
-      if (isAbstained)                       return this._displayAbstained(getLine1, eventName, activeEventId);
-      if (confirmedTargetId)                 return this._displayConfirmed(game, getLine1, eventName, activeEventId, confirmedTargetId);
+      if (isAbstained)                       return this._displayAbstained(getLine1, displayEventName, displayEventId);
+      if (displayConfirmedNames) {
+        // Multi-event summary: show all confirmed targets
+        const summaryText = displayConfirmedNames.join('  ');
+        return this._display(
+          { left: getLine1(), right: '' },
+          { text: summaryText, style: DisplayStyle.LOCKED },
+          { text: 'Selection locked' },
+          { yes: LedState.OFF, no: LedState.OFF },
+          StatusLed.LOCKED,
+          { activeEventId: displayEventId }
+        );
+      }
+      if (displayConfirmedId)                return this._displayConfirmed(game, getLine1, displayEventName, displayEventId, displayConfirmedId);
     }
 
     // When advancing to next event, always show fresh target selection (no stale selection)
@@ -477,15 +508,16 @@ export class Player {
 
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
 
-    if (this.isPoisoned && !hasActiveEvent) return this._displayPoisoned(getLine1, phaseLed);
+    // Poisoned players don't know they're poisoned — no display notification
 
     // Dynamically compute packmate tip for cell members (reflects living members)
     if (this.role?.team === Team.CELL) {
       const packmates = game.getAlivePlayers().filter(
         (p) => p.id !== this.id && p.role.team === Team.CELL,
       );
+      const cellNames = [this.name, ...packmates.map(p => p.name)].join(', ');
       if (packmates.length === 0) {
-        this.tutorialTip = 'Lone wolf';
+        this.tutorialTip = `CELL: ${this.name}`;
       } else {
         // Non-alpha idle during KILL: show alpha's current/confirmed pick
         const killInstance = game.activeEvents?.get(EventId.KILL);
@@ -496,15 +528,15 @@ export class Player {
             const alphaPick = (alphaResult && !alphaResult.abstained) ? alphaResult.targetId : alpha.currentSelection;
             if (alphaPick) {
               const targetName = game.getPlayer(alphaPick)?.name || 'Unknown';
-              this.tutorialTip = `PACK: ${targetName.toUpperCase()}`;
+              this.tutorialTip = `CELL: ${targetName.toUpperCase()}`;
             } else {
-              this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+              this.tutorialTip = `CELL: ${cellNames}`;
             }
           } else {
-            this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+            this.tutorialTip = `CELL: ${cellNames}`;
           }
         } else {
-          this.tutorialTip = `PACK: ${packmates.map((p) => p.name).join(', ')}`;
+          this.tutorialTip = `CELL: ${cellNames}`;
         }
       }
     }
@@ -592,10 +624,10 @@ export class Player {
     } else {
       line2Text = targetName.toUpperCase();
     }
-    // Show pack hint alongside "Selection locked" for KILL/HUNT
+    // Show cell status alongside "Selection locked" for KILL/HUNT
     const packHint = this._getPackHint(game, activeEventId);
     const line3 = packHint
-      ? { left: 'Selection locked', center: packHint }
+      ? { left: packHint.left, center: packHint.center, right: packHint.right }
       : { text: 'Selection locked' };
     return this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
@@ -613,23 +645,18 @@ export class Player {
     const canAbstain = ctx.eventContext?.allowAbstain !== false;
     const actions = getEventActions(activeEventId);
 
-    // Special display for specific events
-    let line2Text;
-    if (activeEventId === 'pardon') {
-      line2Text = `PARDON ${targetName.toUpperCase()}?`;
-    } else if (activeEventId === EventId.CLEAN) {
-      line2Text = 'CLEAN UP?';
-    } else if (activeEventId === EventId.POISON) {
-      line2Text = 'USE POISON?';
-    } else {
-      line2Text = targetName.toUpperCase();
+    // Boolean toggle events: delegate to NoSelection display (same UX, both LEDs bright)
+    if (actions.negPrompt || activeEventId === 'pardon') {
+      return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
     }
+
+    const line2Text = targetName.toUpperCase();
 
     const display = this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: line2Text, style: DisplayStyle.NORMAL },
       packHint
-        ? { left: actions.confirm, center: packHint, right: canAbstain ? actions.abstain : '' }
+        ? { left: packHint.left, center: packHint.center, right: packHint.right }
         : { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
       { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING,
@@ -650,24 +677,49 @@ export class Player {
     const canAbstain = ctx.eventContext?.allowAbstain !== false;
     const actions = getEventActions(activeEventId);
 
-    // Special display for pardon event - show condemned player's name
-    if (activeEventId === 'pardon') {
-      const condemnedName = game?.flows?.get('pardon')?.state?.condemnedName || 'Unknown';
-      return this._display(
+    // Boolean toggle events (self-target with negPrompt): dial swaps positive/negative text
+    // YES on positive = confirm action, YES on negative = decline (__decline__ sentinel)
+    // NO always = decline. Both buttons always active.
+    if (actions.negPrompt) {
+      const display = this._display(
         { left: getLine1(eventName, activeEventId), right: '' },
-        { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
-        { left: actions.confirm, right: actions.abstain },
-        { yes: LedState.BRIGHT, no: LedState.DIM },
+        { text: actions.prompt, style: DisplayStyle.NORMAL },
+        packHint
+          ? { left: packHint.left, center: packHint.center, right: packHint.right }
+          : { text: '' },
+        { yes: LedState.BRIGHT, no: LedState.BRIGHT },
         StatusLed.VOTING,
         { activeEventId }
       );
+      display.targetNames = [actions.prompt, actions.negPrompt];
+      display.targetIds   = [this.id, '__decline__'];
+      display.selectionIndex = 0;
+      return display;
+    }
+
+    // Pardon toggle: same pattern — dial swaps PARDON/EXECUTE
+    if (activeEventId === 'pardon') {
+      const condemnedId = game?.flows?.get('pardon')?.state?.condemnedId || '';
+      const condemnedName = game?.flows?.get('pardon')?.state?.condemnedName || 'Unknown';
+      const display = this._display(
+        { left: getLine1(eventName, activeEventId), right: '' },
+        { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
+        { left: actions.confirm, right: actions.abstain },
+        { yes: LedState.BRIGHT, no: LedState.BRIGHT },
+        StatusLed.VOTING,
+        { activeEventId }
+      );
+      display.targetNames = [`PARDON ${condemnedName.toUpperCase()}?`, `EXECUTE ${condemnedName.toUpperCase()}`];
+      display.targetIds   = [condemnedId, '__decline__'];
+      display.selectionIndex = 0;
+      return display;
     }
 
     const display = this._display(
       { left: getLine1(eventName, activeEventId), right: '' },
       { text: actions.prompt, style: DisplayStyle.WAITING },
       packHint
-        ? { left: 'Use dial', center: packHint, right: canAbstain ? actions.abstain : '' }
+        ? { left: packHint.left, center: packHint.center, right: packHint.right }
         : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
       { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
       StatusLed.VOTING,
@@ -730,7 +782,10 @@ export class Player {
       const displayRole = this._displayRoleOverride || this.role;
       line2Text = displayRole ? fitRoleName(displayRole, 23) : 'READY';
       line3 = { text: this.tutorialTip || '' };
-      if (this.roleRevealPending) line2Style = DisplayStyle.CRITICAL;
+      if (this.roleRevealPending) {
+        line2Style = DisplayStyle.CRITICAL;
+        this.roleRevealPending = false; // Flash once, then clear
+      }
     } else {
       // Item slots (1 or 2)
       const itemIndex = idx - 1;
@@ -935,42 +990,85 @@ export class Player {
    * Alpha (in KILL): majority of packmates' confirmedSelection ?? currentSelection
    * Non-alpha (in HUNT): alpha's confirmedSelection ?? currentSelection
    */
+  /**
+   * Build cell status for line3 during night events.
+   * Returns { left, center, right } or null if not a cell member / no active event.
+   *   left:   Fixer cleanup status (+/- CLEANUP)
+   *   center: Sleeper majority suggestion (target name) or Alpha's pick
+   *   right:  Chemist poison status (+/- POISON)
+   */
   _getPackHint(game, eventId) {
-    if (!this.role || this.role.team !== Team.CELL) return '';
-    if (!game.activeEvents?.has(EventId.KILL)) return '';
+    if (!this.role || this.role.team !== Team.CELL) return null;
+    if (!game.activeEvents?.has(eventId)) return null;
 
     const packMembers = game.getAlivePlayers()
       .filter((p) => p.role.team === Team.CELL && p.id !== this.id);
 
-    if (packMembers.length === 0) return '';
-
-    // Non-alpha: show alpha's specific pick
+    // --- Center: suggestion/target ---
+    let center = '';
     if (this.role.id !== RoleId.ALPHA) {
-      const alpha = packMembers.find(p => p.role.id === RoleId.ALPHA);
-      if (!alpha) return '';
-      const alphaResult = alpha.getActiveResult(game);
-      const alphaPick = (alphaResult && !alphaResult.abstained) ? alphaResult.targetId : alpha.currentSelection;
-      if (!alphaPick) return '';
-      const target = game.getPlayer(alphaPick);
-      return target ? target.name.toUpperCase() : '';
-    }
-
-    // Alpha: tally packmates' confirmedSelection ?? currentSelection
-    const tally = {};
-    for (const member of packMembers) {
-      const result = member.getActiveResult(game);
-      const pick = (result && !result.abstained) ? result.targetId : member.currentSelection;
-      if (pick) {
-        tally[pick] = (tally[pick] || 0) + 1;
+      // Non-alpha: show Alpha's KILL target
+      const killInstance = game.activeEvents.get(EventId.KILL);
+      if (killInstance) {
+        const alpha = packMembers.find(p => p.role.id === RoleId.ALPHA);
+        if (alpha) {
+          const alphaPick = (alpha.id in killInstance.results)
+            ? killInstance.results[alpha.id]
+            : alpha.currentSelection;
+          if (alphaPick) {
+            const target = game.getPlayer(alphaPick);
+            center = target ? target.name.toUpperCase() : '';
+          }
+        }
+      }
+    } else {
+      // Alpha: tally majority target from HUNT (sleeper suggestions)
+      const huntInstance = game.activeEvents.get(EventId.SUGGEST);
+      if (huntInstance) {
+        const tally = {};
+        for (const pid of huntInstance.participants) {
+          const member = game.getPlayer(pid);
+          if (!member || member.id === this.id) continue;
+          const pick = (pid in huntInstance.results)
+            ? huntInstance.results[pid]
+            : member.currentSelection;
+          if (pick && pick !== '__decline__') tally[pick] = (tally[pick] || 0) + 1;
+        }
+        const entries = Object.entries(tally);
+        if (entries.length > 0) {
+          const [topTargetId] = entries.sort((a, b) => b[1] - a[1])[0];
+          const topTarget = game.getPlayer(topTargetId);
+          center = topTarget ? topTarget.name.toUpperCase() : '';
+        }
       }
     }
 
-    const entries = Object.entries(tally);
-    if (entries.length === 0) return '';
+    // --- Left: Fixer cleanup status ---
+    let left = '';
+    const cleanInstance = game.activeEvents.get(EventId.CLEAN);
+    if (cleanInstance) {
+      const fixer = game.getAlivePlayers().find(p => p.role.id === RoleId.FIXER);
+      if (fixer) {
+        const fixerResult = fixer.id in cleanInstance.results;
+        const fixerYes = fixerResult && cleanInstance.results[fixer.id] !== null;
+        left = fixerResult ? (fixerYes ? '+CLEANUP' : '-CLEANUP') : 'CLEANUP?';
+      }
+    }
 
-    const [topTargetId] = entries.sort((a, b) => b[1] - a[1])[0];
-    const topTarget = game.getPlayer(topTargetId);
-    return topTarget ? topTarget.name.toUpperCase() : '';
+    // --- Right: Chemist poison status ---
+    let right = '';
+    const poisonInstance = game.activeEvents.get(EventId.POISON);
+    if (poisonInstance) {
+      const chemist = game.getAlivePlayers().find(p => p.role.id === RoleId.CHEMIST);
+      if (chemist) {
+        const chemistResult = chemist.id in poisonInstance.results;
+        const chemistYes = chemistResult && poisonInstance.results[chemist.id] !== null;
+        right = chemistResult ? (chemistYes ? '+POISON' : '-POISON') : 'POISON?';
+      }
+    }
+
+    if (!left && !center && !right) return null;
+    return { left, center, right };
   }
 
   // Inventory management

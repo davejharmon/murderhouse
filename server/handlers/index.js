@@ -41,10 +41,10 @@ export function createHandlers(game, clients) {
           send(ws, ServerMsg.WELCOME, {
             playerId,
             reconnected: true,
-            player: existing.getPrivateState(game),
+            player: existing.getPrivateState(game, { forSelf: true }),
           });
           send(ws, ServerMsg.GAME_STATE, game.getGameState());
-          send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState(game));
+          send(ws, ServerMsg.PLAYER_STATE, existing.getPrivateState(game, { forSelf: true }));
           if (ws.source === 'terminal') {
             send(ws, ServerMsg.HEARTRATE_MONITOR, { enabled: game._isHeartrateNeeded(playerId) });
           }

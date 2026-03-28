@@ -250,6 +250,7 @@ export class Game {
       heartbeatDisplayElevated: 110,
       simsCanLose: false,
       heartbeatAddNoise: false,
+      poisonKillsGeneric: false,
     };
     if (!fs.existsSync(HOST_SETTINGS_PATH)) {
       this._hostSettings = defaults;
@@ -874,7 +875,7 @@ export class Game {
         subtitle: str('slides', 'phase.nightN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
-      });
+      }, false); // Don't jump — let host advance through any preceding slides first
       // Snapshot slide count after the night gallery — used to detect silent nights
       this._nightStartSlideCount = this.slideQueue.length;
     } else if (this.phase === GamePhase.NIGHT) {
@@ -888,7 +889,7 @@ export class Game {
         subtitle: str('slides', 'phase.dayN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
-      });
+      }, false); // Don't jump — let host advance through any preceding slides first
     }
 
     // Clear events and build new ones
@@ -1315,13 +1316,15 @@ export class Game {
     // Find the player's next unresolved event (skip events they've already responded to)
     for (const [eventId, instance] of this.activeEvents) {
       if (instance.participants.includes(playerId) && !(playerId in instance.results)) {
-        instance.results[playerId] = targetId;
+        // Sentinel "__decline__" from boolean toggle events = treat as abstain
+        const effectiveTarget = targetId === '__decline__' ? null : targetId;
+        instance.results[playerId] = effectiveTarget;
 
         // Check if this event is managed by a flow
         if (instance.managedByFlow) {
           const flow = this.flows.get(eventId);
           if (flow) {
-            const result = flow.onSelection(playerId, targetId);
+            const result = flow.onSelection(playerId, effectiveTarget);
             if (result) {
               this._executeFlowResult(result);
               this.broadcastGameState();
@@ -1611,6 +1614,7 @@ export class Game {
       [EventId.CLEAN]: 'clean',
       [EventId.POISON]: 'poison',
       [EventId.JAIL]: 'jail',
+      [EventId.INJECT]: 'inject',
     };
     const roleblockVerb = ROLEBLOCK_VERBS[eventId];
     if (roleblockVerb && blockedPairs.length > 0) {
@@ -1637,6 +1641,11 @@ export class Game {
     this._commitResolution(eventId, resolution);
     this._dispatchPrivateResults(resolution);
 
+    // Check for poison deaths after each night event resolution
+    if (this.phase === GamePhase.NIGHT) {
+      this._processPoisonDeaths();
+    }
+
     const winner = this.checkWinCondition();
     if (winner) this.endGame(winner);
 
@@ -1650,10 +1659,51 @@ export class Game {
       (a, b) => a[1].event.priority - b[1].event.priority,
     );
 
+    // Snapshot slide count before resolution — used to detect and shuffle death slides
+    const slidesBefore = this.slideQueue.length;
+
     const results = [];
     for (const [eventId] of sorted) {
       const result = this.resolveEvent(eventId);
       results.push({ eventId, ...result });
+    }
+
+    // Process poison deaths at end of resolve (Night 1 poison triggers Night 2 resolveAll)
+    if (this.phase === GamePhase.NIGHT) {
+      this._processPoisonDeaths();
+    }
+
+    // Reorder new slides: group by playerId, sort by priority.
+    // Normal kills = 0, poison = 50 (randomized among normals), hunter revenge = 100 (always last).
+    const newSlides = this.slideQueue.slice(slidesBefore);
+    if (newSlides.length > 2) {
+      // Group consecutive slides by playerId (keeps death identity + reveal + flow slides together)
+      const groups = [];
+      let cur = [];
+      for (const slide of newSlides) {
+        if (cur.length > 0 && slide.playerId && cur[0].playerId && slide.playerId !== cur[0].playerId
+            && !slide._flowSlide) {
+          groups.push(cur);
+          cur = [];
+        }
+        cur.push(slide);
+      }
+      if (cur.length > 0) groups.push(cur);
+
+      if (groups.length >= 2) {
+        // Assign each group a sort priority from its highest-priority slide
+        const groupPriority = (g) => Math.max(...g.map(s => s._slidePriority ?? 0));
+        // Randomize groups at the same priority level, then stable-sort by priority
+        for (let i = groups.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          if (groupPriority(groups[i]) === groupPriority(groups[j])) {
+            [groups[i], groups[j]] = [groups[j], groups[i]];
+          }
+        }
+        groups.sort((a, b) => groupPriority(a) - groupPriority(b));
+        this.slideQueue.splice(slidesBefore, newSlides.length, ...groups.flat());
+        this.broadcastSlides();
+      }
     }
 
     // Night fallback: if no informative slides were pushed this night, show TIME PASSES
@@ -2284,11 +2334,11 @@ export class Game {
   // Called before resetForPhase() so isProtected is still readable.
   _processPoisonDeaths() {
     for (const player of this.players.values()) {
-      if (!player.isPoisoned || !player.isAlive) continue;
-      // Trigger one night after poison was applied (poisonedAt + 1 === current dayCount)
-      if (this.dayCount !== player.poisonedAt + 1) continue;
+      if (!player.hasItem(ItemId.POISONED) || !player.isAlive) continue;
+      // Trigger if it's not the same day poison was applied
+      if (this.dayCount <= player.poisonedAt) continue;
 
-      player.isPoisoned = false;
+      this.removeItem(player.id, ItemId.POISONED);
       player.poisonedAt = null;
 
       // Medic protection on the death night cures the poison — no slide
@@ -2306,10 +2356,14 @@ export class Game {
         neutral: str('slides', 'death.teamNeutral'),
       };
       const teamName = teamNames[player.role?.team] || str('slides', 'death.teamUnknown');
+      const deathSuffix = this._hostSettings.poisonKillsGeneric
+        ? str('slides', 'death.suffixKilled')
+        : str('slides', 'death.suffixPoisoned');
       this.queueDeathSlide({
         type: 'death',
+        _slidePriority: 50, // Between normal kills (0) and hunter revenge (100)
         playerId: player.id,
-        title: `${teamName} ${str('slides', 'death.suffixPoisoned')}`,
+        title: `${teamName} ${deathSuffix}`,
         subtitle: player.name,
         revealRole: true,
         style: SlideStyle.HOSTILE,
@@ -2508,7 +2562,7 @@ export class Game {
     for (const flow of this.flows.values()) {
       const pendingSlide = flow.getPendingSlide();
       if (pendingSlide) {
-        this.pushSlide(pendingSlide, false);
+        this.pushSlide({ ...pendingSlide, _slidePriority: 100, _flowSlide: true }, false);
       }
     }
   }
@@ -3080,8 +3134,11 @@ export class Game {
 
   // Check if pack state should be broadcast for this event/player combination
   shouldBroadcastPackState(eventId, player) {
+    // Broadcast for any cell member's night event — packsense includes
+    // suggestion target, cleanup status, and poison status
     return (
-      (eventId === EventId.HUNT || eventId === EventId.KILL) &&
+      (eventId === EventId.SUGGEST || eventId === EventId.KILL ||
+       eventId === EventId.CLEAN || eventId === EventId.POISON) &&
       player?.role?.team === Team.CELL
     );
   }

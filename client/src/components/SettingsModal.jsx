@@ -33,6 +33,8 @@ export default function SettingsModal({
   onTimerDurationChange,
   onOpenCalibration,
   onOpenScores,
+  hostSettings = {},
+  onSaveSettings,
 }) {
   const [newPresetName, setNewPresetName] = useState('');
 
@@ -122,6 +124,18 @@ export default function SettingsModal({
             />
             <span className={styles.timerUnit}>s</span>
           </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Game Rules</h3>
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={hostSettings?.poisonKillsGeneric ?? false}
+              onChange={e => onSaveSettings?.({ poisonKillsGeneric: e.target.checked })}
+            />
+            <span>Poison kills generic (hide cause of death)</span>
+          </label>
         </section>
 
         <section className={styles.section}>

@@ -107,6 +107,23 @@ const items = {
     startsEvent: EventId.JAIL, // Grants jailer's jail ability
   },
 
+  syringe: {
+    id: 'syringe',
+    get name() { return str('items', 'syringe.name') },
+    get description() { return str('items', 'syringe.description') },
+    maxUses: 1,
+    startsEvent: EventId.INJECT, // Night: select target to poison
+  },
+
+  poisoned: {
+    id: 'poisoned',
+    name: 'Poisoned',
+    description: 'A slow-acting toxin. You will die when night events next resolve.',
+    maxUses: -1, // Passive: consumed on trigger
+    hidden: true, // Not shown on player console or icon slots
+    grantsAbility: 'poisoned', // Checked by _processPoisonDeaths
+  },
+
   novote: {
     id: 'novote',
     name: 'No Vote',

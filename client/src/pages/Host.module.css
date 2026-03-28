@@ -267,8 +267,24 @@
 
 
 .main {
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mainScrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mainFixed {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);

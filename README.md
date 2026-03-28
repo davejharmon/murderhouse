@@ -370,7 +370,11 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
 - ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
 - When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")
-- Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player
+- ~~Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player~~ — Idle tip now shows "CELL: {self}, {packmates}" with current player included.
+- OTA success screen: neopixel GREEN. OTA failed screen: neopixel RED.
+- Warn host about unplayed slides: when starting/resolving an event or advancing phase with unplayed slides, highlight button red, flash the slides x/y count, and show "Warning! Unplayed slides" notification. Clear red state when on last slide. Allow force-through on second click while red.
+- Hidden items (poisoned, marked, prospect, novote) on host dashboard player cards should show as 60% opacity icon without "?" — host sees all secret info
+- Change role reveal slide titles: "CIRCLE MEMBER ELIMINATED" → "THE CIRCLE SHRINKS", "CELL MEMBER ELIMINATED" → "THE CELL SHRINKS" (and similar for KILLED/POISONED)
 
 ## Bugs
 
@@ -378,3 +382,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Seeker terminal disconnects/reconnects when their investigation event ends, briefly dropping before showing the result~~ — `EVENT_RESULT` messages (which contain full Player objects in the `data` field) were being sent to terminal connections despite the ESP32 not handling them. The oversized JSON payload could exceed the ESP32's 4KB parse buffer and drop the connection. Fix: `Player.send()` now skips `EVENT_RESULT` for terminal connections, matching the existing skip for `GAME_STATE` and `EVENT_PROMPT`.
 - ~~Investigate response string on tiny screen (e.g. "DAVIS is INNOCENT") should use the important/blinking display style~~ — Could not reproduce; code already sets `critical: true`.
 - ~~Gavel use is consumed even when the holder declines to pardon — should only consume on actual pardon~~ — Gavel consumption now gated on `result.pardoned` in `GovernorPardonFlow.onSelection()`.
+- ~~Suggest ability does not work — Alpha does not see majority suggestion from Sleepers, Sleepers do not see Alpha's target. Possibly fast path related.~~ — `_getPackHint()` hardcoded `EventId.KILL` check instead of using the `eventId` parameter. Fixed to use the passed event ID so hints work for both HUNT and KILL events.
+- ~~Opening the React terminal operator console and interacting with it forces every connected ESP32 terminal to display the operator screen~~ — ESP32 now ignores OPERATOR_STATE when not in operator mode.
+- ~~Chemist sees "YES" in line3 left during poison toggle~~ — Boolean event display path had fallback to `actions.confirm`; now uses packsense only.
+- Host dashboard only shows a pip on the first action's target for players with two night actions — should show pips on both targets
+- ~~Marked player briefly sees "MARKED" role on terminal connect before it updates to "NOBODY" — the disguise should apply from the first frame~~ — JOIN handler was calling `getPrivateState(game)` without `forSelf: true`, sending the real role. Fixed to pass `{ forSelf: true }` so disguise applies from the first frame.

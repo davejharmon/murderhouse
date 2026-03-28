@@ -121,8 +121,11 @@ void onDisplayUpdate(const DisplayState& state) {
             // Server cleared targets — exit fast path, accept new state
             terminalOwnsDisplay = false;
         } else {
+            // Update LEDs and line3 (packsense hints) from server during fast path
             ledsSetFromDisplay(state);
             ledsSetGameState(state.statusLed);
+            currentDisplay.line3 = state.line3;
+            displayDirty = true;
             return;
         }
     }

@@ -557,6 +557,7 @@ inline const uint8_t* getIconBitmap(const String& id) {
     if (id == "chemist") return ICON_CHEMIST;
     if (id == "jester") return ICON_JESTER;
     if (id == "jailer") return ICON_JAILER;
+    if (id == "syringe") return ICON_CHEMIST;
     if (id == "warden") return ICON_JAILER;
     if (id == "pistol") return ICON_PISTOL;
     if (id == "gavel") return ICON_GAVEL;
