@@ -14,6 +14,8 @@ import {
   StatusLed,
   IconState,
 } from '../shared/constants.js';
+import { getEvent } from './definitions/events.js';
+import { getItem } from './definitions/items.js';
 
 // Returns the best-fitting role name within maxChars: full name if it fits,
 // otherwise shortName (truncated to maxChars if necessary).
@@ -426,6 +428,24 @@ export class Player {
     const isAbstained = activeResult?.abstained ?? false;
     const confirmedTargetId = (activeResult && !activeResult.abstained) ? activeResult.targetId : null;
 
+    // If player has confirmed/abstained on current event but has more pending events,
+    // advance to the next unresolved event instead of showing the locked/abstained screen.
+    let displayEventId = activeEventId;
+    let displayEventName = eventName;
+    let advancedToNext = false;
+    if ((isAbstained || confirmedTargetId) && this.pendingEvents.size > 1) {
+      for (const eid of this.pendingEvents) {
+        const inst = game?.activeEvents?.get(eid);
+        if (inst && !(this.id in inst.results)) {
+          displayEventId = eid;
+          const evt = inst.event;
+          displayEventName = (this._displayRoleOverride && evt?.displayName) || evt?.name || null;
+          advancedToNext = true;
+          break;
+        }
+      }
+    }
+
     // Calibration override — highest priority when active
     if (game._calibration?.playerIds.includes(String(this.id))) {
       return this._displayCalibration(game._calibration);
@@ -435,12 +455,20 @@ export class Player {
     if (phase === GamePhase.LOBBY)          return this._displayLobby(getLine1);
     if (phase === GamePhase.GAME_OVER)      return this._displayGameOver(getLine1);
     if (!this.isAlive && !hasActiveEvent)    return this._displayDead(getLine1, ctx.dayCount, phase);
-    if (isAbstained)                         return this._displayAbstained(getLine1, eventName, activeEventId);
-    if (confirmedTargetId)                   return this._displayConfirmed(game, getLine1, eventName, activeEventId, confirmedTargetId);
+
+    // Only show confirmed/abstained if there's no next event to advance to
+    if (!advancedToNext) {
+      if (isAbstained)                       return this._displayAbstained(getLine1, eventName, activeEventId);
+      if (confirmedTargetId)                 return this._displayConfirmed(game, getLine1, eventName, activeEventId, confirmedTargetId);
+    }
+
+    // When advancing to next event, always show fresh target selection (no stale selection)
+    if (advancedToNext)
+      return this._displayEventNoSelection(game, ctx, getLine1, displayEventId, displayEventName);
     if (hasActiveEvent && this.currentSelection)
-      return this._displayEventWithSelection(game, ctx, getLine1, activeEventId, eventName);
+      return this._displayEventWithSelection(game, ctx, getLine1, displayEventId, displayEventName);
     if (hasActiveEvent)
-      return this._displayEventNoSelection(game, ctx, getLine1, activeEventId, eventName);
+      return this._displayEventNoSelection(game, ctx, getLine1, displayEventId, displayEventName);
 
     // Vote is active but player is excluded (novote, coward, or any other reason)
     if (this.isAlive && game.activeEvents?.has(EventId.VOTE) && !this.pendingEvents.has(EventId.VOTE)) {
@@ -481,7 +509,7 @@ export class Player {
       }
     }
 
-    return this._displayIdleScroll(getLine1, phaseLed);
+    return this._displayIdleScroll(getLine1, phaseLed, game);
   }
 
   // --- Display state methods (called by _buildDisplay) ---
@@ -546,7 +574,8 @@ export class Player {
       { text: 'ABSTAINED', style: DisplayStyle.ABSTAINED },
       { text: 'Waiting for others' },
       { yes: LedState.OFF, no: LedState.OFF },
-      StatusLed.ABSTAINED
+      StatusLed.ABSTAINED,
+      { activeEventId }
     );
   }
 
@@ -573,7 +602,8 @@ export class Player {
       { text: line2Text, style: DisplayStyle.LOCKED },
       line3,
       { yes: LedState.OFF, no: LedState.OFF },
-      StatusLed.LOCKED
+      StatusLed.LOCKED,
+      { activeEventId }
     );
   }
 
@@ -602,7 +632,8 @@ export class Player {
         ? { left: actions.confirm, center: packHint, right: canAbstain ? actions.abstain : '' }
         : { left: actions.confirm, right: canAbstain ? actions.abstain : '' },
       { yes: LedState.BRIGHT, no: canAbstain ? LedState.DIM : LedState.OFF },
-      StatusLed.VOTING
+      StatusLed.VOTING,
+      { activeEventId }
     );
 
     // Include target list so ESP32 can scroll locally without a server round-trip per tick
@@ -627,7 +658,8 @@ export class Player {
         { text: `PARDON ${condemnedName.toUpperCase()}?`, style: DisplayStyle.NORMAL },
         { left: actions.confirm, right: actions.abstain },
         { yes: LedState.BRIGHT, no: LedState.DIM },
-        StatusLed.VOTING
+        StatusLed.VOTING,
+        { activeEventId }
       );
     }
 
@@ -638,7 +670,8 @@ export class Player {
         ? { left: 'Use dial', center: packHint, right: canAbstain ? actions.abstain : '' }
         : { left: 'Use dial', right: canAbstain ? actions.abstain : '' },
       { yes: LedState.OFF, no: canAbstain ? LedState.DIM : LedState.OFF },
-      StatusLed.VOTING
+      StatusLed.VOTING,
+      { activeEventId }
     );
 
     // Include target list so ESP32 can render the first selection locally without a round-trip
@@ -681,7 +714,7 @@ export class Player {
     );
   }
 
-  _displayIdleScroll(getLine1, phaseLed) {
+  _displayIdleScroll(getLine1, phaseLed, game) {
     const icons = this._buildIcons();
     const idx = this.idleScrollIndex;
     const slot = icons[idx];
@@ -704,13 +737,24 @@ export class Player {
       const inventoryItem = this._getIconSlotItem(itemIndex);
       if (inventoryItem) {
         if (inventoryItem.startsEvent) {
-          // Usable item
+          // Check if the linked event is available in the current phase
+          const linkedEvent = game ? getEvent(inventoryItem.startsEvent) : null;
+          const phaseOk = !linkedEvent?.phase || linkedEvent.phase.includes(game?.phase);
           const usesLabel = inventoryItem.maxUses === -1
             ? 'UNLIMITED'
             : `(${inventoryItem.uses}/${inventoryItem.maxUses})`;
-          line2Text = `USE ${inventoryItem.id.toUpperCase()}?`;
-          line3 = { left: usesLabel, right: '' };
-          leds = { yes: LedState.DIM, no: LedState.OFF };
+          if (phaseOk) {
+            // Usable item — activatable now
+            line2Text = `USE ${inventoryItem.id.toUpperCase()}?`;
+            line3 = { left: usesLabel, right: '' };
+            leds = { yes: LedState.DIM, no: LedState.OFF };
+          } else {
+            // Item exists but not usable in this phase — show description
+            const itemDef = getItem(inventoryItem.id);
+            line2Text = (itemDef?.name || inventoryItem.id).toUpperCase();
+            const desc = itemDef?.description || '';
+            line3 = { text: desc.length > 42 ? desc.substring(0, 40) + '..' : desc };
+          }
         } else {
           // Non-activatable item (gavel, etc.)
           line2Text = inventoryItem.id.toUpperCase();
@@ -735,10 +779,27 @@ export class Player {
   /**
    * Create a display state object
    */
-  _display(line1, line2, line3, leds, statusLed) {
+  _display(line1, line2, line3, leds, statusLed, { activeEventId = null } = {}) {
+    // Guard: warn if display strings exceed terminal limits (256px / font width)
+    // Line 1/3 small font = 6px → 42 chars, Line 2 large font = 10px → 25 chars
+    const MAX_SMALL = 42;
+    const MAX_LARGE = 25;
+    const l1Left = line1?.left || '';
+    const l1Right = line1?.right || '';
+    const l2Text = line2?.text || '';
+    const l3Text = line3?.text || '';
+    const l3Left = line3?.left || '';
+    const l3Center = line3?.center || '';
+    const l3Right = line3?.right || '';
+    const l1Len = l1Left.length + l1Right.length;
+    const l3Len = l3Text ? l3Text.length : l3Left.length + l3Center.length + l3Right.length;
+    if (l1Len > MAX_SMALL) console.error(`[Player ${this.id}] Line 1 overflow (${l1Len}/${MAX_SMALL}): "${l1Left}" + "${l1Right}"`);
+    if (l2Text.length > MAX_LARGE) console.error(`[Player ${this.id}] Line 2 overflow (${l2Text.length}/${MAX_LARGE}): "${l2Text}"`);
+    if (l3Len > MAX_SMALL) console.error(`[Player ${this.id}] Line 3 overflow (${l3Len}/${MAX_SMALL}): text="${l3Text}" left="${l3Left}" center="${l3Center}" right="${l3Right}"`);
+
     return {
       line1, line2, line3, leds, statusLed,
-      icons: this._buildIcons(),
+      icons: this._buildIcons(activeEventId),
       idleScrollIndex: this.idleScrollIndex,
     };
   }
@@ -816,8 +877,17 @@ export class Player {
    * Slot 0: role (or skull if dead)
    * Slots 1-2: first two inventory items (or empty)
    */
-  _buildIcons() {
-    const idx = this.idleScrollIndex;
+  _buildIcons(activeEventId = null) {
+    // During an active event, highlight the icon for the source of that event
+    // (role icon for role events, item icon for item-granted events).
+    // Otherwise, highlight based on idle scroll index.
+    let highlightSlot = this.idleScrollIndex;
+    if (activeEventId) {
+      const itemIdx = this.inventory.findIndex(
+        (item) => item.startsEvent === activeEventId && (item.maxUses === -1 || item.uses > 0),
+      );
+      highlightSlot = itemIdx >= 0 ? itemIdx + 1 : 0; // +1 because slot 0 is role
+    }
 
     // Slot 0: role icon (use display override if set, e.g. amateur → seeker glyph)
     let slot0;
@@ -825,14 +895,14 @@ export class Player {
       slot0 = { id: 'skull', state: IconState.INACTIVE };
     } else if (this.role) {
       const displayRole = this._displayRoleOverride || this.role;
-      slot0 = { id: displayRole.id, state: idx === 0 ? IconState.ACTIVE : IconState.INACTIVE };
+      slot0 = { id: displayRole.id, state: highlightSlot === 0 ? IconState.ACTIVE : IconState.INACTIVE };
     } else {
       slot0 = { id: 'empty', state: IconState.EMPTY };
     }
 
     // Slots 1-2: inventory items
-    const slot1 = this._buildItemIcon(0, idx === 1);
-    const slot2 = this._buildItemIcon(1, idx === 2);
+    const slot1 = this._buildItemIcon(0, highlightSlot === 1);
+    const slot2 = this._buildItemIcon(1, highlightSlot === 2);
 
     return [slot0, slot1, slot2];
   }

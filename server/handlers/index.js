@@ -157,9 +157,9 @@ export function createHandlers(game, clients) {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
 
-      // Find active event and valid targets
+      // Find next unresolved active event and valid targets
       for (const [eventId, instance] of game.activeEvents) {
-        if (instance.participants.includes(player.id)) {
+        if (instance.participants.includes(player.id) && !(player.id in instance.results)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
           const selected = player.selectUp(targets);
@@ -184,7 +184,7 @@ export function createHandlers(game, clients) {
       if (!player) return { success: false, error: 'Not a player' };
 
       for (const [eventId, instance] of game.activeEvents) {
-        if (instance.participants.includes(player.id)) {
+        if (instance.participants.includes(player.id) && !(player.id in instance.results)) {
           const event = instance.event;
           const targets = event.validTargets(player, game);
           const selected = player.selectDown(targets);
@@ -259,9 +259,9 @@ export function createHandlers(game, clients) {
       const player = game.getPlayer(ws.playerId);
       if (!player) return { success: false, error: 'Not a player' };
 
-      // Find player's active event and check if abstaining is allowed
+      // Find player's next unresolved event and check if abstaining is allowed
       for (const [eventId, instance] of game.activeEvents) {
-        if (instance.participants.includes(player.id)) {
+        if (instance.participants.includes(player.id) && !(player.id in instance.results)) {
           if (!instance.event.allowAbstain) {
             return { success: false, error: 'Cannot abstain from this event' };
           }

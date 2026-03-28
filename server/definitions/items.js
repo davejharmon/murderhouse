@@ -103,7 +103,7 @@ const items = {
     id: 'warden',
     get name() { return str('items', 'warden.name') },
     get description() { return str('items', 'warden.description') },
-    maxUses: 1,
+    maxUses: -1, // Permanent: reusable every night
     startsEvent: EventId.JAIL, // Grants jailer's jail ability
   },
 

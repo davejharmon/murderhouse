@@ -73,7 +73,7 @@ export const STRING_CATALOG = [
   { cat: "items", key: "coward.shortName", default: "Coward", desc: "Compact item name" },
   { cat: "items", key: "coward.description", default: "You hide from danger. No attacks can reach you — but you cannot act.", desc: "Item description shown to holder" },
   { cat: "items", key: "warden.name", default: "Warden", desc: "Item display name" },
-  { cat: "items", key: "warden.description", default: "Lock someone away for the night. Target is protected and roleblocked.", desc: "Item description shown to holder" },
+  { cat: "items", key: "warden.description", default: "Jail someone each night. Protected + blocked.", desc: "Item description shown to holder" },
   { cat: "items", key: "hardened.name", default: "Hardened", desc: "Item display name" },
   { cat: "items", key: "hardened.description", default: "A sturdy defense. The next time you would die, it absorbs the blow instead.", desc: "Item description shown to holder" },
   { cat: "events", key: "vote.name", default: "Vote", desc: "Event name in host panel and logs" },

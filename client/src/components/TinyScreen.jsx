@@ -264,10 +264,12 @@ function renderDisplay(ctx, display, color, line2Color = null, iconColors = null
       }
     }
     // Draw selection bar next to the active icon slot (only if 2+ icons visible)
+    // Prefer the ACTIVE icon state (set by server during events) over idleScrollIndex
     const visibleCount = icons.filter(ic => ic && ic.id && ic.id !== 'empty').length
-    const idleIdx = display.idleScrollIndex
-    if (visibleCount >= 2 && idleIdx !== undefined && idleIdx >= 0 && idleIdx <= 2) {
-      drawSelectionBar(ctx, idleIdx, color)
+    const activeIdx = icons.findIndex(ic => ic?.state === 'active')
+    const barIdx = activeIdx >= 0 ? activeIdx : display.idleScrollIndex
+    if (visibleCount >= 2 && barIdx !== undefined && barIdx >= 0 && barIdx <= 2) {
+      drawSelectionBar(ctx, barIdx, color)
     }
   }
 

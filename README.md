@@ -370,6 +370,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
 - ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
 - When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")
+- Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player
 
 ## Bugs
 

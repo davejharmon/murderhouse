@@ -224,7 +224,12 @@ static void _renderBuffer(const DisplayState& state) {
         if (state.icons[i].id != "empty") visibleIcons++;
     }
     if (visibleIcons >= 2) {
-        drawSelectionBar(state.idleScrollIndex);
+        // Prefer ACTIVE icon state (set by server during events) over idleScrollIndex
+        int barIdx = state.idleScrollIndex;
+        for (int i = 0; i < 3; i++) {
+            if (state.icons[i].state == IconState::ACTIVE) { barIdx = i; break; }
+        }
+        drawSelectionBar(barIdx);
     }
 
     // === LINE 1: Context (small, left and right aligned) ===

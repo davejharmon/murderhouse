@@ -937,7 +937,7 @@ export class Game {
     // Get item-based participants (players with items granting this event)
     const itemParticipants = this.getAlivePlayers().filter((player) => {
       return player.inventory.some(
-        (item) => item.startsEvent === eventId && item.uses > 0,
+        (item) => item.startsEvent === eventId && (item.uses > 0 || item.maxUses === -1),
       );
     });
 
@@ -1052,9 +1052,8 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player || !player.isAlive) return { success: false, error: 'Player not eligible' };
 
-    // Enforce phase restriction only for player-initiated events (e.g. shoot is day-only).
-    // Non-playerInitiated events (e.g. investigate via clue) are not phase-gated here.
-    if (event.playerInitiated && event.phase && !event.phase.includes(this.phase)) {
+    // Enforce phase restriction for all player-activated events (items and role abilities).
+    if (event.phase && !event.phase.includes(this.phase)) {
       return { success: false, error: `Not available during ${this.phase} phase` };
     }
 
@@ -1313,9 +1312,9 @@ export class Game {
     const player = this.getPlayer(playerId);
     if (!player) return { success: false, error: 'Player not found' };
 
-    // Find which active event this player is in
+    // Find the player's next unresolved event (skip events they've already responded to)
     for (const [eventId, instance] of this.activeEvents) {
-      if (instance.participants.includes(playerId)) {
+      if (instance.participants.includes(playerId) && !(playerId in instance.results)) {
         instance.results[playerId] = targetId;
 
         // Check if this event is managed by a flow
