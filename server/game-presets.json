@@ -114,6 +114,242 @@
         "9": "nobody"
       },
       "fakeHeartbeats": false
+    },
+    {
+      "id": "1774661496860",
+      "name": "PLAYTEST1",
+      "created": 1774661496860,
+      "players": {
+        "1": {
+          "name": "ALEX",
+          "portrait": "player5.png"
+        },
+        "2": {
+          "name": "DEMI",
+          "portrait": "player1.png"
+        },
+        "3": {
+          "name": "TOM",
+          "portrait": "player8.png"
+        },
+        "4": {
+          "name": "EDAN",
+          "portrait": "player10.png"
+        },
+        "5": {
+          "name": "SIMON",
+          "portrait": "player6.png"
+        },
+        "6": {
+          "name": "BEN",
+          "portrait": "playerF.png"
+        },
+        "7": {
+          "name": "SCOTT",
+          "portrait": "playerD.png"
+        },
+        "8": {
+          "name": "JORDAN",
+          "portrait": "playerE.png"
+        },
+        "9": {
+          "name": "DAVIS",
+          "portrait": "playerB.png"
+        }
+      },
+      "roleMode": "assigned",
+      "rolePool": null,
+      "roleAssignments": {
+        "1": "alpha",
+        "2": "sleeper",
+        "3": "medic",
+        "4": "seeker",
+        "5": "nobody",
+        "6": "nobody",
+        "7": "nobody",
+        "8": "nobody",
+        "9": "nobody"
+      },
+      "timerDuration": 8,
+      "autoAdvanceEnabled": true,
+      "fakeHeartbeats": false
+    },
+    {
+      "id": "1774662114369",
+      "name": "PLAYTEST2",
+      "created": 1774662114369,
+      "players": {
+        "1": {
+          "name": "ALEX",
+          "portrait": "player5.png"
+        },
+        "2": {
+          "name": "DEMI",
+          "portrait": "player1.png"
+        },
+        "3": {
+          "name": "TOM",
+          "portrait": "player8.png"
+        },
+        "4": {
+          "name": "EDAN",
+          "portrait": "player10.png"
+        },
+        "5": {
+          "name": "SIMON",
+          "portrait": "player6.png"
+        },
+        "6": {
+          "name": "BEN",
+          "portrait": "playerF.png"
+        },
+        "7": {
+          "name": "SCOTT",
+          "portrait": "playerD.png"
+        },
+        "8": {
+          "name": "JORDAN",
+          "portrait": "playerE.png"
+        },
+        "9": {
+          "name": "DAVIS",
+          "portrait": "playerB.png"
+        }
+      },
+      "roleMode": "assigned",
+      "rolePool": null,
+      "roleAssignments": {
+        "1": "alpha",
+        "2": "sleeper",
+        "3": "medic",
+        "4": "seeker",
+        "5": "hunter",
+        "6": "nobody",
+        "7": "nobody",
+        "8": "nobody",
+        "9": "nobody"
+      },
+      "timerDuration": 8,
+      "autoAdvanceEnabled": true,
+      "fakeHeartbeats": false
+    },
+    {
+      "id": "1774662183662",
+      "name": "PLAYTEST3",
+      "created": 1774662183662,
+      "players": {
+        "1": {
+          "name": "ALEX",
+          "portrait": "player5.png"
+        },
+        "2": {
+          "name": "DEMI",
+          "portrait": "player1.png"
+        },
+        "3": {
+          "name": "TOM",
+          "portrait": "player8.png"
+        },
+        "4": {
+          "name": "EDAN",
+          "portrait": "player10.png"
+        },
+        "5": {
+          "name": "SIMON",
+          "portrait": "player6.png"
+        },
+        "6": {
+          "name": "BEN",
+          "portrait": "playerF.png"
+        },
+        "7": {
+          "name": "SCOTT",
+          "portrait": "playerD.png"
+        },
+        "8": {
+          "name": "JORDAN",
+          "portrait": "playerE.png"
+        },
+        "9": {
+          "name": "DAVIS",
+          "portrait": "playerB.png"
+        }
+      },
+      "roleMode": "assigned",
+      "rolePool": null,
+      "roleAssignments": {
+        "1": "alpha",
+        "2": "chemist",
+        "3": "medic",
+        "4": "seeker",
+        "5": "hunter",
+        "6": "marked",
+        "7": "nobody",
+        "8": "nobody",
+        "9": "nobody"
+      },
+      "timerDuration": 8,
+      "autoAdvanceEnabled": true,
+      "fakeHeartbeats": false
+    },
+    {
+      "id": "1774662274545",
+      "name": "PLAYTEST4",
+      "created": 1774662274545,
+      "players": {
+        "1": {
+          "name": "ALEX",
+          "portrait": "player5.png"
+        },
+        "2": {
+          "name": "DEMI",
+          "portrait": "player1.png"
+        },
+        "3": {
+          "name": "TOM",
+          "portrait": "player8.png"
+        },
+        "4": {
+          "name": "EDAN",
+          "portrait": "player10.png"
+        },
+        "5": {
+          "name": "SIMON",
+          "portrait": "player6.png"
+        },
+        "6": {
+          "name": "BEN",
+          "portrait": "playerF.png"
+        },
+        "7": {
+          "name": "SCOTT",
+          "portrait": "playerD.png"
+        },
+        "8": {
+          "name": "JORDAN",
+          "portrait": "playerE.png"
+        },
+        "9": {
+          "name": "DAVIS",
+          "portrait": "playerB.png"
+        }
+      },
+      "roleMode": "assigned",
+      "rolePool": null,
+      "roleAssignments": {
+        "1": "alpha",
+        "2": "amateur",
+        "3": "medic",
+        "4": "seeker",
+        "5": "hunter",
+        "6": "chemist",
+        "7": "marked",
+        "8": "nobody",
+        "9": "nobody"
+      },
+      "timerDuration": 8,
+      "autoAdvanceEnabled": true,
+      "fakeHeartbeats": false
     }
   ]
 }

@@ -1,7 +1,73 @@
 {
-  "timerDuration": 3,
+  "timerDuration": 8,
   "autoAdvanceEnabled": true,
   "heartbeatThreshold": 110,
-  "defaultPresetId": "1772244697845",
-  "lastLoadedPresetId": "1772244697845"
+  "scoringConfig": {
+    "survived": 1,
+    "winningTeam": 1,
+    "bestInvestigator": 2
+  },
+  "heartbeatCalibration": {
+    "1": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "2": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "3": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "4": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "5": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "6": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "7": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "8": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    },
+    "9": {
+      "restingBpm": 60,
+      "elevatedBpm": 100,
+      "enabled": true,
+      "simulated": true
+    }
+  },
+  "heartbeatDisplayResting": 65,
+  "heartbeatDisplayElevated": 110,
+  "simsCanLose": false,
+  "heartbeatAddNoise": true,
+  "poisonKillsGeneric": true,
+  "defaultPresetId": "1774662274545",
+  "lastLoadedPresetId": "1774662274545"
 }
