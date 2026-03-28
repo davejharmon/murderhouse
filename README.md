@@ -38,70 +38,73 @@ For production/remote deployment, `server/web.js` serves the built client over H
 1. Players discuss and debate who to eliminate
 2. Host initiates vote when ready
 3. Players select target on their devices
-4. Majority vote eliminates player (ties go to runoff, 3+ runoffs break randomly)
+4. Majority vote eliminates player (ties go to runoff, 2 failed runoffs deadlock with no elimination)
 
 ### Night Phase
 
 1. Each role acts secretly on their device:
-   - **Villager**: Suspect someone (tracking only)
-   - **Alpha Werewolf**: Choose final kill target from pack suggestions
-   - **Werewolf**: Suggest targets to the alpha
-   - **Seer**: Investigate if someone is a werewolf
-   - **Doctor**: Protect someone from death
-   - **Vigilante**: One-time night kill (single use per game)
-   - **Hunter**: Normal villager, but gets revenge kill when dying
-   - **Governor**: Can pardon condemned players after a day vote
+   - **Nobody**: Suspect someone (tracking only)
+   - **Alpha**: Choose final kill target from Cell suggestions
+   - **Sleeper**: Suggest targets to the Alpha
+   - **Seeker**: Investigate if someone is CELL or NOT CELL
+   - **Medic**: Protect someone from death
+   - **Vigilante**: One-time night kill
+   - **Hunter**: No night action, but gets revenge kill when dying
+   - **Judge**: No night action; can pardon condemned players after a day vote
    - **Cupid**: Link two lovers at game start (if one dies, both die)
-   - **Roleblocker**: Block one player's night ability
-   - **Janitor**: Hide the victim's role when the pack kills
-   - **Poisoner**: Replace the pack's kill with a delayed poison
-   - **Drunk**: Believes they are a Seer; night action is randomly chosen
+   - **Handler**: Block one player's night ability
+   - **Fixer**: Hide the victim's role when the Cell kills
+   - **Chemist**: Replace the Cell's kill with a delayed poison
+   - **Amateur**: Believes they are a Seeker; night action is randomly chosen
+   - **Jailer**: Jail a player (protect + roleblock)
 2. Host resolves events in priority order
 3. Deaths revealed on big screen
 
 ### Win Conditions
 
-- **Village wins**: All werewolves eliminated
-- **Werewolves win**: Equal or outnumber villagers
+- **Circle wins**: All Cell members eliminated
+- **Cell wins**: Equal or outnumber Circle
 
 ## Roles
 
-| Role            | Team     | Night Action | Special                                                                                        |
-| --------------- | -------- | ------------ | ---------------------------------------------------------------------------------------------- |
-| **Villager**    | Village  | Suspect      | —                                                                                              |
-| **Seer**        | Village  | Investigate  | Learns if target is EVIL or INNOCENT                                                           |
-| **Doctor**      | Village  | Protect      | Prevents one kill per night                                                                    |
-| **Hunter**      | Village  | —            | Revenge kill on death (interrupt flow)                                                         |
-| **Vigilante**   | Village  | Kill (once)  | One-shot night kill, then becomes villager                                                     |
-| **Governor**    | Village  | —            | Can pardon a condemned player once per game                                                    |
-| **Cupid**       | Village  | Link (setup) | Links two lovers at game start; heartbreak kills both                                          |
-| **Tanner**      | Village  | Suspect      | Sees themselves as Villager; appears EVIL to the Seer (and Clue); wins with village            |
-| **Drunk**       | Village  | Stumble      | Disguised as Seer; random action — investigate (accurate), kill/protect/block (shows INNOCENT) |
-| **Alpha**       | Werewolf | Kill         | Final kill decision; promotes successor on death                                               |
-| **Werewolf**    | Werewolf | Hunt         | Suggests targets to alpha; sees pack selections live                                           |
-| **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                                                              |
-| **Janitor**     | Werewolf | Clean        | Hides victim's role reveal when the pack kills                                                 |
-| **Poisoner**    | Werewolf | Poison       | Replaces pack kill with delayed poison (victim dies next night)                                |
-| **Jailer**      | Village  | Jail         | Jails a player: target is protected and roleblocked (removed from all night events)            |
-| **Jester**      | Neutral  | —            | Wins solo if voted out by the village                                                          |
+| Role            | Team    | Night Action | Special                                                                                        |
+| --------------- | ------- | ------------ | ---------------------------------------------------------------------------------------------- |
+| **Nobody**      | Circle  | Suspect      | —                                                                                              |
+| **Seeker**      | Circle  | Investigate  | Learns if target is CELL or NOT CELL                                                           |
+| **Medic**       | Circle  | Protect      | Prevents one kill per night                                                                    |
+| **Hunter**      | Circle  | —            | Revenge kill on death (interrupt flow)                                                         |
+| **Vigilante**   | Circle  | Kill (once)  | One-shot night kill                                                                            |
+| **Judge**       | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                        |
+| **Cupid**       | Circle  | Link (setup) | Links two lovers at game start; heartbreak kills both                                          |
+| **Marked**      | Circle  | Suspect      | Thinks they're a Nobody; appears CELL when investigated                                        |
+| **Amateur**     | Circle  | Stumble      | Disguised as Seeker; random action — investigate (accurate), kill/protect/block (shows INNOCENT)|
+| **Jailer**      | Circle  | Jail         | Jails a player: target is protected and roleblocked                                            |
+| **Alpha**       | Cell    | Kill         | Final kill decision; promotes successor on death                                               |
+| **Sleeper**     | Cell    | Suggest      | Suggests targets to Alpha; sees pack selections live                                           |
+| **Handler**     | Cell    | Block        | Blocks one player's night ability                                                              |
+| **Fixer**       | Cell    | Clean        | Hides victim's role reveal when the Cell kills                                                 |
+| **Chemist**     | Cell    | Poison       | Replaces Cell kill with delayed poison (victim dies next night resolve)                        |
+| **Jester**      | Neutral | —            | Wins solo if voted out                                                                         |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
 ## Items
 
-| Item          | Uses    | Effect                                                               |
-| ------------- | ------- | -------------------------------------------------------------------- |
-| **Pistol**    | 1       | Shoot a player during the day (player-initiated, instant resolution) |
-| **Phone**     | 1       | Grants pardon ability (same as Governor, consumed on use)            |
-| **Clue**      | 1       | Investigate a player (same as Seer)                                  |
-| **Warden**    | 1       | Jail a player: target is protected and roleblocked for the night     |
-| **Barricade** | 1       | Absorbs one kill; destroyed on use                                   |
-| **Novote**    | 1       | Holder is excluded from the next vote                                |
-| **Coward**    | passive | Cannot act at night; immune to night kills                           |
-| **Tanned**    | passive | Appears EVIL to Seer and Clue investigations                         |
-| **Prospect**  | passive | Joins the werewolf pack if killed by them                            |
+| Item          | Uses      | Effect                                                               |
+| ------------- | --------- | -------------------------------------------------------------------- |
+| **Pistol**    | 1         | Shoot a player during the day (player-initiated, instant resolution) |
+| **Gavel**     | 1         | Grants pardon ability (consumed only on actual pardon)               |
+| **Clue**      | 1         | Investigate a player (same as Seeker)                                |
+| **Warden**    | permanent | Jail a player each night: target is protected and roleblocked        |
+| **Syringe**   | 1         | Inject a player with poison (target dies next night resolve)         |
+| **Hardened**  | 1         | Absorbs one kill; destroyed on use (silent — nobody knows)           |
+| **No Vote**   | 1         | Holder is excluded from the next vote (hidden)                       |
+| **Coward**    | permanent | Cannot act or be targeted; immune to all (hidden)                    |
+| **Marked**    | permanent | Appears CELL when investigated (hidden)                              |
+| **Prospect**  | 1         | Joins the Cell if killed by them (hidden)                            |
+| **Poisoned**  | —         | Slow-acting toxin; dies when next night events resolve (hidden)      |
 
-Items are given by the host. Active items (`startsEvent`: pistol, clue) appear in the player's ability selector when idle. Items stack if the same type is given twice.
+Items are given by the host or earned via custom votes. Active items (`startsEvent`: pistol, clue, warden, syringe) appear in the player's ability selector. Hidden items are not shown on the player's terminal. Players with multiple night actions enter them sequentially by priority.
 
 ## Features
 
@@ -149,13 +152,13 @@ To deploy a new firmware version over the air:
 
 - After a vote eliminates a player, governor (or phone holder) can pardon
 - Pardon is an interrupt flow that pauses normal resolution
-- Governor role can pardon once per game; phone item is consumed on use
+- Judge role can pardon once per game; Gavel item is consumed only on actual pardon
 
-### Werewolf Pack
+### Cell Pack
 
-- Werewolves see each other's selections in real-time during hunt/kill events
-- Pack hint shows the most popular target among living packmates (pluralizes dynamically)
-- Alpha makes the final kill decision; non-alpha wolves suggest via the hunt event
+- Cell members see each other's selections in real-time during suggest/kill events
+- Packsense (line 3 during night events): left = cleanup status, center = suggest/kill target, right = poison status
+- Alpha makes the final kill decision; Sleepers suggest via the suggest event
 
 ### Event Timers
 
@@ -172,7 +175,7 @@ To deploy a new firmware version over the air:
 ### Composition Validation
 
 - Pre-assigned role compositions are validated on game start
-- Blocks instant-win setups (e.g. all werewolves), duplicate alphas, and missing teams
+- Blocks instant-win setups (e.g. all Cell), duplicate alphas, and missing teams
 
 ## Architecture
 
@@ -193,8 +196,8 @@ murderhouse/
 │   │   └── index.js              # WebSocket message routing (~695 lines)
 │   ├── definitions/              # Declarative game rules
 │   │   ├── roles.js              # 16 roles with events, passives, win conditions
-│   │   ├── events.js             # 15 events with resolution logic
-│   │   └── items.js              # 9 items
+│   │   ├── events.js             # 16 events with resolution logic
+│   │   └── items.js              # 12 items
 │   ├── firmware.js               # HTTP handler for OTA version check + binary download
 │   ├── firmware/                 # OTA deployment: version.json + firmware.bin
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
@@ -275,7 +278,7 @@ murderhouse/
 
 ### Event Priority Order
 
-Events resolve by priority (lower = earlier): link (1) → jail (3) → block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
+Events resolve by priority (lower = earlier): link (1) → jail (3) → block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → suggest (55) → inject (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
 
 ## Adding a Role
 

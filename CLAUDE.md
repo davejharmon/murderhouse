@@ -11,7 +11,7 @@ npm run dev          # Starts server + client concurrently
 - Host dashboard: http://localhost:5173/host
 - Player N: http://localhost:5173/player/N (1-9)
 - Big screen: http://localhost:5173/screen
-- Debug grid: http://localhost:5173/debug (requires DEBUG_MODE=true in shared/constants.js)
+- Debug grid: http://localhost:5173/debug (enabled when NODE_ENV !== 'production')
 
 Server runs on ws://localhost:8080, client on http://localhost:5173.
 
@@ -23,18 +23,18 @@ shared/icons.js              # 18×18 XBM bitmaps for role/item glyphs
 shared/strings/gameStrings.js # String catalog — single source for server and client
 server/
   index.js                   # WebSocket server entry point (port 8080 + UDP 8089)
-  Game.js                    # Core game state machine (~2750 lines)
-  Player.js                  # Player model (role, status, inventory, connections) (~990 lines)
+  Game.js                    # Core game state machine (~3500 lines)
+  Player.js                  # Player model (role, status, inventory, connections) (~1100 lines)
   strings.js                 # str(cat, key, tokens) — reads catalog + data/string-overrides.json
   definitions/
-    roles.js                 # 15 declarative role definitions
-    events.js                # 14 declarative event definitions
-    items.js                 # 8 item definitions
+    roles.js                 # 16 declarative role definitions
+    events.js                # 16 declarative event definitions (incl. jail, inject)
+    items.js                 # 12 item definitions (incl. warden, syringe, poisoned)
   flows/                     # Interrupt flows for complex multi-step mechanics
     InterruptFlow.js         # Base class
     HunterRevengeFlow.js     # Hunter death → revenge pick
     GovernorPardonFlow.js    # Vote condemn → pardon option
-  handlers/index.js          # WebSocket message routing (~695 lines)
+  handlers/index.js          # WebSocket message routing (~810 lines)
 client/
   vite.config.js             # Path aliases: @ → src/, @shared → shared/
   src/
@@ -94,7 +94,8 @@ Events resolve by priority order. Each returns `{ success, outcome, victim?, sli
 - **Server**: Node.js, `ws` (WebSocket), ES modules
 - **Client**: React 19, Vite 6, React Router 7, CSS Modules
 - **ESP32**: PlatformIO, Arduino framework, ESP32-S3, SSD1322 OLED (U8g2), WS2811 neopixel
-- **No linter or test framework configured**
+- **Tests**: Vitest (server-only). See `server/TESTING.md`.
+- **No linter or formatter configured**
 
 ## String Catalog
 
