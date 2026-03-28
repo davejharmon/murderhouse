@@ -732,6 +732,13 @@ export function createHandlers(game, clients) {
         return { success: true, action: 'abstained' };
       }
 
+      // Boolean events (self-target): 50% chance to abstain
+      if (targets.length === 1 && targets[0].id === player.id && Math.random() < 0.5) {
+        player.abstain();
+        game.recordSelection(player.id, null);
+        return { success: true, action: 'abstained' };
+      }
+
       // Pick random target
       const randomTarget = targets[Math.floor(Math.random() * targets.length)];
       player.currentSelection = randomTarget.id;

@@ -74,7 +74,7 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Medic**       | Circle  | Protect      | Prevents one kill per night                                                                    |
 | **Hunter**      | Circle  | —            | Revenge kill on death (interrupt flow)                                                         |
 | **Vigilante**   | Circle  | Kill (once)  | One-shot night kill                                                                            |
-| **Judge**       | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                        |
+| **Governor**    | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                        |
 | **Cupid**       | Circle  | Link (setup) | Links two lovers at game start; heartbreak kills both                                          |
 | **Marked**      | Circle  | Suspect      | Thinks they're a Nobody; appears CELL when investigated                                        |
 | **Amateur**     | Circle  | Stumble      | Disguised as Seeker; random action — investigate (accurate), kill/protect/block (shows INNOCENT)|
@@ -364,10 +364,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
-- Make dead/spectator screen more iconic on ESP32 — FULLSCREEN style works on React (2x scaled bitmap font) but ESP32 renders at normal line2 size despite receiving correct style. Server confirmed sending `style: "fullscreen"`, `parseDisplayStyle` and `displayRender` both have the path, but the display doesn't change. Suspect U8G2 SSD1322 buffer/rendering issue. Current state: ESP32 shows centered 1x text (DEAD/GAME OVER/COWARD) which is acceptable. React shows 2x scaled fullscreen.
-- Bool night actions (poison, cleanup) always trigger on debug auto-select — should abstain 50% of the time
+- Make dead/spectator/coward/gameover screen larger text on ESP32 — attempted FULLSCREEN style but SSD1322 didn't render differently despite correct data path. Need to investigate U8G2 buffer rendering or try a different large font approach.
 - Hunter should die after using revenge, not before (at least visually on their own terminal if easier)
-- Rename the Judge role to Governor (display name and strings only, keep role ID as 'judge')
 
 ## Bugs
 

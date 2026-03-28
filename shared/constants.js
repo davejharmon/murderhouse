@@ -245,7 +245,7 @@ export const ROLE_DISPLAY = {
   [RoleId.MEDIC]:       { name: 'Medic',        emoji: '🧑‍⚕️' },
   [RoleId.HUNTER]:      { name: 'Hunter',       emoji: '🔫' },
   [RoleId.VIGILANTE]:   { name: 'Vigilante',    emoji: '🤠' },
-  [RoleId.JUDGE]:       { name: 'Judge',         emoji: '🎩' },
+  [RoleId.JUDGE]:       { name: 'Governor',      emoji: '🎩' },
   [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
   [RoleId.HANDLER]:     { name: 'Handler',      emoji: '🚫' },
   [RoleId.FIXER]:       { name: 'Fixer',        emoji: '🧹' },

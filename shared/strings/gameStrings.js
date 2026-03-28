@@ -29,7 +29,7 @@ export const STRING_CATALOG = [
   { cat: "roles", key: "vigilante.description", default: "You can kill one person during the night. Choose wisely.", desc: "Role flavor text" },
   { cat: "roles", key: "vigilante.tip", default: "One kill per game", desc: "Short tip on player terminal" },
   { cat: "roles", key: "vigilante.detailedTip", default: "Once per game, you may kill a player at night. Use your one shot wisely.", desc: "Full tip on big-screen role slide" },
-  { cat: "roles", key: "judge.name", default: "Judge", desc: "Role display name" },
+  { cat: "roles", key: "judge.name", default: "Governor", desc: "Role display name" },
   { cat: "roles", key: "judge.description", default: "You can pardon someone from elimination after votes are cast.", desc: "Role flavor text" },
   { cat: "roles", key: "judge.tip", default: "Pardon the condemned", desc: "Short tip on player terminal" },
   { cat: "roles", key: "judge.detailedTip", default: "After a player is condemned by vote, you may pardon them — canceling the elimination. You have one pardon. Use it wisely.", desc: "Full tip on big-screen role slide" },
