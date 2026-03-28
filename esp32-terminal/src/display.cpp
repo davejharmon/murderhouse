@@ -213,6 +213,7 @@ static void _renderBuffer(const DisplayState& state) {
         return;
     }
 
+
     // === ICON COLUMN ===
     for (int i = 0; i < 3; i++) {
         const uint8_t* bitmap = getIconBitmap(state.icons[i].id);
@@ -284,7 +285,7 @@ static void _renderBuffer(const DisplayState& state) {
 }
 
 void displayRender(const DisplayState& state) {
-    // Operator mode renders once (inverted box provides the visual, no blink animation)
+    // Operator mode renders once (no blink animation)
     if (state.line2.style == DisplayStyle::OPERATOR) {
         _renderBuffer(state);
         return;

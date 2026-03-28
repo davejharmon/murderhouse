@@ -1679,6 +1679,10 @@ export class Game {
     // Normal kills = 0, poison = 50 (randomized among normals), hunter revenge = 100 (always last).
     // Non-death slides (victory, scores) are never shuffled — they stay at the end in order.
     const newSlides = this.slideQueue.slice(slidesBefore);
+    // Always reset to start of new slides so host sees all deaths in order
+    if (newSlides.length > 0 && this.currentSlideIndex > slidesBefore) {
+      this.currentSlideIndex = slidesBefore;
+    }
     const deathSlides = newSlides.filter(s => s.type === 'death' || s._flowSlide || s._slidePriority);
     const tailSlides = newSlides.filter(s => s.type !== 'death' && !s._flowSlide && !s._slidePriority);
     if (deathSlides.length > 2) {

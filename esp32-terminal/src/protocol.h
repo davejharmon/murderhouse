@@ -104,6 +104,7 @@ enum class GameLedState {
     LOCKED,
     ABSTAINED,
     DEAD,
+    COWARD,
     GAME_OVER
 };
 
@@ -117,6 +118,7 @@ inline GameLedState parseGameLedState(const String& state) {
     if (state == "locked") return GameLedState::LOCKED;
     if (state == "abstained") return GameLedState::ABSTAINED;
     if (state == "dead") return GameLedState::DEAD;
+    if (state == "coward") return GameLedState::COWARD;
     if (state == "gameOver") return GameLedState::GAME_OVER;
     return GameLedState::NONE;
 }

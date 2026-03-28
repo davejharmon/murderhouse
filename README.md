@@ -364,11 +364,11 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
-- Make dead/spectator screen more simple and iconic
+- Make dead/spectator screen more iconic on ESP32 — FULLSCREEN style works on React (2x scaled bitmap font) but ESP32 renders at normal line2 size despite receiving correct style. Server confirmed sending `style: "fullscreen"`, `parseDisplayStyle` and `displayRender` both have the path, but the display doesn't change. Suspect U8G2 SSD1322 buffer/rendering issue. Current state: ESP32 shows centered 1x text (DEAD/GAME OVER/COWARD) which is acceptable. React shows 2x scaled fullscreen.
 - Bool night actions (poison, cleanup) always trigger on debug auto-select — should abstain 50% of the time
 - Hunter should die after using revenge, not before (at least visually on their own terminal if easier)
 - Rename the Judge role to Governor (display name and strings only, keep role ID as 'judge')
 
 ## Bugs
 
-(none)
+- Reveal Comp tutorial slide shows hidden roles (prospect, marked) — should display them as Nobodies

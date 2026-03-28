@@ -220,6 +220,11 @@ void ledsSetGameState(GameLedState state) {
             statusPulse = false;
             break;
 
+        case GameLedState::COWARD:
+            tgtR = 230; tgtG = 168; tgtB = 0; // Yellow
+            statusPulse = false;
+            break;
+
         case GameLedState::GAME_OVER:
             tgtR = 100; tgtG = 100; tgtB = 100;
             statusPulse = false;

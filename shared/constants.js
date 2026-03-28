@@ -320,6 +320,7 @@ export const StatusLed = {
   LOCKED: 'locked',
   ABSTAINED: 'abstained',
   DEAD: 'dead',
+  COWARD: 'coward',
   GAME_OVER: 'gameOver',
 };
 

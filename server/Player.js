@@ -522,6 +522,19 @@ export class Player {
 
     if (this.lastEventResult) return this._displayEventResult(getLine1, phaseLed);
 
+    // Coward: blank lines, just the label, no icons, yellow neopixel
+    if (this.hasItem(ItemId.COWARD)) {
+      const d = this._display(
+        { left: '', right: '' },
+        { text: 'COWARD', style: DisplayStyle.NORMAL },
+        { text: '' },
+        { yes: LedState.OFF, no: LedState.OFF },
+        StatusLed.COWARD
+      );
+      d.icons = [];
+      return d;
+    }
+
     // Poisoned players don't know they're poisoned — no display notification
 
     // Dynamically compute packmate tip for cell members (reflects living members)
@@ -592,26 +605,30 @@ export class Player {
     );
   }
 
-  _displayGameOver(getLine1) {
-    return this._display(
-      { left: getLine1(), right: '' },
-      { text: 'FINISHED', style: DisplayStyle.NORMAL },
-      { text: 'Thanks for playing' },
+  _displayGameOver() {
+    const d = this._display(
+      { left: '', right: '' },
+      { text: 'GAME OVER', style: DisplayStyle.NORMAL },
+      { text: '' },
       { yes: LedState.OFF, no: LedState.OFF },
       StatusLed.GAME_OVER
     );
+    d.icons = []; // Hide icon column
+    return d;
   }
 
   _displayDead(getLine1, dayCount, phase) {
     // Red neopixel during the phase they die, off from the next phase onwards
     const diedThisPhase = this.deathDay === dayCount && this.deathPhase === phase;
-    return this._display(
-      { left: getLine1(), right: '' },
-      { text: 'SPECTATOR', style: DisplayStyle.NORMAL },
-      { text: 'Watch the game unfold' },
+    const d = this._display(
+      { left: '', right: '' },
+      { text: 'DEAD', style: DisplayStyle.NORMAL },
+      { text: '' },
       { yes: LedState.OFF, no: LedState.OFF },
       diedThisPhase ? StatusLed.DEAD : StatusLed.OFF
     );
+    d.icons = [];
+    return d;
   }
 
   _displayAbstained(getLine1, eventName, activeEventId) {

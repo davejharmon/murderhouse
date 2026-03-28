@@ -12,6 +12,7 @@ const STATUS_COLORS = {
   locked:       { r: 0,   g: 255, b: 0    },
   abstained:    { r: 60,  g: 60,  b: 60   },
   dead:         { r: 255, g: 0,   b: 0    },
+  coward:       { r: 230, g: 168, b: 0    },
   gameOver:     { r: 100, g: 100, b: 100  },
 };
 

@@ -705,6 +705,11 @@ static void parsePlayerState(JsonObject& payload) {
     currentDisplayState.statusLed = parseGameLedState(display["statusLed"] | "");
 
     // Parse icon column
+    // Clear icons first so empty arrays produce empty slots
+    for (int i = 0; i < 3; i++) {
+        currentDisplayState.icons[i].id = "empty";
+        currentDisplayState.icons[i].state = IconState::EMPTY;
+    }
     if (display.containsKey("icons")) {
         JsonArray iconsArr = display["icons"];
         for (int i = 0; i < 3 && i < (int)iconsArr.size(); i++) {
