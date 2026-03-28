@@ -75,10 +75,15 @@
   border: 1px solid var(--border-color);
 }
 
-.debugBtn:hover {
+.debugBtn:hover:not(:disabled) {
   background: var(--color-accent-blue);
   border-color: var(--color-accent-blue);
   transform: scale(1.1);
+}
+
+.debugBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .resolveRow {

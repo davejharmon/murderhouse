@@ -184,8 +184,8 @@ export class GovernorPardonFlow extends InterruptFlow {
       ? this.resolvePardon(judge, condemned)
       : this.resolveExecution(judge, condemned);
 
-    // Add gavel consumption to the result
-    if (usesGavel) {
+    // Only consume gavel when actually used to pardon
+    if (usesGavel && result.pardoned) {
       if (!result.consumeItems) result.consumeItems = [];
       result.consumeItems.push({ playerId: judgeId, itemId: ItemId.GAVEL });
     }
@@ -216,7 +216,7 @@ export class GovernorPardonFlow extends InterruptFlow {
           type: 'death',
           playerId: condemned.id,
           title: str('slides', 'flow.pardonedTitle'),
-          subtitle: str('slides', 'flow.pardonedSubtitle', { name: condemned.name }),
+          subtitle: str('slides', 'flow.pardonedSubtitle', { judge: judge.name, name: condemned.name }),
           revealRole: false,
           style: SlideStyle.POSITIVE,
         },

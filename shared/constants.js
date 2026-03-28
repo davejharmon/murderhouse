@@ -43,6 +43,7 @@ export const ServerMsg = {
   CALIBRATION_STATE: 'calibrationState',
   HEARTRATE_MONITOR: 'heartrateMonitor',
   UPDATE_FIRMWARE: 'updateFirmware',
+  KICKED: 'kicked',
 };
 
 // WebSocket message types - Client -> Server

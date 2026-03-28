@@ -125,11 +125,12 @@ export default function EventPanel({
                       {progress.responded || 0}/{progress.total || 0}
                     </div>
                     <div className={styles.eventActions}>
-                      {hasUncommitted && onDebugAutoSelectAll && (
+                      {onDebugAutoSelectAll && (
                         <button
                           className={`${styles.debugBtn}`}
                           onClick={() => onDebugAutoSelectAll(eventId)}
                           title='Debug: Auto-select all remaining players'
+                          disabled={!hasUncommitted}
                         >
                           🎲
                         </button>
@@ -174,12 +175,13 @@ export default function EventPanel({
             )}
             {activeEvents.length > 1 && (
               <div className={styles.resolveRow}>
-                {anyUncommitted && onDebugAutoSelectAll && (
+                {onDebugAutoSelectAll && (
                   <button
                     className={styles.debugBtn}
                     style={{ flex: 'none' }}
                     onClick={handleAutoSelectAllEvents}
                     title='Auto-select all remaining players'
+                    disabled={!anyUncommitted}
                   >
                     🎲
                   </button>

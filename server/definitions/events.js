@@ -356,13 +356,10 @@ const events = {
         return { success: true, silent: true };
       }
 
-      const messages = suspicions.map(
-        (s) => str('log', 'hunterSuspected', { name: s.actor.getNameWithEmoji(), target: s.target.getNameWithEmoji() }),
-      );
-
+      const names = suspicions.map((s) => s.actor.name);
       return {
         success: true,
-        message: messages.join(' '),
+        message: str('log', 'suspectSummary', { names: names.join(', ') }),
       };
     },
   },

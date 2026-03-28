@@ -983,9 +983,10 @@ export class Player {
   send(type, payload) {
     if (this.connections.length === 0) return false;
 
-    // Skip GAME_STATE and EVENT_PROMPT for terminal connections —
-    // terminals don't use these and the JSON parse overhead is wasteful.
-    const skipTerminal = type === ServerMsg.GAME_STATE || type === ServerMsg.EVENT_PROMPT
+    // Skip GAME_STATE, EVENT_PROMPT, and EVENT_RESULT for terminal connections —
+    // terminals don't use these and the JSON payload (especially EVENT_RESULT with
+    // full Player objects) can exceed the ESP32's 4KB JSON parse buffer.
+    const skipTerminal = type === ServerMsg.GAME_STATE || type === ServerMsg.EVENT_PROMPT || type === ServerMsg.EVENT_RESULT
 
     const message = JSON.stringify({ type, payload });
     let sentCount = 0;

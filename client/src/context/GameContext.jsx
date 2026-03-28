@@ -172,6 +172,11 @@ export function GameProvider({ children }) {
         setCalibrationState(payload);
         break;
 
+      case ServerMsg.KICKED:
+        console.log('[WS] Kicked from game');
+        addNotification('You have been kicked from the game', 'error');
+        break;
+
       default:
         console.log('[WS] Unknown message:', type, payload);
     }

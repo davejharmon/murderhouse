@@ -21,6 +21,7 @@ namespace ServerMsg {
     const char* const OPERATOR_STATE = "operatorState";
     const char* const HEARTRATE_MONITOR = "heartrateMonitor";
     const char* const UPDATE_FIRMWARE = "updateFirmware";
+    const char* const KICKED = "kicked";
 }
 
 // ============================================================================

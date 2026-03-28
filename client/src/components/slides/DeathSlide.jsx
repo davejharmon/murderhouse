@@ -57,13 +57,15 @@ export default function DeathSlide({ slide, players, strings = SLIDE_STRINGS.dea
           />
           {player.hasNovote && <div className={styles.tooMadBadgeLarge}>{strings.mad}</div>}
         </div>
-        {slide.revealRole && (player.role || slide.revealText) && (
+        {slide.revealRole && (player.role || slide.revealText) ? (
           <p
             className={styles.roleReveal}
             style={{ color: slide.revealText ? '#888' : player.roleColor }}
           >
             {slide.revealText || player.roleName}
           </p>
+        ) : !slide.revealRole && slide.subtitle && (
+          <h2 className={styles.deathName}>{slide.subtitle}</h2>
         )}
         {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
           const sortKey = (e) => {

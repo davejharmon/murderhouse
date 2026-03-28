@@ -361,7 +361,16 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
+- Make dead/spectator screen more simple and iconic
+- ~~Simplify suspect logs in host dash — just "TOM, SCOTT, EDAN suspected." instead of logging every individual suspicion~~ — Suspect resolve now produces a single "{names} suspected." summary log entry.
+- ~~Add subtitle to CONDEMNED slide after vote resolution when a pardoner is present: "Contacting the governor..."~~ — String updated to "Contacting the governor...".
+- ~~Add subtitle to PARDONED slide: "{judge name} pardoned {pardonee}"~~ — Subtitle now shows "{judge} pardoned {name}".
+- Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly
+- ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
 
 ## Bugs
 
-- Kicking a player does not cause their ESP32 terminal to return to the select terminal screen
+- ~~Kicking a player does not cause their ESP32 terminal to return to the select terminal screen~~ — Server now sends a `KICKED` message before closing the connection. ESP32 handles it by resetting `playerConfirmed` and returning to the player select screen.
+- ~~Seeker terminal disconnects/reconnects when their investigation event ends, briefly dropping before showing the result~~ — `EVENT_RESULT` messages (which contain full Player objects in the `data` field) were being sent to terminal connections despite the ESP32 not handling them. The oversized JSON payload could exceed the ESP32's 4KB parse buffer and drop the connection. Fix: `Player.send()` now skips `EVENT_RESULT` for terminal connections, matching the existing skip for `GAME_STATE` and `EVENT_PROMPT`.
+- ~~Investigate response string on tiny screen (e.g. "DAVIS is INNOCENT") should use the important/blinking display style~~ — Could not reproduce; code already sets `critical: true`.
+- ~~Gavel use is consumed even when the holder declines to pardon — should only consume on actual pardon~~ — Gavel consumption now gated on `result.pardoned` in `GovernorPardonFlow.onSelection()`.

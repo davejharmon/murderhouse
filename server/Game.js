@@ -513,10 +513,11 @@ export class Game {
     const player = this.players.get(id);
     if (!player) return { success: false, error: 'Player not found' };
 
-    // Close all WebSocket connections so terminals detect the kick
+    // Notify all connections they've been kicked, then close
+    const kickMsg = JSON.stringify({ type: ServerMsg.KICKED, payload: {} });
     for (const ws of player.connections) {
       if (ws && ws.readyState <= 1) {
-        try { ws.close(); } catch {}
+        try { ws.send(kickMsg); ws.close(); } catch {}
       }
     }
 

@@ -301,6 +301,17 @@ void loop() {
     // Update network and get connection state
     ConnectionState connState = networkUpdate();
 
+    // Check if kicked by server — return to player select
+    if (networkWasKicked()) {
+        Serial.println("Kicked — returning to player select");
+        playerConfirmed = false;
+        terminalOwnsDisplay = false;
+        currentDisplay = DisplayState();  // Reset display state
+        displayPlayerSelect(selectedPlayer);
+        ledsSetStatus(ConnectionState::PLAYER_SELECT);
+        return;
+    }
+
     // Handle connection state changes
     if (connState != lastConnState) {
         lastConnState = connState;

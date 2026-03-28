@@ -62,6 +62,9 @@ void networkSendOperatorClear();
 // Get last error message (if any)
 const char* networkGetLastError();
 
+// Check if the player was kicked by the server; returns true once then resets
+bool networkWasKicked();
+
 // Check if an OTA update was requested by the server; execute from main loop
 bool networkOtaRequested();
 void networkExecuteOta();

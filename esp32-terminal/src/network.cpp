@@ -78,6 +78,9 @@ static char lastError[128] = "";
 // OTA update flag — set by WebSocket handler, executed from main loop
 static bool otaRequested = false;
 
+// Kicked flag — set by server KICKED message, causes terminal to return to player select
+static bool wasKicked = false;
+
 // Display state callback
 static DisplayStateCallback displayCallback = nullptr;
 
@@ -546,6 +549,14 @@ const char* networkGetLastError() {
     return lastError;
 }
 
+bool networkWasKicked() {
+    if (wasKicked) {
+        wasKicked = false;
+        return true;
+    }
+    return false;
+}
+
 bool networkOtaRequested() {
     return otaRequested;
 }
@@ -624,6 +635,10 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             else if (strcmp(msgType, ServerMsg::UPDATE_FIRMWARE) == 0) {
                 Serial.println("[OTA] Server requested firmware update");
                 otaRequested = true;
+            }
+            else if (strcmp(msgType, ServerMsg::KICKED) == 0) {
+                Serial.println("Kicked by server — returning to player select");
+                wasKicked = true;
             }
             else if (strcmp(msgType, ServerMsg::GAME_STATE) == 0) {
                 // Ignored by terminal — display is server-driven via PLAYER_STATE
