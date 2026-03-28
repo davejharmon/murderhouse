@@ -33,6 +33,7 @@ export default function Host() {
     connected,
     gameState,
     slideQueue,
+    eventTimers,
     log,
     notifications,
     send,
@@ -505,7 +506,12 @@ export default function Host() {
           onResetEvent={handleResetEvent}
           onDebugAutoSelectAll={handleDebugAutoSelectAll}
           onStartEventTimer={handleStartEventTimer}
+          onPauseEventTimer={() => send(ClientMsg.PAUSE_EVENT_TIMER)}
+          onResumeEventTimer={() => send(ClientMsg.RESUME_EVENT_TIMER)}
+          onCancelEventTimer={() => send(ClientMsg.CANCEL_EVENT_TIMER)}
           timerDuration={timerDuration}
+          timerActive={Object.keys(eventTimers || {}).length > 0}
+          timerPaused={Object.values(eventTimers || {}).some(t => t.paused)}
           customEventConfig={gameState?.customEventConfig}
           slideWarning={slideWarningArmed}
         />

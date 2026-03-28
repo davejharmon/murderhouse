@@ -122,8 +122,19 @@ export function GameProvider({ children }) {
         break;
 
       case ServerMsg.EVENT_TIMER:
-        if (payload.duration != null) {
-          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration, duration: payload.duration } }));
+        if (payload.paused) {
+          // Freeze all timers at their current remaining time
+          setEventTimers(prev => {
+            const next = {};
+            for (const [eid, t] of Object.entries(prev)) {
+              next[eid] = { ...t, paused: true, remaining: Math.max(0, t.endsAt - Date.now()) };
+            }
+            return next;
+          });
+        } else if (payload.cancelled) {
+          setEventTimers({});
+        } else if (payload.duration != null) {
+          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration, duration: payload.duration, paused: false } }));
         } else {
           setEventTimers(prev => {
             const next = { ...prev };

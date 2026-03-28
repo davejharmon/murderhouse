@@ -86,6 +86,11 @@
   cursor: default;
 }
 
+.timerControls {
+  display: flex;
+  gap: var(--space-xs);
+}
+
 .resolveRow {
   display: flex;
   gap: var(--space-xs);

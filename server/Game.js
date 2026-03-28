@@ -1450,6 +1450,66 @@ export class Game {
     }
   }
 
+  pauseEventTimers() {
+    for (const [eventId, timer] of this.eventTimers) {
+      if (timer.paused) continue;
+      clearTimeout(timer.timeout);
+      timer.remaining = Math.max(0, timer.endsAt - Date.now());
+      timer.paused = true;
+      timer.timeout = null;
+    }
+    this.broadcast(ServerMsg.EVENT_TIMER, { paused: true });
+    return { success: true };
+  }
+
+  resumeEventTimers() {
+    for (const [eventId, timer] of this.eventTimers) {
+      if (!timer.paused) continue;
+      timer.paused = false;
+      timer.endsAt = Date.now() + timer.remaining;
+      timer.timeout = setTimeout(() => {
+        this.clearEventTimer(eventId);
+        this.resolveEvent(eventId, { force: true });
+      }, timer.remaining);
+    }
+    // Broadcast new endsAt by re-sending remaining duration
+    for (const [eventId, timer] of this.eventTimers) {
+      this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: timer.remaining });
+    }
+    return { success: true };
+  }
+
+  cancelEventTimers() {
+    // Clear all timers
+    for (const [eventId] of this.eventTimers) {
+      const timer = this.eventTimers.get(eventId);
+      if (timer?.timeout) clearTimeout(timer.timeout);
+    }
+    this.eventTimers.clear();
+    this.broadcast(ServerMsg.EVENT_TIMER, { cancelled: true, duration: null });
+
+    // Push a fresh gallery slide (normal, no countdown)
+    const participants = [];
+    for (const [, instance] of this.activeEvents) {
+      for (const pid of instance.participants) {
+        if (!participants.includes(pid)) participants.push(pid);
+      }
+    }
+    if (participants.length > 0) {
+      this.pushSlide({
+        type: 'gallery',
+        title: this.phase === GamePhase.DAY
+          ? str('slides', 'phase.dayN.title', { n: this.dayCount })
+          : str('slides', 'phase.nightN.title', { n: this.dayCount }),
+        subtitle: '',
+        playerIds: participants,
+        style: SlideStyle.NEUTRAL,
+      });
+    }
+    this.broadcastGameState();
+    return { success: true };
+  }
+
   // End event timers early if all participants have confirmed or abstained
   checkEventTimersComplete() {
     for (const [eventId, timer] of this.eventTimers) {

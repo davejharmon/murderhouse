@@ -354,6 +354,9 @@ export function createHandlers(game, clients) {
     [ClientMsg.RESET_EVENT]: requireHost((ws, payload) => game.resetEvent(payload.eventId)),
 
     [ClientMsg.START_EVENT_TIMER]: requireHost((ws, payload) => game.startAllEventTimers(payload.duration)),
+    [ClientMsg.PAUSE_EVENT_TIMER]: requireHost(() => game.pauseEventTimers()),
+    [ClientMsg.RESUME_EVENT_TIMER]: requireHost(() => game.resumeEventTimers()),
+    [ClientMsg.CANCEL_EVENT_TIMER]: requireHost(() => game.cancelEventTimers()),
 
     [ClientMsg.NEXT_PHASE]: requireHost(() => game.nextPhase()),
 

@@ -66,6 +66,12 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
       const entries = Object.entries(eventTimers)
       if (entries.length === 0) { setTimerDisplay(null); return }
       const earliest = entries.reduce((min, [, t]) => (t.endsAt < min.endsAt ? t : min), entries[0][1])
+      // When paused, show frozen remaining time
+      if (earliest.paused) {
+        const remaining = earliest.remaining || 0
+        setTimerDisplay(remaining > 0 ? { seconds: Math.ceil(remaining / 1000), fraction: remaining / earliest.duration, paused: true } : null)
+        return
+      }
       const tick = () => {
         const remaining = Math.max(0, earliest.endsAt - Date.now())
         setTimerDisplay(remaining > 0 ? { seconds: Math.ceil(remaining / 1000), fraction: remaining / earliest.duration } : null)

@@ -19,7 +19,12 @@ export default function EventPanel({
   onCreateCustomEvent,
   onResetEvent,
   onStartEventTimer,
+  onPauseEventTimer,
+  onResumeEventTimer,
+  onCancelEventTimer,
   timerDuration,
+  timerActive,
+  timerPaused,
   customEventConfig,
   slideWarning,
 }) {
@@ -171,7 +176,7 @@ export default function EventPanel({
                 );
               })}
             </div>
-            {onStartEventTimer && (
+            {onStartEventTimer && !timerActive && (
               <button
                 className={styles.eventBtn}
                 onClick={onStartEventTimer}
@@ -179,6 +184,22 @@ export default function EventPanel({
               >
                 ⏱ {timerDuration}s
               </button>
+            )}
+            {timerActive && (
+              <div className={styles.timerControls}>
+                <button
+                  className={styles.eventBtn}
+                  onClick={timerPaused ? onResumeEventTimer : onPauseEventTimer}
+                >
+                  {timerPaused ? '▶ Resume' : '⏸ Pause'}
+                </button>
+                <button
+                  className={`${styles.eventBtn} danger`}
+                  onClick={onCancelEventTimer}
+                >
+                  ✕ Cancel
+                </button>
+              </div>
             )}
             {activeEvents.length > 1 && (
               <div className={styles.resolveRow}>
