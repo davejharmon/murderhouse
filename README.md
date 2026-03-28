@@ -365,7 +365,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Simplify suspect logs in host dash — just "TOM, SCOTT, EDAN suspected." instead of logging every individual suspicion~~ — Suspect resolve now produces a single "{names} suspected." summary log entry.
 - ~~Add subtitle to CONDEMNED slide after vote resolution when a pardoner is present: "Contacting the governor..."~~ — String updated to "Contacting the governor...".
 - ~~Add subtitle to PARDONED slide: "{judge name} pardoned {pardonee}"~~ — Subtitle now shows "{judge} pardoned {name}".
-- Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly
+- ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
 - ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
 
 ## Bugs

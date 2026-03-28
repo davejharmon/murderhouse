@@ -40,14 +40,13 @@ function tallyVotes(results) {
   return { tally, maxVotes, frontrunners, isEmpty };
 }
 
-/** Check if frontrunners tie should trigger runoff or random tiebreak.
- *  Returns runoff result, tieBreaker result, or null (clear winner). */
+/** Check if frontrunners tie should trigger runoff or deadlock.
+ *  Returns runoff result, deadlock result, or null (clear winner).
+ *  After 2 failed runoffs the vote deadlocks — no resolution occurs. */
 function checkRunoff(frontrunners, tally, runoffRound, eventName) {
   if (frontrunners.length <= 1) return null;
-  if (runoffRound >= 3) {
-    const winnerId =
-      frontrunners[Math.floor(Math.random() * frontrunners.length)];
-    return { tieBreaker: true, winnerId, tally };
+  if (runoffRound >= 2) {
+    return { deadlock: true, tally };
   }
   return {
     success: true,
@@ -162,23 +161,16 @@ const events = {
         str('events', 'vote.name'),
       );
       if (runoffResult) {
-        if (runoffResult.tieBreaker) {
-          const victim = game.getPlayer(runoffResult.winnerId);
-          // Don't kill yet - let Game.js handle it after checking for judge
-          const teamName = getTeamDisplayName(victim.role);
+        if (runoffResult.deadlock) {
           return {
             success: true,
-            outcome: 'eliminated',
-            victim,
-            tally,
-            message: str('log', 'voteRandomSelected', { name: victim.name }),
+            outcome: 'no-kill',
+            message: str('log', 'voteDeadlock'),
             slide: {
-              type: 'death',
-              playerId: victim.id,
-              title: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
-              subtitle: victim.name,
-              revealRole: true,
-              style: SlideStyle.HOSTILE,
+              type: 'title',
+              title: str('slides', 'vote.noElimTitle'),
+              subtitle: str('slides', 'vote.deadlockSubtitle'),
+              style: SlideStyle.NEUTRAL,
             },
           };
         }
@@ -1021,14 +1013,18 @@ const events = {
         str('events', 'customEvent.name'),
       );
       if (runoffResult) {
-        if (runoffResult.tieBreaker) {
-          return resolveCustomEventReward(
-            runoffResult.winnerId,
-            config,
-            game,
-            tally,
-            true,
-          );
+        if (runoffResult.deadlock) {
+          return {
+            success: true,
+            outcome: 'no-winner',
+            message: str('log', 'voteDeadlock'),
+            slide: {
+              type: 'title',
+              title: str('slides', 'vote.noWinnerTitle'),
+              subtitle: str('slides', 'vote.deadlockSubtitle'),
+              style: SlideStyle.NEUTRAL,
+            },
+          };
         }
         return runoffResult;
       }

@@ -1941,6 +1941,11 @@ export class Game {
         runoffSubtitle = `Choose who to elect as ${rewardParam}`;
     }
 
+    // Warn on final runoff that another deadlock ends the vote
+    if (instance.runoffRound >= 2) {
+      runoffSubtitle = str('slides', 'vote.runoffFinalWarning');
+    }
+
     // Queue runoff slide with all participants (not just frontrunners)
     // so that vote confirmation highlights work the same as normal votes
     this.pushSlide(
