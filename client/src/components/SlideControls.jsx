@@ -9,6 +9,7 @@ export default function SlideControls({
   onClear,
   autoAdvanceEnabled,
   onToggleAutoAdvance,
+  warning,
 }) {
   const { queue = [], currentIndex = -1 } = slideQueue;
   const total = queue.length;
@@ -21,7 +22,7 @@ export default function SlideControls({
     <section className={styles.controls}>
       <h2>Slides</h2>
 
-      <div className={styles.counter}>
+      <div className={`${styles.counter} ${warning ? styles.counterWarning : ''}`}>
         {hasSlides ? `${current} / ${total}` : 'No slides'}
       </div>
 

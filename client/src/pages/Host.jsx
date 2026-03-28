@@ -36,6 +36,7 @@ export default function Host() {
     log,
     notifications,
     send,
+    addNotification,
     connectAsHost,
     gamePresets,
     presetSettings,
@@ -207,21 +208,43 @@ export default function Host() {
   const isGameOver = phase === GamePhase.GAME_OVER;
 
   const handleStartGame = () => send(ClientMsg.START_GAME);
-  const handleNextPhase = () => send(ClientMsg.NEXT_PHASE);
   const handleResetGame = () => {
     if (window.confirm(getStr('host', 'resetConfirm'))) {
       send(ClientMsg.RESET_GAME);
     }
   };
 
+  // Unplayed slides warning: guard destructive actions behind a force-through
+  const hasUnplayedSlides = slideQueue?.queue?.length > 0
+    && slideQueue.currentIndex < slideQueue.queue.length - 1;
+  const [slideWarningArmed, setSlideWarningArmed] = useState(false);
+
+  // Clear armed state when host catches up to last slide
+  useEffect(() => {
+    if (!hasUnplayedSlides) setSlideWarningArmed(false);
+  }, [hasUnplayedSlides]);
+
+  const guardedAction = (action) => {
+    if (hasUnplayedSlides && !slideWarningArmed) {
+      setSlideWarningArmed(true);
+      addNotification('Warning! Unplayed slides', 'error');
+      return;
+    }
+    setSlideWarningArmed(false);
+    action();
+  };
+
+  const handleNextPhase = () => guardedAction(() => send(ClientMsg.NEXT_PHASE));
   const handleStartEvent = (eventId) =>
-    send(ClientMsg.START_EVENT, { eventId });
-  const handleStartAllEvents = () => send(ClientMsg.START_ALL_EVENTS);
+    guardedAction(() => send(ClientMsg.START_EVENT, { eventId }));
+  const handleStartAllEvents = () =>
+    guardedAction(() => send(ClientMsg.START_ALL_EVENTS));
   const handleCreateCustomEvent = (config) =>
     send(ClientMsg.CREATE_CUSTOM_EVENT, config);
   const handleResolveEvent = (eventId) =>
-    send(ClientMsg.RESOLVE_EVENT, { eventId });
-  const handleResolveAllEvents = () => send(ClientMsg.RESOLVE_ALL_EVENTS);
+    guardedAction(() => send(ClientMsg.RESOLVE_EVENT, { eventId }));
+  const handleResolveAllEvents = () =>
+    guardedAction(() => send(ClientMsg.RESOLVE_ALL_EVENTS));
   const handleSkipEvent = (eventId) => send(ClientMsg.SKIP_EVENT, { eventId });
   const handleResetEvent = (eventId) =>
     send(ClientMsg.RESET_EVENT, { eventId });
@@ -423,7 +446,12 @@ export default function Host() {
           )}
 
           {!isLobby && !isGameOver && (
-            <button onClick={handleNextPhase}>{getStr('host', 'nextPhase')}</button>
+            <button
+              className={slideWarningArmed ? 'danger' : ''}
+              onClick={handleNextPhase}
+            >
+              {getStr('host', 'nextPhase')}
+            </button>
           )}
 
           <button className='danger' onClick={handleResetGame}>
@@ -479,6 +507,7 @@ export default function Host() {
           onStartEventTimer={handleStartEventTimer}
           timerDuration={timerDuration}
           customEventConfig={gameState?.customEventConfig}
+          slideWarning={slideWarningArmed}
         />
       )}
 
@@ -489,6 +518,7 @@ export default function Host() {
         onClear={handleClearSlides}
         autoAdvanceEnabled={autoAdvanceEnabled}
         onToggleAutoAdvance={handleToggleAutoAdvance}
+        warning={slideWarningArmed}
       />
     </>
   );

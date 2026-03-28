@@ -20,6 +20,16 @@
   text-align: center;
 }
 
+.counterWarning {
+  color: #ef4444;
+  animation: flash 0.8s infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .buttons {
   display: flex;
   gap: var(--space-sm);

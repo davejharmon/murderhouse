@@ -373,7 +373,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player~~ — Idle tip now shows "CELL: {self}, {packmates}" with current player included.
 - OTA success screen: neopixel GREEN. OTA failed screen: neopixel RED.
 - Syringe use logs two messages ("received Poisoned" + "injected") — only need the injection log
-- Warn host about unplayed slides: when starting/resolving an event or advancing phase with unplayed slides, highlight button red, flash the slides x/y count, and show "Warning! Unplayed slides" notification. Clear red state when on last slide. Allow force-through on second click while red.
+- ~~Warn host about unplayed slides: when starting/resolving an event or advancing phase with unplayed slides, highlight button red, flash the slides x/y count, and show "Warning! Unplayed slides" notification. Clear red state when on last slide. Allow force-through on second click while red.~~ — Implemented with `guardedAction` wrapper. First click arms warning (red buttons, flashing counter, notification). Second click forces through. Clears automatically when host catches up to last slide.
 - ~~Hidden items (poisoned, marked, prospect, novote) on host dashboard player cards should show as 60% opacity icon without "?" — host sees all secret info~~ — Changed to 60% opacity, removed grayscale filter.
 - ~~Change role reveal slide titles: "CIRCLE MEMBER ELIMINATED" → "THE CIRCLE SHRINKS", "CELL MEMBER ELIMINATED" → "THE CELL SHRINKS" (and similar for KILLED/POISONED)~~ — Team names now "THE CIRCLE"/"THE CELL", suffixes changed to "SHRINKS".
 

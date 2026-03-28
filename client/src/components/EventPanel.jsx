@@ -21,6 +21,7 @@ export default function EventPanel({
   onStartEventTimer,
   timerDuration,
   customEventConfig,
+  slideWarning,
 }) {
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
@@ -88,7 +89,7 @@ export default function EventPanel({
               {pendingEvents.map((eventId) => (
                 <button
                   key={eventId}
-                  className={styles.eventBtn}
+                  className={`${styles.eventBtn} ${slideWarning ? 'danger' : ''}`}
                   onClick={() => onStartEvent(eventId)}
                 >
                   Start {eventId === 'customEvent'
@@ -101,7 +102,7 @@ export default function EventPanel({
             </div>
             {pendingEvents.length > 1 && (
               <button
-                className={`${styles.eventBtn} primary`}
+                className={`${styles.eventBtn} ${slideWarning ? 'danger' : 'primary'}`}
                 onClick={onStartAllEvents}
               >
                 Start All
@@ -194,7 +195,7 @@ export default function EventPanel({
                 )}
                 {activeEvents.length > 1 && (
                   <button
-                    className={`${styles.eventBtn} success`}
+                    className={`${styles.eventBtn} ${slideWarning ? 'danger' : 'success'}`}
                     style={{ flex: 1 }}
                     onClick={onResolveAllEvents}
                   >
