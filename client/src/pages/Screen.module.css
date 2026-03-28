@@ -207,14 +207,17 @@
 
 .cowardBadge {
   position: absolute;
-  top: 3.2vw;
-  left: -0.8vw;
-  right: -0.8vw;
-  text-align: center;
+  top: 35%;
+  left: -15%;
+  right: -15%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5em;
   background: rgba(180, 30, 30, 0.92);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 1.1vw;
+  font-size: max(0.8vw, 12px);
   font-weight: 700;
   letter-spacing: 0.2em;
   padding: 0.25em 0;

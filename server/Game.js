@@ -2486,8 +2486,7 @@ export class Game {
         playerId: player.id,
         title: player.name.toUpperCase(),
         subtitle: str('slides', 'death.cowardTitle'),
-        revealRole: true,
-        revealText: itemDef.description,
+        revealRole: false,
         style: SlideStyle.WARNING,
       }, true);
     }

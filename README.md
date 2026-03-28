@@ -367,6 +367,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - Make dead/spectator screen more simple and iconic
 - Bool night actions (poison, cleanup) always trigger on debug auto-select — should abstain 50% of the time
 - Hunter should die after using revenge, not before (at least visually on their own terminal if easier)
+- Rename the Judge role to Governor (display name and strings only, keep role ID as 'judge')
 
 ## Bugs
 

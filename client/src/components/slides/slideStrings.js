@@ -19,6 +19,8 @@ export const SLIDE_STRINGS = {
   },
   gallery: {
     get cell() { return getStr('screen', 'gallery.cell') },
+    get coward() { return getStr('screen', 'death.coward') },
+    get mad() { return getStr('screen', 'death.mad') },
   },
   scores: {
     get title() { return getStr('slides', 'misc.scoreboardTitle') },
