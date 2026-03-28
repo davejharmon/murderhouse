@@ -20,6 +20,7 @@ export default function EventPanel({
   onResetEvent,
   onStartEventTimer,
   timerDuration,
+  customEventConfig,
 }) {
   const [showCustomEventModal, setShowCustomEventModal] = useState(false);
 
@@ -90,7 +91,11 @@ export default function EventPanel({
                   className={styles.eventBtn}
                   onClick={() => onStartEvent(eventId)}
                 >
-                  Start {eventId === 'customEvent' ? 'Custom' : eventId}
+                  Start {eventId === 'customEvent'
+                    ? (customEventConfig?.rewardParam
+                      ? `${customEventConfig.rewardParam.toUpperCase()} VOTE`
+                      : 'Custom')
+                    : eventId}
                 </button>
               ))}
             </div>

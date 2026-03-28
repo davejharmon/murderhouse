@@ -478,6 +478,7 @@ export default function Host() {
           onDebugAutoSelectAll={handleDebugAutoSelectAll}
           onStartEventTimer={handleStartEventTimer}
           timerDuration={timerDuration}
+          customEventConfig={gameState?.customEventConfig}
         />
       )}
 

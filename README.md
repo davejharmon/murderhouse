@@ -369,12 +369,13 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Add subtitle to PARDONED slide: "{judge name} pardoned {pardonee}"~~ — Subtitle now shows "{judge} pardoned {name}".
 - ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
 - ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
-- When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")
+- ~~When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")~~ — Pending custom event button now shows "Start {REWARD} VOTE" (e.g. "Start WARDEN VOTE").
 - ~~Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player~~ — Idle tip now shows "CELL: {self}, {packmates}" with current player included.
 - OTA success screen: neopixel GREEN. OTA failed screen: neopixel RED.
+- Syringe use logs two messages ("received Poisoned" + "injected") — only need the injection log
 - Warn host about unplayed slides: when starting/resolving an event or advancing phase with unplayed slides, highlight button red, flash the slides x/y count, and show "Warning! Unplayed slides" notification. Clear red state when on last slide. Allow force-through on second click while red.
-- Hidden items (poisoned, marked, prospect, novote) on host dashboard player cards should show as 60% opacity icon without "?" — host sees all secret info
-- Change role reveal slide titles: "CIRCLE MEMBER ELIMINATED" → "THE CIRCLE SHRINKS", "CELL MEMBER ELIMINATED" → "THE CELL SHRINKS" (and similar for KILLED/POISONED)
+- ~~Hidden items (poisoned, marked, prospect, novote) on host dashboard player cards should show as 60% opacity icon without "?" — host sees all secret info~~ — Changed to 60% opacity, removed grayscale filter.
+- ~~Change role reveal slide titles: "CIRCLE MEMBER ELIMINATED" → "THE CIRCLE SHRINKS", "CELL MEMBER ELIMINATED" → "THE CELL SHRINKS" (and similar for KILLED/POISONED)~~ — Team names now "THE CIRCLE"/"THE CELL", suffixes changed to "SHRINKS".
 
 ## Bugs
 
@@ -385,5 +386,5 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Suggest ability does not work — Alpha does not see majority suggestion from Sleepers, Sleepers do not see Alpha's target. Possibly fast path related.~~ — `_getPackHint()` hardcoded `EventId.KILL` check instead of using the `eventId` parameter. Fixed to use the passed event ID so hints work for both HUNT and KILL events.
 - ~~Opening the React terminal operator console and interacting with it forces every connected ESP32 terminal to display the operator screen~~ — ESP32 now ignores OPERATOR_STATE when not in operator mode.
 - ~~Chemist sees "YES" in line3 left during poison toggle~~ — Boolean event display path had fallback to `actions.confirm`; now uses packsense only.
-- Host dashboard only shows a pip on the first action's target for players with two night actions — should show pips on both targets
+- ~~Host dashboard only shows a pip on the first action's target for players with two night actions — should show pips on both targets~~ — `getPrivateState` now sends `allSelections` map (eventId → targetId). PlayerGrid uses all selections for pip display.
 - ~~Marked player briefly sees "MARKED" role on terminal connect before it updates to "NOBODY" — the disguise should apply from the first frame~~ — JOIN handler was calling `getPrivateState(game)` without `forSelf: true`, sending the real role. Fixed to pass `{ forSelf: true }` so disguise applies from the first frame.

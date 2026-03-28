@@ -322,6 +322,19 @@ export class Player {
     const role = this.role;
     const dr = (forSelf && role?.disguiseAs) ? role.disguiseAs : role;
     const activeResult = this.getActiveResult(game);
+    // Collect all confirmed/pending selections across active events (for host multi-pip display)
+    const allSelections = {};
+    if (game) {
+      for (const [eventId, instance] of game.activeEvents) {
+        if (!instance.participants.includes(this.id)) continue;
+        if (this.id in instance.results) {
+          const tid = instance.results[this.id];
+          if (tid) allSelections[eventId] = tid;
+        } else if (this.currentSelection) {
+          allSelections[eventId] = this.currentSelection;
+        }
+      }
+    }
     return {
       ...this.getPublicState(),
       role: dr?.id,
@@ -333,6 +346,7 @@ export class Player {
       currentSelection: this.currentSelection,
       confirmedSelection: (activeResult && !activeResult.abstained) ? activeResult.targetId : null,
       abstained: activeResult?.abstained ?? false,
+      allSelections,
       pendingEvents: [...this.pendingEvents],
       investigations: this.investigations,
       linkedTo: this.linkedTo,

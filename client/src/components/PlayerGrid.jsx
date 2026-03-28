@@ -320,21 +320,33 @@ export default function PlayerGrid({
     return eventsMap;
   }, [players, eventParticipants]);
 
-  // Memoize targeting data for all players
+  // Memoize targeting data for all players (supports multi-event selections)
   const allTargeters = useMemo(() => {
     const targetersMap = {};
     for (const player of players) {
       targetersMap[player.id] = [];
     }
     for (const player of players) {
-      const targetId = player.confirmedSelection || player.currentSelection;
-      if (targetId && targetersMap[targetId]) {
-        targetersMap[targetId].push({
-          odId: player.id,
-          seatNumber: player.seatNumber,
-          roleColor: player.roleColor || '#888',
-          confirmed: !!player.confirmedSelection,
-        });
+      // Collect all targets from allSelections (multi-event) or fall back to single selection
+      const targets = new Set();
+      if (player.allSelections) {
+        for (const targetId of Object.values(player.allSelections)) {
+          if (targetId) targets.add(targetId);
+        }
+      }
+      if (targets.size === 0) {
+        const targetId = player.confirmedSelection || player.currentSelection;
+        if (targetId) targets.add(targetId);
+      }
+      for (const targetId of targets) {
+        if (targetersMap[targetId]) {
+          targetersMap[targetId].push({
+            odId: player.id,
+            seatNumber: player.seatNumber,
+            roleColor: player.roleColor || '#888',
+            confirmed: !!player.confirmedSelection || Object.keys(player.allSelections || {}).length > 0,
+          });
+        }
       }
     }
     // Sort each by seat number

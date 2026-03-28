@@ -1257,7 +1257,9 @@ export class Game {
     this.pushSlide(
       {
         type: 'gallery',
-        title: str('slides', 'vote.customTitle'),
+        title: config.rewardParam
+          ? str('slides', 'vote.customTitleNamed', { reward: config.rewardParam.toUpperCase() })
+          : str('slides', 'vote.customTitle'),
         subtitle: config.description,
         itemDescription: rewardItemDef?.description || null,
         playerIds: customTargets.map((p) => p.id),
@@ -3239,7 +3241,10 @@ export class Game {
       heartbeatMode: this.heartbeatMode,
       heartbeatThreshold: this._hostSettings.heartbeatThreshold ?? 110,
       fakeHeartbeats: this._fakeHeartbeats,
-      ...(audience === 'host' ? { availableFirmware: this._getAvailableFirmwareVersion() } : {}),
+      ...(audience === 'host' ? {
+        availableFirmware: this._getAvailableFirmwareVersion(),
+        customEventConfig: this.customEventConfig,
+      } : {}),
     };
   }
 
