@@ -358,33 +358,13 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ## Improvements
 
-- ~~Add glyph for Jester~~ — 3-pointed jester hat with grinning face, added to both JS and ESP32 icon sets.
-- ~~Add new role: Jailer~~ — Circle role, night action jails a player (protect + roleblock). Priority 3, before block. Optional role for presets, not in default composition.
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
 - Make dead/spectator screen more simple and iconic
-- ~~Simplify suspect logs in host dash — just "TOM, SCOTT, EDAN suspected." instead of logging every individual suspicion~~ — Suspect resolve now produces a single "{names} suspected." summary log entry.
-- ~~Add subtitle to CONDEMNED slide after vote resolution when a pardoner is present: "Contacting the governor..."~~ — String updated to "Contacting the governor...".
-- ~~Add subtitle to PARDONED slide: "{judge name} pardoned {pardonee}"~~ — Subtitle now shows "{judge} pardoned {name}".
-- ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
-- ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
-- ~~When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")~~ — Pending custom event button now shows "Start {REWARD} VOTE" (e.g. "Start WARDEN VOTE").
-- ~~Change packsense string from "PACK" to "CELL: {player names}" (e.g. "CELL: Alex, Demi"), including the current player~~ — Idle tip now shows "CELL: {self}, {packmates}" with current player included.
-- OTA success screen: neopixel GREEN. OTA failed screen: neopixel RED.
-- Syringe use logs two messages ("received Poisoned" + "injected") — only need the injection log
-- ~~Warn host about unplayed slides: when starting/resolving an event or advancing phase with unplayed slides, highlight button red, flash the slides x/y count, and show "Warning! Unplayed slides" notification. Clear red state when on last slide. Allow force-through on second click while red.~~ — Implemented with `guardedAction` wrapper. First click arms warning (red buttons, flashing counter, notification). Second click forces through. Clears automatically when host catches up to last slide.
-- ~~Hidden items (poisoned, marked, prospect, novote) on host dashboard player cards should show as 60% opacity icon without "?" — host sees all secret info~~ — Changed to 60% opacity, removed grayscale filter.
-- ~~Change role reveal slide titles: "CIRCLE MEMBER ELIMINATED" → "THE CIRCLE SHRINKS", "CELL MEMBER ELIMINATED" → "THE CELL SHRINKS" (and similar for KILLED/POISONED)~~ — Team names now "THE CIRCLE"/"THE CELL", suffixes changed to "SHRINKS".
+- Bool night actions (poison, cleanup) always trigger on debug auto-select — should abstain 50% of the time
+- Hunter should die after using revenge, not before (at least visually on their own terminal if easier)
 
 ## Bugs
 
-- ~~Kicking a player does not cause their ESP32 terminal to return to the select terminal screen~~ — Server now sends a `KICKED` message before closing the connection. ESP32 handles it by resetting `playerConfirmed` and returning to the player select screen.
-- ~~Seeker terminal disconnects/reconnects when their investigation event ends, briefly dropping before showing the result~~ — `EVENT_RESULT` messages (which contain full Player objects in the `data` field) were being sent to terminal connections despite the ESP32 not handling them. The oversized JSON payload could exceed the ESP32's 4KB parse buffer and drop the connection. Fix: `Player.send()` now skips `EVENT_RESULT` for terminal connections, matching the existing skip for `GAME_STATE` and `EVENT_PROMPT`.
-- ~~Investigate response string on tiny screen (e.g. "DAVIS is INNOCENT") should use the important/blinking display style~~ — Could not reproduce; code already sets `critical: true`.
-- ~~Gavel use is consumed even when the holder declines to pardon — should only consume on actual pardon~~ — Gavel consumption now gated on `result.pardoned` in `GovernorPardonFlow.onSelection()`.
-- ~~Suggest ability does not work — Alpha does not see majority suggestion from Sleepers, Sleepers do not see Alpha's target. Possibly fast path related.~~ — `_getPackHint()` hardcoded `EventId.KILL` check instead of using the `eventId` parameter. Fixed to use the passed event ID so hints work for both HUNT and KILL events.
-- ~~Opening the React terminal operator console and interacting with it forces every connected ESP32 terminal to display the operator screen~~ — ESP32 now ignores OPERATOR_STATE when not in operator mode.
-- ~~Chemist sees "YES" in line3 left during poison toggle~~ — Boolean event display path had fallback to `actions.confirm`; now uses packsense only.
-- ~~Host dashboard only shows a pip on the first action's target for players with two night actions — should show pips on both targets~~ — `getPrivateState` now sends `allSelections` map (eventId → targetId). PlayerGrid uses all selections for pip display.
-- ~~Marked player briefly sees "MARKED" role on terminal connect before it updates to "NOBODY" — the disguise should apply from the first frame~~ — JOIN handler was calling `getPrivateState(game)` without `forSelf: true`, sending the real role. Fixed to pass `{ forSelf: true }` so disguise applies from the first frame.
+(none)

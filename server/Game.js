@@ -875,7 +875,7 @@ export class Game {
         subtitle: str('slides', 'phase.nightN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
-      }, false); // Don't jump — let host advance through any preceding slides first
+      }); // Jump immediately on phase transition
       // Snapshot slide count after the night gallery — used to detect silent nights
       this._nightStartSlideCount = this.slideQueue.length;
     } else if (this.phase === GamePhase.NIGHT) {
@@ -889,7 +889,7 @@ export class Game {
         subtitle: str('slides', 'phase.dayN.subtitle'),
         playerIds: this.getAlivePlayers().map((p) => p.id),
         style: SlideStyle.NEUTRAL,
-      }, false); // Don't jump — let host advance through any preceding slides first
+      }); // Jump immediately on phase transition
     }
 
     // Clear events and build new ones
@@ -1675,14 +1675,17 @@ export class Game {
       this._processPoisonDeaths();
     }
 
-    // Reorder new slides: group by playerId, sort by priority.
+    // Reorder new DEATH slides only: group by playerId, sort by priority.
     // Normal kills = 0, poison = 50 (randomized among normals), hunter revenge = 100 (always last).
+    // Non-death slides (victory, scores) are never shuffled — they stay at the end in order.
     const newSlides = this.slideQueue.slice(slidesBefore);
-    if (newSlides.length > 2) {
-      // Group consecutive slides by playerId (keeps death identity + reveal + flow slides together)
+    const deathSlides = newSlides.filter(s => s.type === 'death' || s._flowSlide || s._slidePriority);
+    const tailSlides = newSlides.filter(s => s.type !== 'death' && !s._flowSlide && !s._slidePriority);
+    if (deathSlides.length > 2) {
+      // Group consecutive death slides by playerId (keeps death identity + reveal + flow slides together)
       const groups = [];
       let cur = [];
-      for (const slide of newSlides) {
+      for (const slide of deathSlides) {
         if (cur.length > 0 && slide.playerId && cur[0].playerId && slide.playerId !== cur[0].playerId
             && !slide._flowSlide) {
           groups.push(cur);
@@ -1703,7 +1706,7 @@ export class Game {
           }
         }
         groups.sort((a, b) => groupPriority(a) - groupPriority(b));
-        this.slideQueue.splice(slidesBefore, newSlides.length, ...groups.flat());
+        this.slideQueue.splice(slidesBefore, newSlides.length, ...groups.flat(), ...tailSlides);
         this.broadcastSlides();
       }
     }
@@ -2092,6 +2095,7 @@ export class Game {
   }
 
   endGame(winner) {
+    if (this.phase === GamePhase.GAME_OVER) return; // Guard against multiple calls
     this.phase = GamePhase.GAME_OVER;
 
     // Reveal all cleaned roles at game over
@@ -2460,7 +2464,7 @@ export class Game {
     return true;
   }
 
-  giveItem(playerId, itemId) {
+  giveItem(playerId, itemId, { silent = false } = {}) {
     const player = this.getPlayer(playerId);
     if (!player) {
       return { success: false, error: 'Player not found' };
@@ -2473,7 +2477,7 @@ export class Game {
 
     player.addItem(itemDef);
     if (itemId === ItemId.COWARD) this._invalidateWinCache();
-    this.addLog(str('log', 'itemGiven', { name: player.getNameWithEmoji(), item: itemDef.name }));
+    if (!silent) this.addLog(str('log', 'itemGiven', { name: player.getNameWithEmoji(), item: itemDef.name }));
 
     if (itemId === 'coward') {
       this.pushSlide({
@@ -2524,7 +2528,14 @@ export class Game {
   queueDeathSlide(slide, jumpTo = true) {
     const victim = this.players.get(slide.playerId);
     const victimName = victim?.name ?? 'PLAYER';
-    const action = slide.title.split(' ').pop(); // "KILLED", "ELIMINATED", etc.
+    // Map team suffixes (which may be thematic like "SHRINKS") to identity verbs
+    const lastWord = slide.title.split(' ').pop();
+    const IDENTITY_VERBS = {
+      [str('slides', 'death.suffixKilled')]: 'KILLED',
+      [str('slides', 'death.suffixEliminated')]: 'ELIMINATED',
+      [str('slides', 'death.suffixPoisoned')]: 'POISONED',
+    };
+    const action = IDENTITY_VERBS[lastWord] || lastWord;
     const isRoleCleaned = victim?.isRoleCleaned ?? false;
     const jesterWon = !!victim?.jesterWon;
 

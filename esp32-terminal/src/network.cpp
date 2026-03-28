@@ -2,6 +2,7 @@
 #include "network.h"
 #include "config.h"
 #include "display.h"
+#include "leds.h"
 #include "heartrate.h"
 #include <WiFi.h>
 #include <WiFiUdp.h>
@@ -270,6 +271,7 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
         case HTTP_UPDATE_OK:
             Serial.println("[OTA] Update successful! Rebooting...");
             displayMessage("OTA UPDATE", "SUCCESS", "Rebooting...");
+            ledsSetStatusColor(0, 255, 0); // Green neopixel
             delay(500);
             ESP.restart();
             break;
@@ -277,6 +279,7 @@ static void checkFirmwareUpdate(const char* host, uint16_t port) {
             Serial.printf("[OTA] Failed (err %d): %s\n",
                 httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
             displayMessage("OTA UPDATE", "FAILED", httpUpdate.getLastErrorString().c_str());
+            ledsSetStatusColor(255, 0, 0); // Red neopixel
             delay(3000);
             break;
         case HTTP_UPDATE_NO_UPDATES:

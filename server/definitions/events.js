@@ -483,7 +483,7 @@ const events = {
         }
 
         // Apply poison via item — victim dies when next night's events resolve
-        game.giveItem(victim.id, ItemId.POISONED);
+        game.giveItem(victim.id, ItemId.POISONED, { silent: true });
         victim.poisonedAt = game.dayCount;
         const chemist = [...game.players.values()].find((p) => p.role?.id === RoleId.CHEMIST && p.isAlive);
         return {
@@ -896,7 +896,7 @@ const events = {
         if (!actor || !target || !target.isAlive) continue;
 
         // Give POISONED item to target
-        game.giveItem(target.id, ItemId.POISONED);
+        game.giveItem(target.id, ItemId.POISONED, { silent: true });
         target.poisonedAt = game.dayCount;
 
         injections.push({ actor, target });
