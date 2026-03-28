@@ -1611,6 +1611,7 @@ export class Game {
       [EventId.INVESTIGATE]: 'investigate',
       [EventId.CLEAN]: 'clean',
       [EventId.POISON]: 'poison',
+      [EventId.JAIL]: 'jail',
     };
     const roleblockVerb = ROLEBLOCK_VERBS[eventId];
     if (roleblockVerb && blockedPairs.length > 0) {

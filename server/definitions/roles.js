@@ -405,6 +405,25 @@ const roles = {
     },
     passives: {},
   },
+
+  jailer: {
+    id: 'jailer',
+    get name() { return str('roles', 'jailer.name') },
+    team: Team.CIRCLE,
+    get description() { return str('roles', 'jailer.description') },
+    color: '#8a8a8a',
+    emoji: '🔒',
+    get tip() { return str('roles', 'jailer.tip') },
+    get detailedTip() { return str('roles', 'jailer.detailedTip') },
+    events: {
+      vote: {},
+      jail: {
+        priority: 3, // Before block (5) and protect (10)
+        canTarget: (player, target, game) => target.id !== player.id,
+      },
+    },
+    passives: {},
+  },
 };
 
 // Explicit role composition keyed by player count

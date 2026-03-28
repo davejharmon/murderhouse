@@ -197,6 +197,7 @@ export const RoleId = {
   AMATEUR: 'amateur',
   MARKED: 'marked',
   JESTER: 'jester',
+  JAILER: 'jailer',
 };
 
 export const EventId = {
@@ -214,6 +215,7 @@ export const EventId = {
   CLEAN: 'clean',
   POISON: 'poison',
   STUMBLE: 'stumble',
+  JAIL: 'jail',
 };
 
 export const ItemId = {
@@ -225,6 +227,7 @@ export const ItemId = {
   PROSPECT: 'prospect',
   HARDENED: 'hardened',
   NOVOTE: 'novote',
+  WARDEN: 'warden',
 };
 
 // Display info for roles (used by host UI for tutorial slide buttons)
@@ -260,7 +263,7 @@ export const DEBUG_MODE = process.env.NODE_ENV !== 'production';
 export const USE_PIXEL_GLYPHS = true;
 
 // Available items (for host UI)
-export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.GAVEL, ItemId.CLUE, ItemId.COWARD, ItemId.MARKED, ItemId.PROSPECT, ItemId.HARDENED, ItemId.NOVOTE];
+export const AVAILABLE_ITEMS = [ItemId.PISTOL, ItemId.GAVEL, ItemId.CLUE, ItemId.WARDEN, ItemId.COWARD, ItemId.MARKED, ItemId.PROSPECT, ItemId.HARDENED, ItemId.NOVOTE];
 
 // Display info for items (used by host dashboard)
 export const ITEM_DISPLAY = {
@@ -271,6 +274,7 @@ export const ITEM_DISPLAY = {
   [ItemId.MARKED]:   { name: 'Marked',   emoji: '🪡', description: 'Hidden curse. This player appears EVIL when investigated by the Seeker or Clue.' },
   [ItemId.PROSPECT]:  { name: 'Prospect',  emoji: '🐾', description: 'Hidden mark. If killed by the Cell, join them instead of dying.' },
   [ItemId.HARDENED]: { name: 'Hardened', emoji: '🛡️', description: 'A sturdy defense. The next time you would die, it absorbs the blow instead.' },
+  [ItemId.WARDEN]: { name: 'Warden', emoji: '🔒', description: 'Lock someone away for the night. Target is protected and roleblocked.' },
   [ItemId.NOVOTE]: { name: 'No Vote', emoji: '🚷', description: 'Hidden restraint. This player cannot vote in the next elimination vote.' },
 };
 
@@ -291,6 +295,7 @@ export const AVAILABLE_ROLES = [
   RoleId.AMATEUR,
   RoleId.MARKED,
   RoleId.JESTER,
+  RoleId.JAILER,
 ];
 
 // LED states for physical buttons

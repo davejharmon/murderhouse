@@ -54,6 +54,7 @@ export default function EventPanel({
     { id: 'seeker', name: 'Seeker' },
     { id: 'medic', name: 'Medic' },
     { id: 'hunter', name: 'Hunter' },
+  { id: 'jailer', name: 'Jailer' },
   ];
 
   const handleCustomEventSubmit = (config) => {

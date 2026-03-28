@@ -762,6 +762,60 @@ const events = {
     },
   },
 
+  jail: {
+    id: 'jail',
+    get name() { return str('events', 'jail.name') },
+    get description() { return str('events', 'jail.description') },
+    verb: 'jail',
+    verbPastTense: 'jailed',
+    phase: [GamePhase.NIGHT],
+    priority: 3, // Before block (5) and protect (10)
+
+    participants: (game) => {
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.id === RoleId.JAILER);
+    },
+
+    validTargets: (actor, game) => {
+      return game.getAlivePlayers().filter((p) => p.id !== actor.id);
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      const jails = [];
+
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+        const jailer = game.getPlayer(actorId);
+        const target = game.getPlayer(targetId);
+        if (!jailer || !target) continue;
+
+        // Jail = protect + roleblock
+        target.isProtected = true;
+        target.isRoleblocked = true;
+
+        jails.push({ jailer, target });
+      }
+
+      if (jails.length === 0) {
+        return { success: true, silent: true };
+      }
+
+      const messages = jails.map(
+        (j) => str('log', 'jailerJailed', { jailer: j.jailer.getNameWithEmoji(), target: j.target.getNameWithEmoji() }),
+      );
+
+      return {
+        success: true,
+        message: messages.join(', '),
+        silent: false,
+      };
+    },
+  },
+
   block: {
     id: 'block',
     get name() { return str('events', 'block.name') },

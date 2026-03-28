@@ -35,6 +35,7 @@ const EVENT_ACTIONS = {
   [EventId.SHOOT]:        { confirm: 'SHOOT',   abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },
   [EventId.SUSPECT]:      { confirm: 'SUSPECT', abstain: 'ABSTAIN', prompt: 'SUSPECT SOMEONE' },
   [EventId.BLOCK]:        { confirm: 'BLOCK',   abstain: 'ABSTAIN', prompt: 'BLOCK SOMEONE' },
+  [EventId.JAIL]:         { confirm: 'JAIL',    abstain: 'ABSTAIN', prompt: 'JAIL SOMEONE' },
   [EventId.CLEAN]:        { confirm: 'YES',     abstain: 'NO',      prompt: 'CLEAN UP?' },
   [EventId.POISON]:       { confirm: 'YES',     abstain: 'NO',      prompt: 'USE POISON?' },
   [EventId.VIGIL]:        { confirm: 'KILL',    abstain: 'ABSTAIN', prompt: 'SHOOT SOMEONE' },

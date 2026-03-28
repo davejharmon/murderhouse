@@ -99,6 +99,14 @@ const items = {
     grantsAbility: 'hardened', // Checked by killPlayer in Game.js
   },
 
+  warden: {
+    id: 'warden',
+    get name() { return str('items', 'warden.name') },
+    get description() { return str('items', 'warden.description') },
+    maxUses: 1,
+    startsEvent: EventId.JAIL, // Grants jailer's jail ability
+  },
+
   novote: {
     id: 'novote',
     name: 'No Vote',

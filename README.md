@@ -82,6 +82,7 @@ For production/remote deployment, `server/web.js` serves the built client over H
 | **Roleblocker** | Werewolf | Block        | Blocks one player's night ability                                                              |
 | **Janitor**     | Werewolf | Clean        | Hides victim's role reveal when the pack kills                                                 |
 | **Poisoner**    | Werewolf | Poison       | Replaces pack kill with delayed poison (victim dies next night)                                |
+| **Jailer**      | Village  | Jail         | Jails a player: target is protected and roleblocked (removed from all night events)            |
 | **Jester**      | Neutral  | —            | Wins solo if voted out by the village                                                          |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
@@ -93,6 +94,7 @@ Role composition is defined per player count in `GAME_COMPOSITION` (see `server/
 | **Pistol**    | 1       | Shoot a player during the day (player-initiated, instant resolution) |
 | **Phone**     | 1       | Grants pardon ability (same as Governor, consumed on use)            |
 | **Clue**      | 1       | Investigate a player (same as Seer)                                  |
+| **Warden**    | 1       | Jail a player: target is protected and roleblocked for the night     |
 | **Barricade** | 1       | Absorbs one kill; destroyed on use                                   |
 | **Novote**    | 1       | Holder is excluded from the next vote                                |
 | **Coward**    | passive | Cannot act at night; immune to night kills                           |
@@ -190,9 +192,9 @@ murderhouse/
 │   ├── handlers/
 │   │   └── index.js              # WebSocket message routing (~695 lines)
 │   ├── definitions/              # Declarative game rules
-│   │   ├── roles.js              # 15 roles with events, passives, win conditions
-│   │   ├── events.js             # 14 events with resolution logic
-│   │   └── items.js              # 8 items
+│   │   ├── roles.js              # 16 roles with events, passives, win conditions
+│   │   ├── events.js             # 15 events with resolution logic
+│   │   └── items.js              # 9 items
 │   ├── firmware.js               # HTTP handler for OTA version check + binary download
 │   ├── firmware/                 # OTA deployment: version.json + firmware.bin
 │   ├── flows/                    # Interrupt flows for multi-step mechanics
@@ -273,7 +275,7 @@ murderhouse/
 
 ### Event Priority Order
 
-Events resolve by priority (lower = earlier): link (1) → block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
+Events resolve by priority (lower = earlier): link (1) → jail (3) → block (5) → protect (10) → investigate (30) → stumble (30) → shoot (40) → customEvent (45) → vote (50) → hunt (55) → vigil (55) → clean (58) → poison (59) → kill (60) → suspect (80).
 
 ## Adding a Role
 
@@ -356,8 +358,8 @@ npm run test:watch    # Watch mode (re-runs on file change)
 
 ## Improvements
 
-- Add glyph for Jester
-- Add new role: Jailer
+- ~~Add glyph for Jester~~ — 3-pointed jester hat with grinning face, added to both JS and ESP32 icon sets.
+- ~~Add new role: Jailer~~ — Circle role, night action jails a player (protect + roleblock). Priority 3, before block. Optional role for presets, not in default composition.
 - Add detonator
 - Add library of night and day fallback phrases
 - Add a go button
@@ -367,6 +369,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - ~~Add subtitle to PARDONED slide: "{judge name} pardoned {pardonee}"~~ — Subtitle now shows "{judge} pardoned {name}".
 - ~~Adjust runoff logic: allow up to 2 runoffs, but after a second tied runoff skip resolution entirely (no kill in elimination vote, no reward in custom vote) instead of breaking randomly~~ — `checkRunoff` now deadlocks after 2 failed runoffs. Vote shows "NO ELIMINATION / The vote deadlocked." Custom vote shows "NO WINNER". No random tiebreaker.
 - ~~Disable/gray out the dice/randomise selection button when all players are confirmed instead of hiding it, so the resolve button doesn't shift position~~ — Dice buttons now render always but are disabled (opacity 0.3) when no uncommitted players remain.
+- When creating a custom event, give the "Start Custom" button on host dashboard a meaningful name based on the config (e.g. "START WARDEN VOTE")
 
 ## Bugs
 
