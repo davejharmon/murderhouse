@@ -1,0 +1,4 @@
+node_modules
+dist
+.pio
+client/src/components/oledFonts.js

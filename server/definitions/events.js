@@ -1170,7 +1170,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
       slideSubtitle = `${winner.name} received ${config.rewardParam}`;
       break;
 
-    case 'role':
+    case 'role': {
       const newRole = getRole(config.rewardParam);
       if (newRole) {
         winner.assignRole(newRole);
@@ -1178,6 +1178,7 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
         slideSubtitle = `${winner.name} is now ${newRole.name}`;
       }
       break;
+    }
 
     case 'resurrection':
       if (!winner.isAlive) {

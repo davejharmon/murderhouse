@@ -1,6 +1,8 @@
 // shared/constants.js
 // Core vocabulary shared between client and server
 
+import { Colors } from './theme.js';
+
 export const GamePhase = {
   LOBBY: 'lobby',
   DAY: 'day',
@@ -176,12 +178,12 @@ export const SlideStyle = {
   WARNING: 'warning',     // Yellow - mysterious actions, third faction (future use)
 };
 
-// Slide style color mappings
+// Slide style color mappings — values sourced from shared/theme.js
 export const SlideStyleColors = {
-  [SlideStyle.HOSTILE]: '#c94c4c',   // Red (cell color)
-  [SlideStyle.POSITIVE]: '#7ed9a6',  // Green (medic color)
-  [SlideStyle.NEUTRAL]: '#7eb8da',   // Blue (circle color)
-  [SlideStyle.WARNING]: '#d4af37',   // Gold/yellow (judge color)
+  [SlideStyle.HOSTILE]: Colors.CELL_RED,
+  [SlideStyle.POSITIVE]: Colors.MEDIC_GREEN,
+  [SlideStyle.NEUTRAL]: Colors.CIRCLE_BLUE,
+  [SlideStyle.WARNING]: Colors.GOVERNOR_GOLD,
 };
 
 export const RoleId = {

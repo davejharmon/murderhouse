@@ -39,6 +39,13 @@ export default function ScoresSlide({ slide, strings = SLIDE_STRINGS.scores }) {
 
   const [phase, setPhase] = useState(hasAnimation ? PHASE_INIT : PHASE_SHUFFLE)
 
+  // Measure row height for animated reorder (must be declared before any early return)
+  const rowRef = useRef(null)
+  const [rowHeight, setRowHeight] = useState(0)
+  const renderListLength = hasAnimation
+    ? previousEntries.filter(e => entries.some(e2 => e2.name === e.name)).length
+    : 0
+
   useEffect(() => {
     if (!hasAnimation) { setPhase(PHASE_SHUFFLE); return }
     setPhase(PHASE_INIT)
@@ -46,6 +53,16 @@ export default function ScoresSlide({ slide, strings = SLIDE_STRINGS.scores }) {
     const t2 = setTimeout(() => setPhase(PHASE_SHUFFLE), 1800)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [slide.id, hasAnimation])
+
+  useEffect(() => {
+    if (rowRef.current) {
+      const el = rowRef.current
+      // row height = element height + gap
+      const style = window.getComputedStyle(el.parentElement)
+      const gap = parseFloat(style.gap) || 0
+      setRowHeight(el.offsetHeight + gap)
+    }
+  }, [renderListLength])
 
   if (!hasAnimation) {
     // Static scoreboard (no previous data)
@@ -81,20 +98,6 @@ export default function ScoresSlide({ slide, strings = SLIDE_STRINGS.scores }) {
   // Render in OLD order, apply translateY to shuffle into NEW order
   // Use previousEntries as the render list so keys stay stable
   const renderList = previousEntries.filter(e => newOrder[e.name] !== undefined)
-
-  // Measure row height (fixed layout, all rows same height)
-  const rowRef = useRef(null)
-  const [rowHeight, setRowHeight] = useState(0)
-
-  useEffect(() => {
-    if (rowRef.current) {
-      const el = rowRef.current
-      // row height = element height + gap
-      const style = window.getComputedStyle(el.parentElement)
-      const gap = parseFloat(style.gap) || 0
-      setRowHeight(el.offsetHeight + gap)
-    }
-  }, [renderList.length])
 
   return (
     <div key={slide.id} className={`${styles.slide} ${styles.scoreSlide}`}>

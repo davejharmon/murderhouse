@@ -26,14 +26,16 @@ export default function CustomEventModal({
     // Build description based on reward type
     let description = '';
     switch (rewardType) {
-      case 'item':
+      case 'item': {
         const item = availableItems.find(i => i.id === rewardParam);
         description = `Vote for who receives: ${item?.name || rewardParam}`;
         break;
-      case 'role':
+      }
+      case 'role': {
         const role = availableRoles.find(r => r.id === rewardParam);
         description = `Vote for who becomes: ${role?.name || rewardParam}`;
         break;
+      }
       case 'resurrection':
         description = 'Vote for who to resurrect';
         break;

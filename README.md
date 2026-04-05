@@ -67,42 +67,42 @@ For production/remote deployment, `server/web.js` serves the built client over H
 
 ## Roles
 
-| Role            | Team    | Night Action | Special                                                                                        |
-| --------------- | ------- | ------------ | ---------------------------------------------------------------------------------------------- |
-| **Nobody**      | Circle  | Suspect      | —                                                                                              |
-| **Seeker**      | Circle  | Investigate  | Learns if target is CELL or NOT CELL                                                           |
-| **Medic**       | Circle  | Protect      | Prevents one kill per night                                                                    |
-| **Hunter**      | Circle  | —            | Revenge kill on death (interrupt flow)                                                         |
-| **Vigilante**   | Circle  | Kill (once)  | One-shot night kill                                                                            |
-| **Governor**    | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                        |
-| **Cupid**       | Circle  | Link (setup) | Links two lovers at game start; heartbreak kills both                                          |
-| **Marked**      | Circle  | Suspect      | Thinks they're a Nobody; appears CELL when investigated                                        |
-| **Amateur**     | Circle  | Stumble      | Disguised as Seeker; random action — investigate (accurate), kill/protect/block (shows INNOCENT)|
-| **Jailer**      | Circle  | Jail         | Jails a player: target is protected and roleblocked                                            |
-| **Alpha**       | Cell    | Kill         | Final kill decision; promotes successor on death                                               |
-| **Sleeper**     | Cell    | Suggest      | Suggests targets to Alpha; sees pack selections live                                           |
-| **Handler**     | Cell    | Block        | Blocks one player's night ability                                                              |
-| **Fixer**       | Cell    | Clean        | Hides victim's role reveal when the Cell kills                                                 |
-| **Chemist**     | Cell    | Poison       | Replaces Cell kill with delayed poison (victim dies next night resolve)                        |
-| **Jester**      | Neutral | —            | Wins solo if voted out                                                                         |
+| Role          | Team    | Night Action | Special                                                                                          |
+| ------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| **Nobody**    | Circle  | Suspect      | —                                                                                                |
+| **Seeker**    | Circle  | Investigate  | Learns if target is CELL or NOT CELL                                                             |
+| **Medic**     | Circle  | Protect      | Prevents one kill per night                                                                      |
+| **Hunter**    | Circle  | —            | Revenge kill on death (interrupt flow)                                                           |
+| **Vigilante** | Circle  | Kill (once)  | One-shot night kill                                                                              |
+| **Governor**  | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                          |
+| **Cupid**     | Circle  | Link (setup) | Links two lovers at game start; heartbreak kills both                                            |
+| **Marked**    | Circle  | Suspect      | Thinks they're a Nobody; appears CELL when investigated                                          |
+| **Amateur**   | Circle  | Stumble      | Disguised as Seeker; random action — investigate (accurate), kill/protect/block (shows INNOCENT) |
+| **Jailer**    | Circle  | Jail         | Jails a player: target is protected and roleblocked                                              |
+| **Alpha**     | Cell    | Kill         | Final kill decision; promotes successor on death                                                 |
+| **Sleeper**   | Cell    | Suggest      | Suggests targets to Alpha; sees pack selections live                                             |
+| **Handler**   | Cell    | Block        | Blocks one player's night ability                                                                |
+| **Fixer**     | Cell    | Clean        | Hides victim's role reveal when the Cell kills                                                   |
+| **Chemist**   | Cell    | Poison       | Replaces Cell kill with delayed poison (victim dies next night resolve)                          |
+| **Jester**    | Neutral | —            | Wins solo if voted out                                                                           |
 
 Role composition is defined per player count in `GAME_COMPOSITION` (see `server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool, replacing a villager. Pre-assigned compositions are validated on game start to prevent invalid setups.
 
 ## Items
 
-| Item          | Uses      | Effect                                                               |
-| ------------- | --------- | -------------------------------------------------------------------- |
-| **Pistol**    | 1         | Shoot a player during the day (player-initiated, instant resolution) |
-| **Gavel**     | 1         | Grants pardon ability (consumed only on actual pardon)               |
-| **Clue**      | 1         | Investigate a player (same as Seeker)                                |
-| **Warden**    | permanent | Jail a player each night: target is protected and roleblocked        |
-| **Syringe**   | 1         | Inject a player with poison (target dies next night resolve)         |
-| **Hardened**  | 1         | Absorbs one kill; destroyed on use (silent — nobody knows)           |
-| **No Vote**   | 1         | Holder is excluded from the next vote (hidden)                       |
-| **Coward**    | permanent | Cannot act or be targeted; immune to all (hidden)                    |
-| **Marked**    | permanent | Appears CELL when investigated (hidden)                              |
-| **Prospect**  | 1         | Joins the Cell if killed by them (hidden)                            |
-| **Poisoned**  | —         | Slow-acting toxin; dies when next night events resolve (hidden)      |
+| Item         | Uses      | Effect                                                               |
+| ------------ | --------- | -------------------------------------------------------------------- |
+| **Pistol**   | 1         | Shoot a player during the day (player-initiated, instant resolution) |
+| **Gavel**    | 1         | Grants pardon ability (consumed only on actual pardon)               |
+| **Clue**     | 1         | Investigate a player (same as Seeker)                                |
+| **Warden**   | permanent | Jail a player each night: target is protected and roleblocked        |
+| **Syringe**  | 1         | Inject a player with poison (target dies next night resolve)         |
+| **Hardened** | 1         | Absorbs one kill; destroyed on use (silent — nobody knows)           |
+| **No Vote**  | 1         | Holder is excluded from the next vote (hidden)                       |
+| **Coward**   | permanent | Cannot act or be targeted; immune to all (hidden)                    |
+| **Marked**   | permanent | Appears CELL when investigated (hidden)                              |
+| **Prospect** | 1         | Joins the Cell if killed by them (hidden)                            |
+| **Poisoned** | —         | Slow-acting toxin; dies when next night events resolve (hidden)      |
 
 Items are given by the host or earned via custom votes. Active items (`startsEvent`: pistol, clue, warden, syringe) appear in the player's ability selector. Hidden items are not shown on the player's terminal. Players with multiple night actions enter them sequentially by priority.
 
@@ -352,21 +352,34 @@ npm run test:watch    # Watch mode (re-runs on file change)
 - **`GameContext.jsx` has 30+ useState variables and a giant message switch** — Replace with `useReducer` grouped by domain. Extract `WebSocketManager` class for connection, reconnect, send logic. Extract message handlers into organized modules.
 - **`network.cpp` hardcodes 142 operator words** — Baked in at compile time with no way to update. Move to `shared/operatorWords.js` and send from server on connection, or load from SPIFFS. Also needs JSON parse error handling — currently assumes server sends valid JSON.
 - **`main.cpp` has nested state machines with scattered globals** — 10+ static state variables for connection, selection, heartbeat, encoder. Extract `TargetSelectionState`, `ResetGestureDetector`, and `TimerManager` as focused modules.
-- **No linter or formatter configured** — No ESLint, no Prettier. 2-space indent convention is manual. Add config files and pre-commit hook.
+- ~~**No linter or formatter configured**~~ — ESLint 9 (flat config) + Prettier added. `npm run lint` / `npm run lint:fix` / `npm run format`. React hooks rules enforced; `set-state-in-effect` is warn (those violations live in Phase 4 files). Baseline: 9 errors (all Phase 4), ~74 warnings (unused vars).
+- ~~**Hardcoded color values in `constants.js`**~~ — All 18 inline hex codes in `server/definitions/roles.js` replaced with named constants (`Colors.CIRCLE_BLUE`, `Colors.CELL_RED`, etc.). `SlideStyleColors` in `constants.js` now references the same constants. Source of truth: `shared/theme.js`.
+- ~~**`shared/strings/gameStrings.js` has no validation**~~ — `server/validateStrings.js` checks for duplicate `cat:key` pairs and mismatches between `{placeholder}` usage in `default` and the `tokens[]` array. Run with `npm run validate:strings`. Currently clean (338 entries).
 - **No unit tests for core game logic** — `Game.js` event resolution, `Player.js` display state generation, and role definitions have no automated tests. Priority: event resolution priority ordering, death cascade correctness, display state priorities.
-- **Magic numbers scattered across codebase** — Many extracted (`BROADCAST_DEBOUNCE_MS`, `LOG_MAX_ENTRIES`, `ABILITY_COLOR`, `WS_KEEPALIVE_MS`). Remaining: `ROLE_DISPLAY`/`ITEM_DISPLAY` color codes in `constants.js`, slide style colors, and various timeouts in `Host.jsx`.
-- **Hardcoded color values in `constants.js`** — `ROLE_DISPLAY` and `ITEM_DISPLAY` objects have inline hex colors. Extract to a shared `theme.js` palette. (`Game.js` ability colors now use `ABILITY_COLOR` constants.)
-- **`shared/strings/gameStrings.js` has no validation** — 319 entries in a flat array with no check that `tokens` match `{placeholder}` usage in `default`, no unused string detection, and inconsistent key nesting depth. Add a `StringCatalogValidator` and audit tool.
+- **Magic numbers scattered across codebase** — Many extracted (`BROADCAST_DEBOUNCE_MS`, `LOG_MAX_ENTRIES`, `ABILITY_COLOR`, `WS_KEEPALIVE_MS`). Remaining: slide style colors and various timeouts in `Host.jsx`.
 - **No structured logging** — Server uses `console.log` with manual prefix markers (`[Server]`, `[WS]`). No log levels. Add a lightweight logger with info/warn/error levels.
+
+### Refactoring Phase Plan
+
+Ordered to avoid rework — each phase sets up the next:
+
+- **Phase 1 — Foundation** ✅ — Linter/Prettier, `shared/theme.js` color constants, string catalog validator.
+- **Phase 2 — Server leaf nodes** — Split `handlers/index.js` into domain groups (`PlayerActionsHandler`, `HostCommandsHandler`, `DebugHandler`) + payload validation. Extract `DisplayStateBuilder` from `Player.js`.
+- **Phase 3 — Core: tests then God Object** — Write unit tests for `Game.js` event resolution as a safety net, then extract `EventResolver`, `SlideManager`, `PersistenceManager`.
+- **Phase 4 — Client** — `GameContext.jsx` → `useReducer` + `WebSocketManager`. `Host.jsx` → `AutoAdvanceManager` hook + modal context.
+- **Phase 5 — ESP32** — Move hardcoded operator words to `shared/operatorWords.js`, send from server. Refactor `main.cpp` globals into focused modules.
 
 ## Improvements
 
 - Add detonator
 - Add library of night and day fallback phrases
-- Add a go button
+- Add a rollback to last turn.
+- Adjust poison turn started/item uses.
 - Make dead/spectator/coward/gameover screen larger text on ESP32 — attempted FULLSCREEN style but SSD1322 didn't render differently despite correct data path. Need to investigate U8G2 buffer rendering or try a different large font approach.
 - Hunter should die after using revenge, not before (at least visually on their own terminal if easier)
 
 ## Bugs
 
 - Reveal Comp tutorial slide shows hidden roles (prospect, marked) — should display them as Nobodies
+- Sleeper night action broken with alpha in game
+- Vote timer breaks on second attempt
