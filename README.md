@@ -364,7 +364,7 @@ npm run test:watch    # Watch mode (re-runs on file change)
 Ordered to avoid rework — each phase sets up the next:
 
 - **Phase 1 — Foundation** ✅ — Linter/Prettier, `shared/theme.js` color constants, string catalog validator.
-- **Phase 2 — Server leaf nodes** — Split `handlers/index.js` into domain groups (`PlayerActionsHandler`, `HostCommandsHandler`, `DebugHandler`) + payload validation. Extract `DisplayStateBuilder` from `Player.js`.
+- **Phase 2 — Server leaf nodes** ✅ — Split `handlers/index.js` into domain groups (`connection.js`, `player.js`, `host.js`, `debug.js`) + shared `utils.js`. Extracted `DisplayStateBuilder` from `Player.js` (700 lines → dedicated class).
 - **Phase 3 — Core: tests then God Object** — Write unit tests for `Game.js` event resolution as a safety net, then extract `EventResolver`, `SlideManager`, `PersistenceManager`.
 - **Phase 4 — Client** — `GameContext.jsx` → `useReducer` + `WebSocketManager`. `Host.jsx` → `AutoAdvanceManager` hook + modal context.
 - **Phase 5 — ESP32** — Move hardcoded operator words to `shared/operatorWords.js`, send from server. Refactor `main.cpp` globals into focused modules.
