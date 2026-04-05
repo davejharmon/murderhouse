@@ -1211,6 +1211,9 @@ function resolveCustomEventReward(winnerId, config, game, tally, wasTie) {
   };
 }
 
+// Test-only exports (pure utility functions, no side effects)
+export { tallyVotes, checkRunoff, getRunoffTargets, getTeamDisplayName }
+
 export function getEvent(eventId) {
   return events[eventId] || null;
 }
