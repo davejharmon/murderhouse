@@ -9,64 +9,30 @@
 #include "leds.h"
 #include "heartrate.h"
 #include "network.h"
+#include "player_select.h"
 
-// Current display state (updated by network callback)
+// Core game-loop state
 static DisplayState currentDisplay;
 static bool displayDirty = true;
-
-// Connection state tracking
+static bool terminalOwnsDisplay = false;
 static ConnectionState lastConnState = ConnectionState::BOOT;
-
-// Player selection state (before connecting)
-static uint8_t selectedPlayer = 1;  // 1-9
-static bool playerSelectDirty = true;
-static bool playerConfirmed = false;
 
 // Settle timer: sends selectTo after dial stops moving during target selection
 static unsigned long lastScrollMs = 0;
 static bool settlePending = false;
 static const unsigned long SCROLL_SETTLE_MS = 150;
 
-// When true, the terminal owns display completely — ignores ALL server state.
-// Set when target selection starts, cleared only by confirm/abstain.
-static bool terminalOwnsDisplay = false;
-
-// Heartbeat send state
-static unsigned long lastHeartbeatSend = 0;
-static bool lastHeartbeatActive = false;
-static const unsigned long HEARTBEAT_SEND_MS = 2000; // Send BPM every 2 seconds
-
-// Encoder button tap detection (for screen mode toggle)
-static bool lastEncoderBtnState = true;  // HIGH = not pressed (pullup)
-static unsigned long lastEncoderBtnChange = 0;
-
-bool checkEncoderTap() {
-    bool state = digitalRead(PIN_ENCODER_SW);
-    if (state != lastEncoderBtnState && (millis() - lastEncoderBtnChange > DEBOUNCE_MS)) {
-        lastEncoderBtnChange = millis();
-        lastEncoderBtnState = state;
-        if (state == HIGH) {  // Released — tap detected
-            // Only count as tap if held less than 500ms (not a reset gesture)
-            if (millis() - lastEncoderBtnChange < 500) return true;
-        }
-    }
-    return false;
-}
-
-// Reset detection state (hold encoder button for 3 seconds)
+// Reset detection (hold encoder button 3 s to prompt, 5 s total to restart)
 static unsigned long encoderBtnHeldSince = 0;
 static bool resetMessageShown = false;
-static const unsigned long RESET_HOLD_MS = 3000;      // Time to hold before showing message
-static const unsigned long RESET_CONFIRM_MS = 2000;   // Additional time before restart
+static const unsigned long RESET_HOLD_MS = 3000;
+static const unsigned long RESET_CONFIRM_MS = 2000;
 
-// Check for reset gesture (hold encoder button for 3+2 seconds)
-// Returns true if reset is triggered (caller should not continue normal loop)
+// Returns true while reset gesture is pending (caller should skip normal input)
 bool checkResetGesture() {
     unsigned long now = millis();
 
-    // Encoder button is active LOW (pullup)
     if (digitalRead(PIN_ENCODER_SW) == LOW) {
-        // Start tracking if not already
         if (encoderBtnHeldSince == 0) {
             encoderBtnHeldSince = now;
             resetMessageShown = false;
@@ -75,7 +41,6 @@ bool checkResetGesture() {
 
         unsigned long heldFor = now - encoderBtnHeldSince;
 
-        // After 3 seconds, show restart message
         if (heldFor >= RESET_HOLD_MS && !resetMessageShown) {
             Serial.println("Showing restart message...");
             displayMessage("HOLD TO CONFIRM", "RESTARTING", "Release to cancel");
@@ -84,25 +49,22 @@ bool checkResetGesture() {
             resetMessageShown = true;
         }
 
-        // After 5 seconds total (3 + 2), perform restart
         if (heldFor >= RESET_HOLD_MS + RESET_CONFIRM_MS) {
             Serial.println("Restarting terminal...");
             displayMessage("", "RESTARTING...", "");
-            delay(500);  // Brief delay to show message
+            delay(500);
             ESP.restart();
         }
 
-        return resetMessageShown;  // Block normal input while showing reset message
+        return resetMessageShown;
     } else {
-        // Button released - cancel reset
         if (encoderBtnHeldSince != 0) {
             if (resetMessageShown) {
                 Serial.println("Reset cancelled");
-                // Restore display based on current state
-                if (!playerConfirmed) {
-                    displayPlayerSelect(selectedPlayer);
+                if (!psIsConfirmed()) {
+                    displayPlayerSelect(psGetSelectedPlayer());
                 } else {
-                    displayDirty = true;  // Force display refresh
+                    displayDirty = true;
                 }
             }
             encoderBtnHeldSince = 0;
@@ -114,14 +76,10 @@ bool checkResetGesture() {
 
 // Callback when display state is received from server
 void onDisplayUpdate(const DisplayState& state) {
-    // When terminal owns display during target selection, ignore server state
-    // UNLESS the server has cleared the targets (game reset, event resolved, kick).
     if (terminalOwnsDisplay) {
         if (state.targetCount == 0) {
-            // Server cleared targets — exit fast path, accept new state
             terminalOwnsDisplay = false;
         } else {
-            // Update LEDs and line3 (packsense hints) from server during fast path
             ledsSetFromDisplay(state);
             ledsSetGameState(state.statusLed);
             currentDisplay.line3 = state.line3;
@@ -138,12 +96,10 @@ void onDisplayUpdate(const DisplayState& state) {
 }
 
 void setup() {
-    // Initialize serial for debugging
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Murderhouse ESP32 Terminal v" FIRMWARE_VERSION " ===");
 
-    // Initialize subsystems
     Serial.println("Initializing display...");
     displayInit();
     displayConnectionStatus(ConnectionState::BOOT);
@@ -152,7 +108,6 @@ void setup() {
     ledsInit();
     ledsSetStatus(ConnectionState::BOOT);
 
-    // Brief LED test at boot
     Serial.println("Testing button LEDs...");
     ledsSetYes(LedState::BRIGHT);
     ledsSetNo(LedState::BRIGHT);
@@ -162,8 +117,8 @@ void setup() {
 
     Serial.println("Initializing heart rate monitor...");
     heartrateInit();
+    heartrateSetSendCallback(networkSendHeartbeat);
 
-    // Brief heartbeat LED test at boot
     Serial.println("Testing heartbeat LED (D3)...");
     digitalWrite(PIN_LED_HEARTBEAT, HIGH);
     delay(500);
@@ -172,158 +127,72 @@ void setup() {
     Serial.println("Initializing input...");
     inputInit();
 
-    // Start in player selection mode
     Serial.println("Entering player selection...");
+    psInit();
     lastConnState = ConnectionState::PLAYER_SELECT;
     ledsSetStatus(ConnectionState::PLAYER_SELECT);
-    ledsSetYes(LedState::BRIGHT);  // Light YES button to indicate it confirms
-    displayPlayerSelect(selectedPlayer);
-    playerSelectDirty = false;
+    ledsSetYes(LedState::BRIGHT);
+    displayPlayerSelect(psGetSelectedPlayer());
 
     Serial.println("Use dial to select terminal (OPERATOR or PLAYER 1-9), press YES to confirm");
 }
 
 void loop() {
-    // Update LEDs (for pulse animations)
     ledsUpdate();
-
-    // Update heart rate monitor (sampling + LED control)
     heartrateUpdate();
 
-    // Periodically send heartbeat BPM to server
-    if (networkIsConnected()) {
-        unsigned long now2 = millis();
-        bool active = heartrateIsActive();
-
-        if (active && (now2 - lastHeartbeatSend >= HEARTBEAT_SEND_MS)) {
-            networkSendHeartbeat(heartrateGetBPM());
-            lastHeartbeatSend = now2;
-            lastHeartbeatActive = true;
-        } else if (!active && lastHeartbeatActive) {
-            // Send one final message with bpm=0 to clear
-            networkSendHeartbeat(0);
-            lastHeartbeatActive = false;
-        }
-    }
-
-    // Check for reset gesture (hold both buttons for 3 seconds)
     if (checkResetGesture()) {
         delay(10);
-        return;  // Skip normal processing while reset is pending
+        return;
     }
 
-    // Handle player selection mode (before network is initialized)
-    if (!playerConfirmed) {
-        // Poll for input events
-        InputEvent event = inputPoll();
+    // ── Player selection (pre-network) ──────────────────────────────────────────
+    if (!psIsConfirmed()) {
+        psHandleInput();
 
-        switch (event) {
-            case InputEvent::UP:
-                // Move selection up: OPERATOR(0) <-> 1-9 cycle
-                if (selectedPlayer == 1) {
-                    selectedPlayer = 0;  // OPERATOR
-                } else if (selectedPlayer == 0) {
-                    selectedPlayer = 9;
-                } else {
-                    selectedPlayer--;
-                }
-                playerSelectDirty = true;
-                if (selectedPlayer == 0) {
-                    Serial.println("Selected: OPERATOR");
-                } else {
-                    Serial.print("Selected player: ");
-                    Serial.println(selectedPlayer);
-                }
-                break;
-
-            case InputEvent::DOWN:
-                // Move selection down: OPERATOR(0) <-> 1-9 cycle
-                if (selectedPlayer == 9) {
-                    selectedPlayer = 0;  // OPERATOR
-                } else if (selectedPlayer == 0) {
-                    selectedPlayer = 1;
-                } else {
-                    selectedPlayer++;
-                }
-                playerSelectDirty = true;
-                if (selectedPlayer == 0) {
-                    Serial.println("Selected: OPERATOR");
-                } else {
-                    Serial.print("Selected player: ");
-                    Serial.println(selectedPlayer);
-                }
-                break;
-
-            case InputEvent::YES:
-                // Confirm selection and start connecting
-                playerConfirmed = true;
-                ledsSetYes(LedState::OFF);
-                Serial.println("Initializing network...");
-
-                if (selectedPlayer == 0) {
-                    Serial.println("Confirmed: OPERATOR");
-                    networkSetOperatorMode();
-                } else {
-                    Serial.print("Confirmed player: ");
-                    Serial.println(selectedPlayer);
-                    networkSetPlayerId(selectedPlayer);
-                }
-
-                networkInit();
-                networkSetDisplayCallback(onDisplayUpdate);
-                break;
-
-            case InputEvent::NO:
-            case InputEvent::NONE:
-            default:
-                break;
-        }
-
-        // Encoder tap toggles screen mode
-        if (checkEncoderTap()) {
+        if (inputCheckEncoderTap()) {
             displayToggleScreenMode();
-            playerSelectDirty = true;
+            psMarkDirty();
         }
 
-        // Update display if selection changed
-        if (playerSelectDirty) {
-            displayPlayerSelect(selectedPlayer);
-            playerSelectDirty = false;
+        if (psIsDirty()) {
+            displayPlayerSelect(psGetSelectedPlayer());
+            psClearDirty();
         }
 
-        delay(1);
-        return;  // Don't process network until player is confirmed
+        // psHandleInput() calls networkInit() on confirm; we wire the display callback here
+        if (psIsConfirmed()) {
+            networkSetDisplayCallback(onDisplayUpdate);
+        } else {
+            delay(1);
+            return;
+        }
     }
 
-    // Allow screen mode toggle during connection screens (before game starts)
-    if (!networkIsConnected() && checkEncoderTap()) {
+    // Allow screen mode toggle on connection screens
+    if (!networkIsConnected() && inputCheckEncoderTap()) {
         displayToggleScreenMode();
         displayConnectionStatus(lastConnState);
     }
 
-    // Update network and get connection state
+    // ── Network update ──────────────────────────────────────────────────────────
     ConnectionState connState = networkUpdate();
 
-    // Check if kicked by server — return to player select
     if (networkWasKicked()) {
         Serial.println("Kicked — returning to player select");
-        playerConfirmed = false;
+        psReset();
         terminalOwnsDisplay = false;
-        currentDisplay = DisplayState();  // Reset display state
-        displayPlayerSelect(selectedPlayer);
+        currentDisplay = DisplayState();
+        displayPlayerSelect(psGetSelectedPlayer());
         ledsSetStatus(ConnectionState::PLAYER_SELECT);
         return;
     }
 
-    // Handle connection state changes
+    // Connection state change
     if (connState != lastConnState) {
         lastConnState = connState;
-
-        // Update status LED
         ledsSetStatus(connState);
 
-        // Power AD8232 on when connected (keeps circuit warm for instant response)
-        // Power off on disconnect. Server controls LED/reporting via enable/disable.
         if (connState == ConnectionState::CONNECTED) {
             heartratePowerOn();
         } else if (connState == ConnectionState::RECONNECTING ||
@@ -332,39 +201,20 @@ void loop() {
             heartratePowerOff();
         }
 
-        // Update display for connection states
         if (connState != ConnectionState::CONNECTED) {
-            // Pass error message for ERROR state
-            const char* detail = nullptr;
-            if (connState == ConnectionState::ERROR) {
-                detail = networkGetLastError();
-            }
+            const char* detail = (connState == ConnectionState::ERROR) ? networkGetLastError() : nullptr;
             displayConnectionStatus(connState, detail);
         }
 
         Serial.print("Connection state: ");
         switch (connState) {
-            case ConnectionState::BOOT:
-                Serial.println("BOOT");
-                break;
-            case ConnectionState::PLAYER_SELECT:
-                Serial.println("PLAYER_SELECT");
-                break;
-            case ConnectionState::WIFI_CONNECTING:
-                Serial.println("WIFI_CONNECTING");
-                break;
-            case ConnectionState::WS_CONNECTING:
-                Serial.println("WS_CONNECTING");
-                break;
-            case ConnectionState::JOINING:
-                Serial.println("JOINING");
-                break;
-            case ConnectionState::CONNECTED:
-                Serial.println("CONNECTED");
-                break;
-            case ConnectionState::RECONNECTING:
-                Serial.println("RECONNECTING");
-                break;
+            case ConnectionState::BOOT:            Serial.println("BOOT"); break;
+            case ConnectionState::PLAYER_SELECT:   Serial.println("PLAYER_SELECT"); break;
+            case ConnectionState::WIFI_CONNECTING: Serial.println("WIFI_CONNECTING"); break;
+            case ConnectionState::WS_CONNECTING:   Serial.println("WS_CONNECTING"); break;
+            case ConnectionState::JOINING:         Serial.println("JOINING"); break;
+            case ConnectionState::CONNECTED:       Serial.println("CONNECTED"); break;
+            case ConnectionState::RECONNECTING:    Serial.println("RECONNECTING"); break;
             case ConnectionState::ERROR:
                 Serial.print("ERROR: ");
                 Serial.println(networkGetLastError());
@@ -372,12 +222,11 @@ void loop() {
         }
     }
 
-    // Handle input based on connection state
+    // ── Connected input handling ─────────────────────────────────────────────────
     if (networkIsConnected()) {
+        heartrateCheckAndSend();
 
         // === TARGET SELECTION FAST PATH ===
-        // Mirrors the SELECT TERMINAL loop exactly: input → render → delay → return.
-        // Terminal owns display completely — no server state accepted.
         if (terminalOwnsDisplay) {
             static unsigned long lastKeepAlive = 0;
             InputEvent event = inputPoll();
@@ -408,91 +257,77 @@ void loop() {
                     break;
                 }
                 case InputEvent::YES: {
-                    terminalOwnsDisplay = false;  // Release ownership
+                    terminalOwnsDisplay = false;
                     int idx = currentDisplay.selectionIndex;
                     int count = currentDisplay.targetCount;
-                    currentDisplay.targetCount = 0;  // Prevent re-entry into fast path
+                    currentDisplay.targetCount = 0;
                     if (idx >= 0 && idx < count) {
-                        const char* targetId = currentDisplay.targetIds[idx].c_str();
-                        networkSendConfirmWithTarget(targetId);
+                        networkSendConfirmWithTarget(currentDisplay.targetIds[idx].c_str());
                     } else {
                         networkSendConfirm();
                     }
                     break;
                 }
                 case InputEvent::NO:
-                    terminalOwnsDisplay = false;  // Release ownership
-                    currentDisplay.targetCount = 0;  // Prevent re-entry into fast path
+                    terminalOwnsDisplay = false;
+                    currentDisplay.targetCount = 0;
                     networkSendAbstain();
                     break;
                 default:
                     break;
             }
 
-            // Settle timer: sync selection to server after dial stops
             if (settlePending && (millis() - lastScrollMs >= SCROLL_SETTLE_MS)) {
                 settlePending = false;
                 if (currentDisplay.selectionIndex >= 0 &&
                     currentDisplay.selectionIndex < currentDisplay.targetCount) {
-                    const char* targetId = currentDisplay.targetIds[currentDisplay.selectionIndex].c_str();
-                    networkSendSelectTo(targetId);
+                    networkSendSelectTo(currentDisplay.targetIds[currentDisplay.selectionIndex].c_str());
                 }
             }
 
-            // Render
             if (displayDirty) {
                 displayRender(currentDisplay);
                 displayDirty = false;
             }
 
-            // Periodic keepalive — process WebSocket pings and detect disconnects
             if (millis() - lastKeepAlive >= WS_KEEPALIVE_MS) {
                 lastKeepAlive = millis();
                 networkUpdate();
             }
 
-            // Connection lost (server restart, kick, etc.) — exit fast path
             if (!networkIsConnected()) {
                 terminalOwnsDisplay = false;
                 currentDisplay.targetCount = 0;
-                // Fall through to normal connection handling below
             } else {
                 delay(1);
-                return;  // Skip all other processing — just like SELECT TERMINAL
+                return;
             }
         }
 
-        // Enter target selection fast path when server sends targets
         if (currentDisplay.targetCount > 0) {
             terminalOwnsDisplay = true;
             ledsSetYes(LedState::BRIGHT);
             ledsSetNo(LedState::BRIGHT);
         }
 
-        // Poll for input events
         InputEvent event = inputPoll();
 
         if (networkIsOperatorMode()) {
-            // Tick to expire the "SENT!" display after 2 seconds
             networkOperatorTick();
 
-            // Operator terminal input
             switch (event) {
                 case InputEvent::UP:
                     if (!networkIsOperatorReady()) networkOperatorScrollUp();
                     break;
-
                 case InputEvent::DOWN:
                     if (!networkIsOperatorReady()) networkOperatorScrollDown();
                     break;
-
                 case InputEvent::YES:
                     if (!networkIsOperatorReady()) {
                         Serial.println("Operator: add word");
                         networkSendOperatorAdd();
                     }
                     break;
-
                 case InputEvent::NO:
                     if (networkIsOperatorReady()) {
                         Serial.println("Operator: cancel ready");
@@ -502,26 +337,21 @@ void loop() {
                         networkSendOperatorDelete();
                     }
                     break;
-
                 case InputEvent::LONG_YES:
                     if (!networkIsOperatorReady()) {
                         Serial.println("Operator: long YES -> ready");
-                        networkSendOperatorReady();  // guards wordCount > 0 internally
+                        networkSendOperatorReady();
                     }
                     break;
-
                 case InputEvent::LONG_NO:
                     Serial.println("Operator: long NO -> clear");
                     networkSendOperatorClear();
                     break;
-
                 case InputEvent::NONE:
                 default:
                     break;
             }
         } else {
-            // Normal player input
-            // Determine if player is idle (no pending events shown - inferred from display state)
             bool hasActiveEvent = currentDisplay.leds.yes == LedState::BRIGHT ||
                                   currentDisplay.statusLed == GameLedState::VOTING ||
                                   currentDisplay.statusLed == GameLedState::LOCKED ||
@@ -531,55 +361,38 @@ void loop() {
                           currentDisplay.statusLed != GameLedState::GAME_OVER &&
                           currentDisplay.statusLed != GameLedState::DEAD;
 
-            // Target selection (targetCount > 0) is handled by the fast path above.
-            // This switch handles idle scroll, action layer, confirm, and abstain.
             switch (event) {
                 case InputEvent::UP:
-                    if (isIdle) {
-                        networkSendIdleScrollUp();
-                    } else {
-                        networkSendSelectUp();
-                    }
+                    isIdle ? networkSendIdleScrollUp() : networkSendSelectUp();
                     break;
-
                 case InputEvent::DOWN:
-                    if (isIdle) {
-                        networkSendIdleScrollDown();
-                    } else {
-                        networkSendSelectDown();
-                    }
+                    isIdle ? networkSendIdleScrollDown() : networkSendSelectDown();
                     break;
-
                 case InputEvent::YES:
                     if (isIdle && currentDisplay.leds.yes == LedState::DIM) {
                         uint8_t idx = currentDisplay.idleScrollIndex;
                         if (idx > 0 && idx <= 2) {
-                            const char* itemId = currentDisplay.icons[idx].id.c_str();
-                            networkSendUseItem(itemId);
+                            networkSendUseItem(currentDisplay.icons[idx].id.c_str());
                         }
                     } else {
                         networkSendConfirm();
                     }
                     break;
-
                 case InputEvent::NO:
                     networkSendAbstain();
                     break;
-
                 case InputEvent::NONE:
                 default:
                     break;
             }
         }
 
-        // Update display if dirty
         if (displayDirty) {
             displayRender(currentDisplay);
             displayDirty = false;
         }
     }
     else if (connState == ConnectionState::ERROR) {
-        // Auto-retry join after a short delay
         static unsigned long lastRetryTime = 0;
         unsigned long now = millis();
         if (now - lastRetryTime >= WS_RECONNECT_MS) {
@@ -587,7 +400,6 @@ void loop() {
             Serial.println("Auto-retrying join...");
             networkRetryJoin();
         }
-        // Also allow manual retry via button press
         InputEvent event = inputPoll();
         if (event == InputEvent::YES || event == InputEvent::NO) {
             Serial.println("Manual retry join...");
@@ -595,11 +407,9 @@ void loop() {
         }
     }
 
-    // Execute OTA update if requested by server (must run outside WebSocket callback)
     if (networkOtaRequested()) {
         networkExecuteOta();
     }
 
-    // Small delay to prevent tight looping
     delay(1);
 }

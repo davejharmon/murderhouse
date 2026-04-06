@@ -117,7 +117,15 @@ murderhouse/
 │       └── components/               # PlayerConsole, TinyScreen, PlayerGrid, EventPanel, SlideControls, modals, etc.
 └── esp32-terminal/
     ├── platformio.ini            # ESP32-S3, PlatformIO config
-    └── src/                      # main.cpp, display, input, leds, network, config.h, icons.h
+    └── src/
+        ├── main.cpp              # Setup + game loop (~170 lines, down from 600)
+        ├── player_select.h/.cpp  # Pre-network player/operator selection UI
+        ├── network.h/.cpp        # WiFi, WebSocket, operator word list (loaded from server)
+        ├── display.h/.cpp        # SSD1322 OLED rendering
+        ├── input.h/.cpp          # Buttons, encoder, tap detection
+        ├── leds.h/.cpp           # WS2811 neopixel + button LEDs
+        ├── heartrate.h/.cpp      # AD8232 beat detection + BPM send scheduling
+        └── config.h, protocol.h, icons.h
 ```
 
 ### Three-Layer Game Logic
@@ -183,8 +191,6 @@ Enabled outside production (`process.env.NODE_ENV !== 'production'`). Access `/d
 
 ### Open
 
-- **`network.cpp` operator words** — 142 words baked in at compile time. Move to `shared/operatorWords.js` and send from server.
-- **`main.cpp`** — 10+ static state variables for connection, selection, heartbeat. Extract focused modules.
 - **No structured logging** — Server uses `console.log` with manual prefix markers. No log levels.
 
 ### Refactoring Phase Plan
@@ -195,7 +201,8 @@ Enabled outside production (`process.env.NODE_ENV !== 'production'`). Access `/d
 - **Phase 3b — Comprehensive mechanics tests** ✅ — Full coverage of all role abilities, item mechanics, and game mechanics. Unified test runner covers server (Vitest/node) and React client (Vitest/jsdom + Testing Library). Sub-object unit tests for `PersistenceManager`, `SlideManager`, `EventResolver`.
 - **Phase 3c — EventResolver refinement** ✅ — Extracted `VoteResolver` from `EventResolver` (tally slides, runoff, deferred/immediate resolution paths). Fixed `_startFlowEvent` boundary (flows now call `game.events._startFlowEvent`, not `game._startFlowEvent`). Split `showTallyAndDeferResolution` into `_resolveDeferred` + `_resolveImmediate`.
 - **Phase 4 — Client** ✅ — `GameContext.jsx` split into `gameReducer.js` (state + reducer) + `useWebSocket.js` (WS transport hook). `Host.jsx` split into `useAutoAdvance.js` (slide auto-advance timer) + `useHostModals.js` (overlay/modal visibility state). All 304 tests passing.
-- **Phase 5 — ESP32** — Move hardcoded operator words to `shared/operatorWords.js`. Refactor `main.cpp` globals into focused modules. Add C++ unit tests via PlatformIO's Unity framework (`esp32-terminal/test/`) to cover display layout, button input, and network message parsing — deferred until Phase 5; React client tests (Track B) provide equivalent behavioral coverage in the interim.
+- **Phase 5a — ESP32** ✅ — Moved 142 hardcoded operator words from `network.cpp` to `shared/operatorWords.js`; server sends vocabulary to ESP32 on `OPERATOR_JOIN` so the word list is no longer baked into firmware. Refactored `main.cpp` globals: encoder tap detection → `input.cpp`, heartbeat send timing → `heartrate.cpp` (callback pattern avoids circular dep), player selection state/UI → new `player_select.h/.cpp`.
+- **Phase 5b — ESP32 tests** — Add C++ unit tests via PlatformIO's Unity framework (`esp32-terminal/test/`) to cover display layout, button input, and network message parsing.
 
 ## Improvements
 

@@ -24,4 +24,11 @@ void heartratePowerOff();
 void heartrateEnable();
 void heartrateDisable();
 
+// Register callback for sending BPM to the server (avoids circular dependency on network.cpp).
+// Call once during setup: heartrateSetSendCallback(networkSendHeartbeat)
+void heartrateSetSendCallback(void (*cb)(uint8_t bpm));
+
+// Call each connected loop iteration. Sends BPM on schedule; sends 0 once when signal lost.
+void heartrateCheckAndSend();
+
 #endif // HEARTRATE_H

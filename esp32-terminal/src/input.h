@@ -16,4 +16,7 @@ InputEvent inputPoll();
 // Get the current encoder position (1-8 range, wrapping)
 uint8_t inputGetRotaryPosition();
 
+// Returns true once on a short encoder button press (< 500 ms hold)
+bool inputCheckEncoderTap();
+
 #endif // INPUT_H

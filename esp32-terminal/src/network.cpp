@@ -28,35 +28,11 @@ static char playerId[16] = "1";  // Default to player 1
 static bool isOperatorMode = false;
 static bool operatorReady = false;
 
-// Operator flat word list: all words sorted A-Z (deduplicated across categories)
-struct OpWord { const char* word; };
-static const OpWord OP_FLAT[] = {
-    {"A"},{"AGAIN"},{"ALREADY"},{"ALL"},{"ALONE"},{"ALWAYS"},{"AN"},{"AND"},{"ANGRY"},{"ANYWAY"},
-    {"BEWARE"},{"BLESSED"},{"BRAVE"},{"BUT"},{"BYE"},
-    {"CHANGES"},{"CHOSE"},{"CLEVER"},{"COWARDLY"},{"CRAZY"},
-    {"DARK"},{"DAVE"},{"DAY"},{"DID"},{"DIE"},{"DOES"},
-    {"ENDS"},{"EVEN"},{"EVIL"},
-    {"FAKE"},{"FEARS"},{"FINALLY"},{"FIRST"},{"FORGET"},
-    {"GOOD"},{"GUILTY"},
-    {"HAS"},{"HATES"},{"HAVE"},{"HE"},{"HEARD"},{"HELLO"},{"HELP"},{"HER"},{"HIDES"},{"HIS"},{"HONESTLY"},{"HUNTS"},
-    {"I"},{"IGNORE"},{"INNOCENT"},{"IS"},{"IT"},
-    {"JUST"},
-    {"KILL"},{"KILLED"},{"KILLER"},{"KIND"},{"KNOWS"},
-    {"LAST"},{"LATE"},{"LEFT"},{"LIAR"},{"LIED"},{"LIES"},{"LISTEN"},{"LIVE"},{"LOSE"},{"LOST"},{"LOUD"},{"LUCKY"},{"LYING"},
-    {"MAYBE"},{"MEAN"},{"MY"},
-    {"NEVER"},{"NEXT"},{"NIGHT"},{"NO"},{"NONE"},{"NOT"},
-    {"OBVIOUS"},{"OBVIOUSLY"},{"ONE"},{"ONLY"},{"OOPS"},{"OR"},
-    {"PROTECTS"},
-    {"QUIET"},
-    {"REAL"},{"RED"},{"REMEMBER"},{"RIGHT"},{"RIP"},
-    {"SAFE"},{"SAVED"},{"SAW"},{"SCARED"},{"SHE"},{"SHOUTY"},{"SO"},{"SOON"},{"SORRY"},{"STARTS"},{"STILL"},{"STRANGE"},{"STUPID"},{"SUSPECT"},
-    {"TEAM"},{"THANKS"},{"THAT"},{"THE"},{"THEM"},{"THEY"},{"THIS"},{"TOLD"},{"TOO"},{"TOWN"},{"TRUE"},{"TRUST"},{"TRUSTS"},{"TRUTH"},
-    {"UNLUCKY"},{"US"},
-    {"VOTE"},{"VOTED"},
-    {"WANTS"},{"WARNED"},{"WATCH"},{"WAS"},{"WE"},{"WELP"},{"WERE"},{"WHOOPS"},{"WILL"},{"WIN"},{"WOLF"},{"WRONG"},
-    {"YES"},{"YIKES"},{"YOU"},{"YOUR"},
-};
-static const int OP_FLAT_SIZE = 142;
+// Operator word list — populated dynamically from server on OPERATOR_JOIN.
+// Server sends vocabulary in the first OPERATOR_STATE message (shared/operatorWords.js).
+static const int MAX_OP_WORDS = 200;
+static String operatorVocab[MAX_OP_WORDS];
+static int operatorVocabSize = 0;
 
 // Operator selection state (single flat dial position)
 static int operatorFlatIdx = 0;
@@ -119,14 +95,14 @@ static void updateOperatorDisplay() {
     }
 
     DisplayState state;
-    const OpWord& entry = OP_FLAT[operatorFlatIdx];
+    const char* currentWord = (operatorVocabSize > 0) ? operatorVocab[operatorFlatIdx].c_str() : "";
 
     // line1.left = committed sentence, line1.right = alphabetical range label when not ready
     state.line1.left  = operatorBuiltMsg;
-    state.line1.right = operatorReady ? "" : getRangeLabel(entry.word);
+    state.line1.right = operatorReady ? "" : getRangeLabel(currentWord);
 
     // line2 carries preview word and triggers operator rendering mode
-    state.line2.text  = operatorReady ? "" : entry.word;
+    state.line2.text  = operatorReady ? "" : currentWord;
     state.line2.style = DisplayStyle::OPERATOR;
 
     // Tick in icon slot 2 when ready
@@ -587,8 +563,9 @@ static void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
             Serial.print("Received: ");
             Serial.println((char*)payload);
 
-            // Parse JSON message
-            StaticJsonDocument<4096> doc;
+            // Parse JSON message — 6144 bytes to accommodate optional vocabulary array
+            // (~142 words × ~16 bytes each) on the initial OPERATOR_STATE message.
+            StaticJsonDocument<6144> doc;
             DeserializationError error = deserializeJson(doc, payload, length);
 
             if (error) {
@@ -745,6 +722,17 @@ static void parseOperatorState(JsonObject& payload) {
     bool wasReady = operatorReady;
     operatorReady = payload["ready"] | false;
 
+    // Load vocabulary if server included it (first OPERATOR_STATE after OPERATOR_JOIN)
+    if (payload.containsKey("vocabulary")) {
+        JsonArray vocab = payload["vocabulary"];
+        operatorVocabSize = 0;
+        for (JsonVariant w : vocab) {
+            if (operatorVocabSize >= MAX_OP_WORDS) break;
+            operatorVocab[operatorVocabSize++] = w.as<String>();
+        }
+        Serial.printf("[OP] Vocabulary loaded: %d words\n", operatorVocabSize);
+    }
+
     // Update built message from server state
     operatorBuiltMsg  = "";
     operatorLastWord  = "";
@@ -778,18 +766,18 @@ void networkOperatorTick() {
 }
 
 void networkOperatorScrollDown() {
-    operatorFlatIdx = (operatorFlatIdx + 1) % OP_FLAT_SIZE;
+    if (operatorVocabSize > 0) operatorFlatIdx = (operatorFlatIdx + 1) % operatorVocabSize;
     updateOperatorDisplay();
 }
 
 void networkOperatorScrollUp() {
-    operatorFlatIdx = (operatorFlatIdx - 1 + OP_FLAT_SIZE) % OP_FLAT_SIZE;
+    if (operatorVocabSize > 0) operatorFlatIdx = (operatorFlatIdx - 1 + operatorVocabSize) % operatorVocabSize;
     updateOperatorDisplay();
 }
 
 void networkSendOperatorAdd() {
-    if (networkIsConnected()) {
-        const char* word = OP_FLAT[operatorFlatIdx].word;
+    if (networkIsConnected() && operatorVocabSize > 0) {
+        const char* word = operatorVocab[operatorFlatIdx].c_str();
         StaticJsonDocument<64> doc;
         doc["word"] = word;
         JsonObject payload = doc.as<JsonObject>();
@@ -820,8 +808,8 @@ void networkSendOperatorClear() {
 void networkSendOperatorDelete() {
     // Jump dial to the position of the last committed word before deleting
     if (operatorWordCount > 0) {
-        for (int i = 0; i < OP_FLAT_SIZE; i++) {
-            if (operatorLastWord == OP_FLAT[i].word) {
+        for (int i = 0; i < operatorVocabSize; i++) {
+            if (operatorLastWord == operatorVocab[i]) {
                 operatorFlatIdx = i;
                 break;
             }

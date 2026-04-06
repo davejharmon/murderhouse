@@ -127,3 +127,20 @@ uint8_t inputGetRotaryPosition() {
     int pos = ((count % 8) + 8) % 8 + 1;
     return (uint8_t)pos;
 }
+
+// Encoder button tap detection — returns true once on a short press (< 500 ms)
+static bool lastEncoderBtnState = true;  // HIGH = not pressed (pullup)
+static unsigned long lastEncoderBtnChange = 0;
+
+bool inputCheckEncoderTap() {
+    bool state = digitalRead(PIN_ENCODER_SW);
+    if (state != lastEncoderBtnState && (millis() - lastEncoderBtnChange > DEBOUNCE_MS)) {
+        unsigned long now = millis();
+        lastEncoderBtnChange = now;
+        lastEncoderBtnState = state;
+        if (state == HIGH) {  // Released — tap detected if held < 500 ms
+            if (now - lastEncoderBtnChange < 500) return true;
+        }
+    }
+    return false;
+}

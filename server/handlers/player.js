@@ -4,6 +4,7 @@
 import { ClientMsg, ServerMsg } from '../../shared/constants.js'
 import { getItem } from '../definitions/items.js'
 import { send } from './utils.js'
+import { OPERATOR_WORDS } from '../../shared/operatorWords.js'
 
 export function createPlayerHandlers(game) {
   return {
@@ -236,7 +237,9 @@ export function createPlayerHandlers(game) {
     [ClientMsg.OPERATOR_JOIN]: (ws) => {
       ws.clientType = 'operator'
       send(ws, ServerMsg.WELCOME, { role: 'operator' })
-      send(ws, ServerMsg.OPERATOR_STATE, game.getOperatorState())
+      // Include vocabulary on first connect so ESP32 terminals can build their word list dynamically.
+      // Subsequent broadcastOperatorState() calls omit vocabulary to keep those messages small.
+      send(ws, ServerMsg.OPERATOR_STATE, { ...game.getOperatorState(), vocabulary: OPERATOR_WORDS })
       return { success: true }
     },
 

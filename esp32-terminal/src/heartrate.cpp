@@ -3,6 +3,13 @@
 #include "heartrate.h"
 #include "config.h"
 
+// BPM send callback — set by caller to avoid heartrate.cpp depending on network.cpp
+typedef void (*BpmSendCallback)(uint8_t bpm);
+static BpmSendCallback bpmSendCallback = nullptr;
+static unsigned long lastBpmSend = 0;
+static bool lastBpmActive = false;
+static const unsigned long BPM_SEND_INTERVAL_MS = 2000;
+
 // AD8232 power state — powered on once connected to keep analog circuit warm
 static bool hrPowered = false;
 
@@ -171,4 +178,23 @@ uint8_t heartrateGetBPM() {
 
 bool heartrateIsActive() {
     return (lastBeatTime > 0) && (millis() - lastBeatTime < ACTIVE_TIMEOUT_MS);
+}
+
+void heartrateSetSendCallback(void (*cb)(uint8_t)) {
+    bpmSendCallback = cb;
+}
+
+// Call each loop iteration when connected. Sends BPM every 2 s; sends 0 once when signal lost.
+void heartrateCheckAndSend() {
+    if (!bpmSendCallback) return;
+    unsigned long now = millis();
+    bool active = heartrateIsActive();
+    if (active && (now - lastBpmSend >= BPM_SEND_INTERVAL_MS)) {
+        bpmSendCallback(heartrateGetBPM());
+        lastBpmSend = now;
+        lastBpmActive = true;
+    } else if (!active && lastBpmActive) {
+        bpmSendCallback(0);  // One final send to clear server-side BPM
+        lastBpmActive = false;
+    }
 }
