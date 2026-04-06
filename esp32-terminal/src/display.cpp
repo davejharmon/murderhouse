@@ -262,7 +262,7 @@ static void _renderBuffer(const DisplayState& state) {
     u8g2.setFont(FONT_SMALL);
     u8g2.setDrawColor(1);
 
-    if (state.line3.left.length() > 0 || state.line3.right.length() > 0) {
+    if (state.line3.left.length() > 0 || state.line3.right.length() > 0 || state.line3.center.length() > 0) {
         if (state.line3.left.length() > 0) {
             u8g2.drawStr(MARGIN_X, LINE3_Y, state.line3.left.c_str());
         }

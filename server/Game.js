@@ -8,13 +8,6 @@ const WIN_CACHE_EMPTY = Symbol('WIN_CACHE_EMPTY');
 const BROADCAST_DEBOUNCE_MS = 120;  // Coalesce rapid dial input broadcasts
 const LOG_MAX_ENTRIES = 500;        // Server-side log trim threshold
 
-// Ability color palette for role tutorial slides
-const ABILITY_COLOR = {
-  HOSTILE: '#c94c4c',   // Red — hurts (kill, hunt, vigil, block, clean, revenge)
-  HELPFUL: '#7eb8da',   // Blue — helps (protect, investigate, pardon)
-  NEUTRAL: '#d4af37',   // Yellow — fallback (vote, suspect, etc.)
-};
-
 import {
   GamePhase,
   Team,
@@ -39,14 +32,14 @@ import { getEvent, getEventsForPhase } from './definitions/events.js';
 import { getItem } from './definitions/items.js';
 import { HunterRevengeFlow, GovernorPardonFlow } from './flows/index.js';
 import { str } from './strings.js';
+import { PersistenceManager } from './PersistenceManager.js';
+import { SlideManager } from './SlideManager.js';
+import { EventResolver } from './EventResolver.js';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const GAME_PRESETS_PATH = path.join(__dirname, 'game-presets.json');
-const HOST_SETTINGS_PATH = path.join(__dirname, 'host-settings.json');
-const SCORES_PATH = path.join(__dirname, 'scores.json');
 
 export class Game {
   constructor(broadcast, sendToHostFn, sendToScreenFn) {
@@ -54,9 +47,13 @@ export class Game {
     this._sendToHost = sendToHostFn; // Function to find & send to host from clients set
     this._sendToScreen = sendToScreenFn; // Function to find & send to screen from clients set
     this.host = null; // Legacy reference (kept for handler compat)
-    this.slideIdCounter = 0; // Unique ID counter for slides
     this.screen = null; // Legacy reference (kept for handler compat)
     this.playerCustomizations = new Map(); // Persist player names/portraits across resets
+
+    // Sub-object managers (created before reset() since reset() calls their reset())
+    this.persistence = new PersistenceManager(this);
+    this.slides = new SlideManager(this);
+    this.events = new EventResolver(this);
 
     // Initialize interrupt flows (these persist across resets)
     this.flows = new Map([
@@ -78,16 +75,48 @@ export class Game {
     this.presetRolePool = null;
 
     this.reset();
-    this._loadGamePresetsFromDisk();
-    this._loadHostSettingsFromDisk();
+    this.persistence.loadAll();
     this._ensureSimTimer();
-    this._loadScoresFromDisk();
 
     // Auto-load default preset if one is set
     if (this._hostSettings.defaultPresetId) {
       this.loadGamePreset(this._hostSettings.defaultPresetId);
     }
   }
+
+  // ── Getters/setters: delegate sub-object state to Game for backward compat ──
+
+  // PersistenceManager state
+  get _hostSettings() { return this.persistence._hostSettings; }
+  set _hostSettings(v) { this.persistence._hostSettings = v; }
+  get _gamePresets() { return this.persistence._gamePresets; }
+  set _gamePresets(v) { this.persistence._gamePresets = v; }
+  get _scores() { return this.persistence._scores; }
+  set _scores(v) { this.persistence._scores = v; }
+  get _preGameScores() { return this.persistence._preGameScores; }
+  set _preGameScores(v) { this.persistence._preGameScores = v; }
+
+  // SlideManager state
+  get slideQueue() { return this.slides.slideQueue; }
+  set slideQueue(v) { this.slides.slideQueue = v; }
+  get currentSlideIndex() { return this.slides.currentSlideIndex; }
+  set currentSlideIndex(v) { this.slides.currentSlideIndex = v; }
+  get slideIdCounter() { return this.slides.slideIdCounter; }
+  set slideIdCounter(v) { this.slides.slideIdCounter = v; }
+  get _heartrateSlidePlayerId() { return this.slides._heartrateSlidePlayerId; }
+  set _heartrateSlidePlayerId(v) { this.slides._heartrateSlidePlayerId = v; }
+
+  // EventResolver state
+  get pendingEvents() { return this.events.pendingEvents; }
+  set pendingEvents(v) { this.events.pendingEvents = v; }
+  get activeEvents() { return this.events.activeEvents; }
+  set activeEvents(v) { this.events.activeEvents = v; }
+  get eventTimers() { return this.events.eventTimers; }
+  set eventTimers(v) { this.events.eventTimers = v; }
+  get eventResults() { return this.events.eventResults; }
+  set eventResults(v) { this.events.eventResults = v; }
+  get customEventConfig() { return this.events.customEventConfig; }
+  set customEventConfig(v) { this.events.customEventConfig = v; }
 
   reset() {
     // Save player customizations before clearing (if players exist)
@@ -101,13 +130,9 @@ export class Game {
       }
     }
 
-    // Clear any running event timers
-    if (this.eventTimers) {
-      for (const { timeout } of this.eventTimers.values()) {
-        clearTimeout(timeout);
-      }
-    }
-    this.eventTimers = new Map();
+    // Reset sub-object managers
+    if (this.events) this.events.reset();
+    if (this.slides) this.slides.reset();
 
     resetSeatCounter();
     this.players = new Map(); // id -> Player
@@ -116,16 +141,6 @@ export class Game {
 
     this.phase = GamePhase.LOBBY;
     this.dayCount = 0;
-
-    // Event management
-    this.pendingEvents = []; // Events that can be started this phase
-    this.activeEvents = new Map(); // eventId -> { event, results, participants }
-    this.eventResults = []; // Results to reveal at end of phase
-    this.customEventConfig = null; // Stored config for pending custom events
-
-    // Slide queue for big screen
-    this.slideQueue = [];
-    this.currentSlideIndex = -1;
 
     // Legacy interrupt handling (flows now manage their own state)
     // Kept for backwards compatibility during transition
@@ -174,9 +189,6 @@ export class Game {
     if (this._calibrationTimer) clearTimeout(this._calibrationTimer);
     this._calibration = null;
     this._calibrationTimer = null;
-
-    // Track which player has heartrate enabled due to a heartbeat slide
-    this._heartrateSlidePlayerId = null;
 
     // Simulated heartbeat (secret per-player fake, survives reset)
     // Don't clear _simHeartbeatState or timer on reset — these persist like calibration config
@@ -238,277 +250,27 @@ export class Game {
   }
 
   // === Host Settings ===
-
-  _loadHostSettingsFromDisk() {
-    const defaults = {
-      timerDuration: 30,
-      autoAdvanceEnabled: false,
-      heartbeatThreshold: 110,
-      scoringConfig: { survived: 1, winningTeam: 1, bestInvestigator: 2 },
-      heartbeatCalibration: {},
-      heartbeatDisplayResting: 65,
-      heartbeatDisplayElevated: 110,
-      simsCanLose: false,
-      heartbeatAddNoise: false,
-      poisonKillsGeneric: false,
-    };
-    if (!fs.existsSync(HOST_SETTINGS_PATH)) {
-      this._hostSettings = defaults;
-      return;
-    }
-    try {
-      this._hostSettings = { ...defaults, ...JSON.parse(fs.readFileSync(HOST_SETTINGS_PATH, 'utf-8')) };
-    } catch (e) {
-      console.error('[Server] Failed to load host settings:', e.message);
-      this._hostSettings = defaults;
-    }
-  }
-
-  getHostSettings() {
-    return { ...this._hostSettings };
-  }
-
-  saveHostSettings(settings) {
-    this._hostSettings = { ...this._hostSettings, ...settings };
-    fs.writeFileSync(HOST_SETTINGS_PATH, JSON.stringify(this._hostSettings, null, 2));
-    this.sendToHost(ServerMsg.HOST_SETTINGS, this.getHostSettings());
-  }
-
-  setDefaultPreset(id) {
-    // Toggle off if already the default
-    const defaultPresetId = this._hostSettings.defaultPresetId === id ? null : id;
-    this.saveHostSettings({ defaultPresetId });
-  }
+  _loadHostSettingsFromDisk() { this.persistence._loadHostSettingsFromDisk(); }
+  getHostSettings() { return this.persistence.getHostSettings(); }
+  saveHostSettings(settings) { return this.persistence.saveHostSettings(settings); }
+  setDefaultPreset(id) { return this.persistence.setDefaultPreset(id); }
 
   // === Scores ===
-
-  _loadScoresFromDisk() {
-    if (!fs.existsSync(SCORES_PATH)) {
-      this._scores = new Map();
-      return;
-    }
-    try {
-      const data = JSON.parse(fs.readFileSync(SCORES_PATH, 'utf-8'));
-      this._scores = new Map(Object.entries(data).map(([k, v]) => [k, Number(v) || 0]));
-    } catch (e) {
-      console.error('[Server] Failed to load scores:', e.message);
-      this._scores = new Map();
-    }
-  }
-
-  _saveScoresToDisk() {
-    const obj = Object.fromEntries(this._scores);
-    fs.writeFileSync(SCORES_PATH, JSON.stringify(obj, null, 2));
-  }
-
-  setScore(name, score) {
-    this._scores.set(name, score);
-    this._saveScoresToDisk();
-    this.sendScoresToHost();
-  }
-
-  getScoresForConnectedPlayers() {
-    return [...this.players.values()]
-      .filter(p => p.name)
-      .map(p => ({ name: p.name, portrait: p.portrait, score: this._scores.get(p.name) ?? 0 }))
-      .sort((a, b) => b.score - a.score);
-  }
-
-  getScoresObject() {
-    return Object.fromEntries(this._scores);
-  }
-
-  sendScoresToHost() {
-    this._sendToHost(ServerMsg.SCORES, { scores: this.getScoresObject() });
-  }
-
-  pushScoreSlide() {
-    const entries = this.getScoresForConnectedPlayers();
-    const slide = {
-      type: SlideType.SCORES,
-      title: str('slides', 'misc.scoreboardTitle'),
-      entries,
-    };
-    // Include pre-game scores for animated transition
-    if (this._preGameScores) {
-      slide.previousEntries = [...this.players.values()]
-        .filter(p => p.name)
-        .map(p => ({ name: p.name, portrait: p.portrait, score: this._preGameScores.get(p.name) ?? 0 }))
-        .sort((a, b) => b.score - a.score);
-    }
-    this.pushSlide(slide);
-  }
+  _loadScoresFromDisk() { this.persistence._loadScoresFromDisk(); }
+  _saveScoresToDisk() { this.persistence._saveScoresToDisk(); }
+  setScore(name, score) { return this.persistence.setScore(name, score); }
+  getScoresForConnectedPlayers() { return this.persistence.getScoresForConnectedPlayers(); }
+  getScoresObject() { return this.persistence.getScoresObject(); }
+  sendScoresToHost() { return this.persistence.sendScoresToHost(); }
+  pushScoreSlide() { return this.persistence.pushScoreSlide(); }
 
   // === Game Presets ===
-
-  _loadGamePresetsFromDisk() {
-    if (!fs.existsSync(GAME_PRESETS_PATH)) {
-      this._gamePresets = [];
-      return;
-    }
-    try {
-      const data = JSON.parse(fs.readFileSync(GAME_PRESETS_PATH, 'utf-8'));
-      this._gamePresets = data.presets || [];
-    } catch (e) {
-      console.error('[Server] Failed to load game presets:', e.message);
-      this._gamePresets = [];
-    }
-  }
-
-  _saveGamePresetsToDisk() {
-    fs.writeFileSync(GAME_PRESETS_PATH, JSON.stringify({ presets: this._gamePresets }, null, 2));
-  }
-
-  getGamePresets() {
-    return { presets: this._gamePresets };
-  }
-
-  saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats = false, overwriteId = null) {
-    // Capture current player customizations (names + portraits)
-    const players = {};
-    for (const [id, cust] of this.playerCustomizations) {
-      if (cust.name || cust.portrait) {
-        players[id] = { name: cust.name, portrait: cust.portrait };
-      }
-    }
-    for (const player of this.players.values()) {
-      players[player.id] = { name: player.name, portrait: player.portrait };
-    }
-
-    // Capture role configuration
-    const playerCount = this.players.size;
-    const hasPreAssigned = [...this.players.values()].some(p => p.preAssignedRole);
-    let roleMode, rolePool, roleAssignments;
-    if (hasPreAssigned) {
-      roleMode = 'assigned';
-      roleAssignments = {};
-      for (const player of this.getPlayersBySeat()) {
-        if (player.preAssignedRole) roleAssignments[player.id] = player.preAssignedRole;
-      }
-      rolePool = null;
-    } else if (playerCount >= 4 && GAME_COMPOSITION[playerCount]) {
-      roleMode = 'random';
-      rolePool = buildRolePool(playerCount);
-      roleAssignments = null;
-    } else {
-      roleMode = 'random';
-      rolePool = null;
-      roleAssignments = null;
-    }
-
-    if (overwriteId) {
-      const index = this._gamePresets.findIndex(p => p.id === overwriteId);
-      if (index !== -1) {
-        this._gamePresets[index] = { ...this._gamePresets[index], name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled, fakeHeartbeats };
-        this._saveGamePresetsToDisk();
-        this.addLog(str('log', 'presetUpdated', { name }));
-        return this._gamePresets[index];
-      }
-    }
-
-    const preset = {
-      id: String(Date.now()),
-      name: name.trim() || 'Unnamed Preset',
-      created: Date.now(),
-      players,
-      roleMode,
-      rolePool,
-      roleAssignments,
-      timerDuration,
-      autoAdvanceEnabled,
-      fakeHeartbeats,
-    };
-
-    this._gamePresets.push(preset);
-    this._saveGamePresetsToDisk();
-    this.addLog(str('log', 'presetSaved', { name: preset.name }));
-    return preset;
-  }
-
-  loadGamePreset(id) {
-    const preset = this._gamePresets.find(p => p.id === id);
-    if (!preset) return null;
-
-    // Apply player customizations (names + portraits)
-    for (const [playerId, data] of Object.entries(preset.players)) {
-      const existing = this.playerCustomizations.get(playerId) || {};
-      this.playerCustomizations.set(playerId, {
-        ...existing,
-        name: data.name,
-        portrait: data.portrait,
-      });
-      const player = this.players.get(playerId);
-      if (player) {
-        player.name = data.name;
-        player.portrait = data.portrait;
-      }
-    }
-
-    // Clear all existing pre-assignments
-    for (const [id, cust] of this.playerCustomizations) {
-      this.playerCustomizations.set(id, { ...cust, preAssignedRole: null });
-    }
-    for (const player of this.players.values()) {
-      player.preAssignedRole = null;
-    }
-
-    // Apply role configuration
-    const roleMode = preset.roleMode || 'random'; // backward-compat: old presets had only rolePool
-    if (roleMode === 'assigned' && preset.roleAssignments) {
-      for (const [seatId, roleId] of Object.entries(preset.roleAssignments)) {
-        const cust = this.playerCustomizations.get(seatId) || {};
-        this.playerCustomizations.set(seatId, { ...cust, preAssignedRole: roleId });
-        const player = this.players.get(seatId);
-        if (player) player.preAssignedRole = roleId;
-      }
-      this.presetRolePool = null;
-    } else {
-      this.presetRolePool = preset.rolePool || null;
-    }
-
-    // Persist timer/auto-advance and which preset is loaded
-    this.saveHostSettings({
-      timerDuration: preset.timerDuration,
-      autoAdvanceEnabled: preset.autoAdvanceEnabled,
-      lastLoadedPresetId: preset.id,
-    });
-
-    // Apply fake heartbeats setting
-    const wantFake = preset.fakeHeartbeats ?? false;
-    if (wantFake !== this._fakeHeartbeats) {
-      if (wantFake) {
-        this._fakeHeartbeats = true;
-        this._fakeHeartbeatSimState = {};
-        this._fakeHeartbeatTimer = setInterval(() => this._tickFakeHeartbeats(), 1500);
-      } else {
-        this._fakeHeartbeats = false;
-        clearInterval(this._fakeHeartbeatTimer);
-        this._fakeHeartbeatTimer = null;
-        for (const player of this.players.values()) {
-          if (player.heartbeat?.fake) {
-            player.heartbeat = { bpm: 0, active: false, fake: false, lastUpdate: Date.now() };
-          }
-        }
-      }
-    }
-
-    if (this.players.size > 0) {
-      this.broadcastPlayerList();
-      this.broadcastGameState();
-    }
-    this.addLog(str('log', 'presetLoaded', { name: preset.name }));
-    return { timerDuration: preset.timerDuration, autoAdvanceEnabled: preset.autoAdvanceEnabled };
-  }
-
-  deleteGamePreset(id) {
-    const index = this._gamePresets.findIndex(p => p.id === id);
-    if (index === -1) return false;
-    const name = this._gamePresets[index].name;
-    this._gamePresets.splice(index, 1);
-    this._saveGamePresetsToDisk();
-    this.addLog(str('log', 'presetDeleted', { name }));
-    return true;
-  }
+  _loadGamePresetsFromDisk() { this.persistence._loadGamePresetsFromDisk(); }
+  _saveGamePresetsToDisk() { this.persistence._saveGamePresetsToDisk(); }
+  getGamePresets() { return this.persistence.getGamePresets(); }
+  saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats = false, overwriteId = null) { return this.persistence.saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId); }
+  loadGamePreset(id) { return this.persistence.loadGamePreset(id); }
+  deleteGamePreset(id) { return this.persistence.deleteGamePreset(id); }
 
   removePlayer(id) {
     const player = this.players.get(id);
@@ -579,7 +341,7 @@ export class Game {
     }
 
     // Snapshot scores for animated scoreboard at end of game
-    this._preGameScores = new Map(this._scores);
+    this.persistence.capturePreGameScores();
 
     // Assign roles
     this.assignRoles();
@@ -902,24 +664,7 @@ export class Game {
     return { success: true };
   }
 
-  buildPendingEvents() {
-    const phaseEvents = getEventsForPhase(this.phase);
-    this.pendingEvents = [];
-    this.customEventConfig = null; // Clear any pending custom event config on phase change
-
-    for (const event of phaseEvents) {
-      // Skip player-initiated events (like shoot) - they start when player uses ability
-      if (event.playerInitiated) continue;
-
-      // Skip customEvent - it's only added via createCustomEvent()
-      if (event.id === EventId.CUSTOM_EVENT) continue;
-
-      const participants = this.getEventParticipants(event.id);
-      if (participants.length > 0) {
-        this.pendingEvents.push(event.id);
-      }
-    }
-  }
+  buildPendingEvents() { return this.events.buildPendingEvents(); }
 
   // === Event Management ===
 
@@ -928,1211 +673,102 @@ export class Game {
    * - Role-based participants (from event.participants)
    * - Item-based participants (players with items that have startsEvent: eventId)
    */
-  getEventParticipants(eventId) {
-    const event = getEvent(eventId);
-    if (!event) return [];
+  getEventParticipants(eventId) { return this.events.getEventParticipants(eventId); }
 
-    // Get role-based participants
-    const roleParticipants = event.participants(this);
-
-    // Get item-based participants (players with items granting this event)
-    const itemParticipants = this.getAlivePlayers().filter((player) => {
-      return player.inventory.some(
-        (item) => item.startsEvent === eventId && (item.uses > 0 || item.maxUses === -1),
-      );
-    });
-
-    // Combine and deduplicate by player ID
-    const allParticipants = [...roleParticipants];
-    for (const player of itemParticipants) {
-      if (!allParticipants.find((p) => p.id === player.id)) {
-        allParticipants.push(player);
-      }
-    }
-
-    // Coward's Way Out: holder loses all actions — never a participant
-    return allParticipants.filter((p) => !p.hasItem('coward'));
-  }
-
-  startEvent(eventId) {
-    // Special handling for customEvent - requires stored config
-    if (eventId === EventId.CUSTOM_EVENT) {
-      return this._startCustomEvent();
-    }
-
-    const event = getEvent(eventId);
-    if (!event) {
-      return { success: false, error: 'Event not found' };
-    }
-
-    this._assertValidEventDef(event, eventId);
-
-    // Check phase restriction for player-initiated events
-    if (
-      event.playerInitiated &&
-      event.phase &&
-      !event.phase.includes(this.phase)
-    ) {
-      return {
-        success: false,
-        error: `Not available during ${this.phase} phase`,
-      };
-    }
-
-    const participants = this.getEventParticipants(eventId);
-    if (participants.length === 0) {
-      return { success: false, error: 'No eligible participants' };
-    }
-
-    // Create active event instance
-    const eventInstance = {
-      event,
-      results: {}, // playerId -> targetId
-      participants: participants.map((p) => p.id),
-      startedAt: Date.now(),
-    };
-
-    this.activeEvents.set(eventId, eventInstance);
-    this.pendingEvents = this.pendingEvents.filter((id) => id !== eventId);
-
-    this._notifyEventParticipants(
-      eventId,
-      participants.map(p => p.id),
-      player => event.validTargets(player, this),
-      { eventName: event.name, description: event.description, allowAbstain: event.allowAbstain !== false },
-    );
-
-    this.addLog(str('log', 'eventStarted', { name: event.name }));
-
-    // Special handling for shoot event - show immediate slide
-    if (eventId === EventId.SHOOT && participants.length > 0) {
-      const shooter = participants[0];
-      this.pushSlide(
-        {
-          type: 'title',
-          title: str('slides', 'misc.drawTitle'),
-          subtitle: str('slides', 'misc.drawSubtitle', { name: shooter.name }),
-          style: SlideStyle.WARNING,
-        },
-        true,
-      ); // Jump to this slide immediately
-    }
-
-    // Show slide when vote events start
-    if (eventId === EventId.VOTE) {
-      this.pushSlide(
-        {
-          type: 'gallery',
-          title: str('slides', 'vote.slideTitle'),
-          subtitle: str('events', 'vote.description'),
-          playerIds: this.getAlivePlayers().map((p) => p.id),
-          targetsOnly: true,
-          activeEventId: eventId,
-          style: SlideStyle.NEUTRAL,
-        },
-        true,
-      );
-    }
-
-    // Note: Flow-managed events (like hunterRevenge) are started via _startFlowEvent()
-
-    this.broadcastGameState();
-
-    return { success: true };
-  }
+  startEvent(eventId) { return this.events.startEvent(eventId); }
 
   // Start (or join) an event on behalf of a single player activating an item.
   // Unlike startEvent(), this does NOT sweep in all eligible participants — only the
   // activating player is added.  If the event is already active (e.g. the seeker's
   // INVESTIGATE is running), the player is appended to its participant list and
   // notified without restarting the event.
-  startEventForPlayer(eventId, playerId) {
-    const event = getEvent(eventId);
-    if (!event) return { success: false, error: 'Event not found' };
+  startEventForPlayer(eventId, playerId) { return this.events.startEventForPlayer(eventId, playerId); }
 
-    const player = this.getPlayer(playerId);
-    if (!player || !player.isAlive) return { success: false, error: 'Player not eligible' };
-
-    // Enforce phase restriction for all player-activated events (items and role abilities).
-    if (event.phase && !event.phase.includes(this.phase)) {
-      return { success: false, error: `Not available during ${this.phase} phase` };
-    }
-
-    const notify = () => {
-      this._notifyEventParticipants(
-        eventId,
-        [playerId],
-        p => event.validTargets(p, this),
-        { eventName: event.name, description: event.description, allowAbstain: event.allowAbstain !== false },
-      );
-      this.broadcastGameState();
-    };
-
-    if (this.activeEvents.has(eventId)) {
-      // Event already running — add this player if not already in it
-      const instance = this.activeEvents.get(eventId);
-      if (!instance.participants.includes(playerId)) {
-        instance.participants.push(playerId);
-      }
-      notify();
-      return { success: true };
-    }
-
-    // Start a fresh event with only this player
-    this._assertValidEventDef(event, eventId);
-    const eventInstance = {
-      event,
-      results: {},
-      participants: [playerId],
-      startedAt: Date.now(),
-    };
-    this.activeEvents.set(eventId, eventInstance);
-    this.pendingEvents = this.pendingEvents.filter(id => id !== eventId);
-    notify();
-    this.addLog(str('log', 'eventStarted', { name: event.name }));
-    return { success: true };
-  }
-
-  startAllEvents() {
-    const started = [];
-    for (const eventId of [...this.pendingEvents]) {
-      const result = this.startEvent(eventId);
-      if (result.success) {
-        started.push(eventId);
-      }
-    }
-    return { success: true, started };
-  }
-
-  /**
-   * Start an event managed by an InterruptFlow
-   * This is a lightweight event creation for flows that manage their own logic.
-   *
-   * @param {string} eventId - The event/flow ID
-   * @param {Object} options - Event configuration
-   * @param {string} options.name - Display name
-   * @param {string} options.description - Description shown to players
-   * @param {string} options.verb - Action verb (e.g., 'shoot')
-   * @param {string[]} options.participants - Player IDs who can act
-   * @param {Function} options.getValidTargets - (playerId) => Player[]
-   * @param {boolean} options.allowAbstain - Whether abstaining is allowed
-   * @param {boolean} options.playerResolved - Whether to auto-resolve on selection
-   */
-  _startFlowEvent(eventId, options) {
-    const {
-      name,
-      description,
-      verb = eventId,
-      participants,
-      getValidTargets,
-      allowAbstain = false,
-      playerResolved = false,
-    } = options;
-
-    // Create a minimal event-like object for the activeEvents map
-    const eventInstance = {
-      event: {
-        id: eventId,
-        name,
-        description,
-        verb,
-        validTargets: (actor) => getValidTargets(actor.id),
-        allowAbstain,
-        playerResolved,
-      },
-      results: {},
-      participants,
-      startedAt: Date.now(),
-      managedByFlow: true, // Flag to indicate this is flow-managed
-    };
-
-    this.activeEvents.set(eventId, eventInstance);
-
-    this._notifyEventParticipants(
-      eventId,
-      participants,
-      player => getValidTargets(player.id),
-      { eventName: name, description, allowAbstain },
-    );
-
-    this.addLog(str('log', 'eventStarted', { name }));
-    this.broadcastGameState();
-
-    return { success: true };
-  }
+  startAllEvents() { return this.events.startAllEvents(); }
 
   /**
    * Create a custom event and add it to pending events.
    * The event is not started until startEvent('customEvent') is called.
    */
-  createCustomEvent(config) {
-    // Validate configuration
-    const validation = this.validateCustomEventConfig(config);
-    if (!validation.valid) {
-      return { success: false, error: validation.error };
-    }
-
-    // Check phase
-    if (this.phase !== GamePhase.DAY) {
-      return {
-        success: false,
-        error: 'Custom events only available during DAY phase',
-      };
-    }
-
-    // Check if customEvent already active
-    if (this.activeEvents.has(EventId.CUSTOM_EVENT)) {
-      return { success: false, error: 'Custom event already in progress' };
-    }
-
-    // Store the config (replaces any existing pending config)
-    this.customEventConfig = config;
-
-    // Add to pending if not already there
-    if (!this.pendingEvents.includes(EventId.CUSTOM_EVENT)) {
-      this.pendingEvents.push(EventId.CUSTOM_EVENT);
-    }
-
-    this.broadcastGameState();
-
-    return { success: true };
-  }
+  createCustomEvent(config) { return this.events.createCustomEvent(config); }
 
   /**
    * Internal method to start the custom event using stored config.
    * Called by startEvent('customEvent').
    */
-  _startCustomEvent() {
-    const config = this.customEventConfig;
-    if (!config) {
-      return { success: false, error: 'No custom event config found' };
-    }
+  _startCustomEvent() { return this.events._startCustomEvent(); }
 
-    // Check if customEvent already active
-    if (this.activeEvents.has(EventId.CUSTOM_EVENT)) {
-      return { success: false, error: 'Custom event already in progress' };
-    }
+  validateCustomEventConfig(config) { return this.events.validateCustomEventConfig(config); }
 
-    const event = getEvent(EventId.CUSTOM_EVENT);
-    if (!event) {
-      return { success: false, error: 'Custom event not found' };
-    }
+  recordSelection(playerId, targetId) { return this.events.recordSelection(playerId, targetId); }
 
-    const participants = this.getEventParticipants(EventId.CUSTOM_EVENT);
-    if (participants.length === 0) {
-      return { success: false, error: 'No eligible participants' };
-    }
+  startEventTimer(eventId, duration) { return this.events.startEventTimer(eventId, duration); }
 
-    // Create event instance with configuration and runoff tracking
-    const eventInstance = {
-      event,
-      results: {},
-      participants: participants.map((p) => p.id),
-      startedAt: Date.now(),
-      config, // Store configuration
-      runoffCandidates: [],
-      runoffRound: 0,
-    };
+  startAllEventTimers(duration) { return this.events.startAllEventTimers(duration); }
 
-    this.activeEvents.set(EventId.CUSTOM_EVENT, eventInstance);
-    this.pendingEvents = this.pendingEvents.filter(
-      (id) => id !== EventId.CUSTOM_EVENT,
-    );
+  clearEventTimer(eventId) { return this.events.clearEventTimer(eventId); }
 
-    this._notifyEventParticipants(
-      EventId.CUSTOM_EVENT,
-      participants.map(p => p.id),
-      player => event.validTargets(player, this),
-      { eventName: event.name, description: config.description, allowAbstain: event.allowAbstain !== false },
-    );
+  pauseEventTimers() { return this.events.pauseEventTimers(); }
 
-    this.addLog(str('log', 'customEventStarted', { description: config.description }));
+  resumeEventTimers() { return this.events.resumeEventTimers(); }
 
-    // Show slide when custom event starts — gallery of eligible targets
-    const customTargets =
-      config.rewardType === 'resurrection'
-        ? [...this.players.values()].filter((p) => !p.isAlive)
-        : this.getAlivePlayers();
-    const rewardItemDef = config.rewardType === 'item' ? getItem(config.rewardParam) : null;
-    this.pushSlide(
-      {
-        type: 'gallery',
-        title: config.rewardParam
-          ? str('slides', 'vote.customTitleNamed', { reward: config.rewardParam.toUpperCase() })
-          : str('slides', 'vote.customTitle'),
-        subtitle: config.description,
-        itemDescription: rewardItemDef?.description || null,
-        playerIds: customTargets.map((p) => p.id),
-        targetsOnly: true,
-        activeEventId: EventId.CUSTOM_EVENT,
-        style: SlideStyle.NEUTRAL,
-      },
-      true,
-    );
+  cancelEventTimers() { return this.events.cancelEventTimers(); }
 
-    // Clear the config now that we've started
-    this.customEventConfig = null;
-
-    this.broadcastGameState();
-
-    return { success: true };
-  }
-
-  validateCustomEventConfig(config) {
-    if (!config) {
-      return { valid: false, error: 'Configuration required' };
-    }
-
-    const { rewardType, rewardParam, description } = config;
-
-    // Validate reward type
-    if (!['item', 'role', 'resurrection'].includes(rewardType)) {
-      return { valid: false, error: 'Invalid reward type' };
-    }
-
-    // Validate reward parameter
-    if (rewardType === 'item') {
-      const item = getItem(rewardParam);
-      if (!item) {
-        return { valid: false, error: `Item '${rewardParam}' not found` };
-      }
-    } else if (rewardType === 'role') {
-      const role = getRole(rewardParam);
-      if (!role) {
-        return { valid: false, error: `Role '${rewardParam}' not found` };
-      }
-    }
-    // Resurrection doesn't need param validation
-
-    if (!description || description.trim() === '') {
-      return { valid: false, error: 'Description required' };
-    }
-
-    return { valid: true };
-  }
-
-  recordSelection(playerId, targetId) {
-    const player = this.getPlayer(playerId);
-    if (!player) return { success: false, error: 'Player not found' };
-
-    // Find the player's next unresolved event (skip events they've already responded to)
-    for (const [eventId, instance] of this.activeEvents) {
-      if (instance.participants.includes(playerId) && !(playerId in instance.results)) {
-        // Sentinel "__decline__" from boolean toggle events = treat as abstain
-        const effectiveTarget = targetId === '__decline__' ? null : targetId;
-        instance.results[playerId] = effectiveTarget;
-
-        // Check if this event is managed by a flow
-        if (instance.managedByFlow) {
-          const flow = this.flows.get(eventId);
-          if (flow) {
-            const result = flow.onSelection(playerId, effectiveTarget);
-            if (result) {
-              this._executeFlowResult(result);
-              this.broadcastGameState();
-              return { success: true, eventId, flowResult: result };
-            }
-          }
-          // Flow handled it, skip normal event processing
-          this.broadcastGameState();
-          return { success: true, eventId };
-        }
-
-        // Broadcast pack state for cell events
-        if (this.shouldBroadcastPackState(eventId, player)) {
-          this.broadcastPackState();
-        }
-
-        // Check if event has immediate slide generation on selection
-        if (instance.event.onSelection) {
-          const result = instance.event.onSelection(playerId, targetId, this);
-          if (result?.slide) {
-            // Use queueDeathSlide for death slides (handles hunter revenge automatically)
-            if (result.slide.type === 'death') {
-              this.queueDeathSlide(result.slide, true);
-            } else {
-              this.pushSlide(result.slide, true);
-            }
-          }
-          if (result?.message) {
-            this.addLog(result.message);
-          }
-        }
-
-        // Auto-resolve player-resolved events immediately
-        if (instance.event.playerResolved) {
-          this.resolveEvent(eventId);
-        }
-
-        // End timer early if all participants have responded
-        this.checkEventTimersComplete();
-
-        this.broadcastGameState();
-        return { success: true, eventId };
-      }
-    }
-
-    return { success: false, error: 'No active event for player' };
-  }
-
-  startEventTimer(eventId, duration) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) {
-      return { success: false, error: 'Event not active' };
-    }
-
-    // Clear existing timer for this event if one is running
-    this.clearEventTimer(eventId);
-
-    const timeout = setTimeout(() => {
-      this.eventTimers.delete(eventId);
-      this.resolveEvent(eventId, { force: true });
-    }, duration);
-
-    this.eventTimers.set(eventId, {
-      timeout,
-      endsAt: Date.now() + duration,
-    });
-
-    this.broadcast(ServerMsg.EVENT_TIMER, {
-      eventId,
-      duration,
-    });
-
-    return { success: true };
-  }
-
-  startAllEventTimers(duration) {
-    const eventIds = [...this.activeEvents.keys()];
-    if (eventIds.length === 0) {
-      return { success: false, error: 'No active events' };
-    }
-
-    // Collect all participants across all active events for the slide
-    const allParticipants = [];
-    for (const eventId of eventIds) {
-      this.startEventTimer(eventId, duration);
-      const instance = this.activeEvents.get(eventId);
-      if (instance) {
-        for (const pid of instance.participants) {
-          if (!allParticipants.includes(pid)) {
-            allParticipants.push(pid);
-          }
-        }
-      }
-    }
-
-    // Push a single timer slide for all events
-    this.pushSlide(
-      {
-        type: 'gallery',
-        title: str('slides', 'misc.timesUpTitle'),
-        subtitle: str('slides', 'misc.timesUpSubtitle'),
-        playerIds: allParticipants,
-        targetsOnly: true,
-        timerEventId: eventIds[0],
-        style: SlideStyle.WARNING,
-      },
-      true,
-    );
-
-    this.addLog(str('log', 'timerStarted', { count: eventIds.length }));
-
-    return { success: true };
-  }
-
-  clearEventTimer(eventId) {
-    const timer = this.eventTimers.get(eventId);
-    if (timer) {
-      clearTimeout(timer.timeout);
-      this.eventTimers.delete(eventId);
-      this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: null });
-    }
-  }
-
-  pauseEventTimers() {
-    for (const [eventId, timer] of this.eventTimers) {
-      if (timer.paused) continue;
-      clearTimeout(timer.timeout);
-      timer.remaining = Math.max(0, timer.endsAt - Date.now());
-      timer.paused = true;
-      timer.timeout = null;
-    }
-    this.broadcast(ServerMsg.EVENT_TIMER, { paused: true });
-    return { success: true };
-  }
-
-  resumeEventTimers() {
-    for (const [eventId, timer] of this.eventTimers) {
-      if (!timer.paused) continue;
-      timer.paused = false;
-      timer.endsAt = Date.now() + timer.remaining;
-      timer.timeout = setTimeout(() => {
-        this.clearEventTimer(eventId);
-        this.resolveEvent(eventId, { force: true });
-      }, timer.remaining);
-    }
-    // Broadcast new endsAt by re-sending remaining duration
-    for (const [eventId, timer] of this.eventTimers) {
-      this.broadcast(ServerMsg.EVENT_TIMER, { eventId, duration: timer.remaining });
-    }
-    return { success: true };
-  }
-
-  cancelEventTimers() {
-    // Clear all timers
-    for (const [eventId] of this.eventTimers) {
-      const timer = this.eventTimers.get(eventId);
-      if (timer?.timeout) clearTimeout(timer.timeout);
-    }
-    this.eventTimers.clear();
-    this.broadcast(ServerMsg.EVENT_TIMER, { cancelled: true, duration: null });
-
-    // Push a fresh gallery slide (normal, no countdown)
-    const participants = [];
-    for (const [, instance] of this.activeEvents) {
-      for (const pid of instance.participants) {
-        if (!participants.includes(pid)) participants.push(pid);
-      }
-    }
-    if (participants.length > 0) {
-      this.pushSlide({
-        type: 'gallery',
-        title: this.phase === GamePhase.DAY
-          ? str('slides', 'phase.dayN.title', { n: this.dayCount })
-          : str('slides', 'phase.nightN.title', { n: this.dayCount }),
-        subtitle: '',
-        playerIds: participants,
-        style: SlideStyle.NEUTRAL,
-      });
-    }
-    this.broadcastGameState();
-    return { success: true };
-  }
-
-  // End event timers early if all participants have confirmed or abstained
-  checkEventTimersComplete() {
-    for (const [eventId, timer] of this.eventTimers) {
-      const instance = this.activeEvents.get(eventId);
-      if (!instance) continue;
-
-      const { participants, results } = instance;
-      if (Object.keys(results).length >= participants.length) {
-        this.clearEventTimer(eventId);
-        this.resolveEvent(eventId);
-      }
-    }
-  }
+  checkEventTimersComplete() { return this.events.checkEventTimersComplete(); }
 
   // ── Shared event startup helper ──────────────────────────────────────────
 
   // Registers each participant into the event, sends them an EVENT_PROMPT,
   // and auto-selects when only a single target is available.
   // getTargets(player) → Player[]   prompt → { eventName, description, allowAbstain }
-  _notifyEventParticipants(eventId, participantIds, getTargets, prompt) {
-    for (const pid of participantIds) {
-      const player = this.getPlayer(pid);
-      if (!player) continue;
-      player.pendingEvents.add(eventId);
-      player.clearSelection();
-      player.lastEventResult = null;
-      const targets = getTargets(player);
-      if (targets.length === 1) {
-        player.currentSelection = targets[0].id;
-      }
-      player.syncState(this);
-      player.send(ServerMsg.EVENT_PROMPT, {
-        eventId,
-        targets: targets.map(t => t.getPublicState()),
-        ...prompt,
-      });
-    }
-  }
+  _notifyEventParticipants(eventId, participantIds, getTargets, prompt) { return this.events._notifyEventParticipants(eventId, participantIds, getTargets, prompt); }
 
   // ── Event definition validation ──────────────────────────────────────────
 
   // Validates that an event definition has all required fields with correct types.
   // Throws on misconfiguration so silent bugs are caught at start time, not resolve time.
-  _assertValidEventDef(event, eventId) {
-    const VALID_AGGREGATIONS = new Set(['majority', 'individual', 'all']);
-    const errors = [];
-    if (typeof event.resolve !== 'function')     errors.push('resolve must be a function');
-    if (typeof event.participants !== 'function') errors.push('participants must be a function');
-    if (typeof event.validTargets !== 'function') errors.push('validTargets must be a function');
-    if (!VALID_AGGREGATIONS.has(event.aggregation)) {
-      errors.push(`aggregation must be one of: ${[...VALID_AGGREGATIONS].join(', ')} (got: ${event.aggregation})`);
-    }
-    if (errors.length > 0) {
-      throw new Error(`[Game] Invalid event definition for "${eventId}": ${errors.join('; ')}`);
-    }
-  }
+  _assertValidEventDef(event, eventId) { return this.events._assertValidEventDef(event, eventId); }
 
   // ── resolveEvent helpers ────────────────────────────────────────────────
 
   // Returns an error string if responses are incomplete, null if ready to resolve.
-  _checkResponsesComplete(force, event, results, participants) {
-    if (force || event.allowAbstain) return null;
-    const pending = participants.length - Object.keys(results).length;
-    return pending > 0 ? `Waiting for ${pending} more responses` : null;
-  }
+  _checkResponsesComplete(force, event, results, participants) { return this.events._checkResponsesComplete(force, event, results, participants); }
 
   // Nullify selections from roleblocked players (treat as abstain).
   // The block event itself is exempt — blocking a handler is intentional.
   // Returns an array of { actorId, originalTargetId } for non-null selections that were blocked.
-  _applyRoleblocks(results, eventId) {
-    if (eventId === EventId.BLOCK) return [];
-    const blocked = [];
-    for (const actorId of Object.keys(results)) {
-      const actor = this.getPlayer(actorId);
-      if (actor?.isRoleblocked) {
-        const originalTargetId = results[actorId];
-        if (originalTargetId !== null) {
-          blocked.push({ actorId, originalTargetId });
-        }
-        results[actorId] = null;
-      }
-    }
-    return blocked;
-  }
+  _applyRoleblocks(results, eventId) { return this.events._applyRoleblocks(results, eventId); }
 
   // Sync player display state, remove them from the event, and consume any
   // item that granted their participation (only on a non-abstain result).
   // Sync must happen BEFORE clearFromEvent so getActiveResult() can still read
   // the final selection; clearing first would flip the display to WAITING.
-  _cleanupParticipants(participants, eventId, results) {
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (!player) continue;
-      player.syncState(this);
-      player.clearFromEvent(eventId);
-      if (results[pid] !== undefined && results[pid] !== null) {
-        const grantingItem = player.inventory.find(
-          item => item.startsEvent === eventId && item.uses > 0,
-        );
-        if (grantingItem) this.consumeItem(pid, grantingItem.id);
-      }
-    }
-  }
+  _cleanupParticipants(participants, eventId, results) { return this.events._cleanupParticipants(participants, eventId, results); }
 
   // Finalise a successful resolution: remove the event, log, and push its slide.
-  _commitResolution(eventId, resolution) {
-    this.activeEvents.delete(eventId);
-    this.clearEventTimer(eventId);
-    if (!resolution.silent) {
-      this.eventResults.push(resolution);
-      this.addLog(resolution.message);
-    }
-    if (resolution.slide) {
-      const jumpTo = resolution.immediateSlide !== false;
-      // Use queueDeathSlide for death slides — handles hunter revenge automatically.
-      if (resolution.slide.type === 'death') {
-        this.queueDeathSlide(resolution.slide, jumpTo);
-      } else {
-        this.pushSlide(resolution.slide, jumpTo);
-      }
-    }
-  }
+  _commitResolution(eventId, resolution) { return this.events._commitResolution(eventId, resolution); }
 
   // Deliver private investigation results to individual seers.
-  _dispatchPrivateResults(resolution) {
-    if (!resolution.investigations) return;
-    for (const inv of resolution.investigations) {
-      const seeker = this.getPlayer(inv.seekerId);
-      if (seeker) {
-        seeker.lastEventResult = { message: inv.privateMessage, critical: true };
-        seeker.send(ServerMsg.EVENT_RESULT, {
-          eventId: EventId.INVESTIGATE,
-          message: inv.privateMessage,
-          data: inv,
-        });
-      }
-    }
-  }
+  _dispatchPrivateResults(resolution) { return this.events._dispatchPrivateResults(resolution); }
 
   // ─────────────────────────────────────────────────────────────────────────
 
-  resolveEvent(eventId, { force = false } = {}) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) return { success: false, error: 'Event not active' };
+  resolveEvent(eventId, { force = false } = {}) { return this.events.resolveEvent(eventId, { force }); }
 
-    const { event, results, participants } = instance;
+  resolveAllEvents() { return this.events.resolveAllEvents(); }
 
-    const responseError = this._checkResponsesComplete(force, event, results, participants);
-    if (responseError) return { success: false, error: responseError };
+  skipEvent(eventId) { return this.events.skipEvent(eventId); }
 
-    // Vote/customEvent show tally slide first; resolution is deferred to _onSlideActivated.
-    if (eventId === EventId.VOTE || eventId === EventId.CUSTOM_EVENT) {
-      return this.showTallyAndDeferResolution(eventId, instance);
-    }
-
-    const blockedPairs = this._applyRoleblocks(results, eventId);
-
-    // Log roleblock failures for events where the blocked action is meaningful
-    const ROLEBLOCK_VERBS = {
-      [EventId.KILL]: 'kill',
-      [EventId.VIGIL]: 'shoot',
-      [EventId.PROTECT]: 'protect',
-      [EventId.INVESTIGATE]: 'investigate',
-      [EventId.CLEAN]: 'clean',
-      [EventId.POISON]: 'poison',
-      [EventId.JAIL]: 'jail',
-      [EventId.INJECT]: 'inject',
-    };
-    const roleblockVerb = ROLEBLOCK_VERBS[eventId];
-    if (roleblockVerb && blockedPairs.length > 0) {
-      for (const { actorId, originalTargetId } of blockedPairs) {
-        const actor = this.getPlayer(actorId);
-        const target = this.getPlayer(originalTargetId);
-        if (actor && target) {
-          this.addLog(str('log', 'roleblockFailed', { name: actor.getNameWithEmoji(), verb: roleblockVerb, target: target.getNameWithEmoji() }));
-        }
-      }
-    }
-
-    const resolution = event.resolve(results, this);
-
-    // Runoff: don't clear player state — event stays active with new candidates.
-    if (resolution.runoff === true) {
-      this.addLog(resolution.message);
-      return this.triggerRunoff(eventId, resolution.frontrunners);
-    }
-
-    // Note: Judge pardon is handled by GovernorPardonFlow.
-
-    this._cleanupParticipants(participants, eventId, results);
-    this._commitResolution(eventId, resolution);
-    this._dispatchPrivateResults(resolution);
-
-    // Check for poison deaths after each night event resolution
-    if (this.phase === GamePhase.NIGHT) {
-      this._processPoisonDeaths();
-    }
-
-    const winner = this.checkWinCondition();
-    if (winner) this.endGame(winner);
-
-    this.broadcastGameState();
-    return { success: true, resolution };
-  }
-
-  resolveAllEvents() {
-    // Sort by priority and resolve
-    const sorted = [...this.activeEvents.entries()].sort(
-      (a, b) => a[1].event.priority - b[1].event.priority,
-    );
-
-    // Snapshot slide count before resolution — used to detect and shuffle death slides
-    const slidesBefore = this.slideQueue.length;
-
-    const results = [];
-    for (const [eventId] of sorted) {
-      const result = this.resolveEvent(eventId);
-      results.push({ eventId, ...result });
-    }
-
-    // Process poison deaths at end of resolve (Night 1 poison triggers Night 2 resolveAll)
-    if (this.phase === GamePhase.NIGHT) {
-      this._processPoisonDeaths();
-    }
-
-    // Reorder new DEATH slides only: group by playerId, sort by priority.
-    // Normal kills = 0, poison = 50 (randomized among normals), hunter revenge = 100 (always last).
-    // Non-death slides (victory, scores) are never shuffled — they stay at the end in order.
-    const newSlides = this.slideQueue.slice(slidesBefore);
-    // Always reset to start of new slides so host sees all deaths in order
-    if (newSlides.length > 0 && this.currentSlideIndex > slidesBefore) {
-      this.currentSlideIndex = slidesBefore;
-    }
-    const deathSlides = newSlides.filter(s => s.type === 'death' || s._flowSlide || s._slidePriority);
-    const tailSlides = newSlides.filter(s => s.type !== 'death' && !s._flowSlide && !s._slidePriority);
-    if (deathSlides.length > 2) {
-      // Group consecutive death slides by playerId (keeps death identity + reveal + flow slides together)
-      const groups = [];
-      let cur = [];
-      for (const slide of deathSlides) {
-        if (cur.length > 0 && slide.playerId && cur[0].playerId && slide.playerId !== cur[0].playerId
-            && !slide._flowSlide) {
-          groups.push(cur);
-          cur = [];
-        }
-        cur.push(slide);
-      }
-      if (cur.length > 0) groups.push(cur);
-
-      if (groups.length >= 2) {
-        // Assign each group a sort priority from its highest-priority slide
-        const groupPriority = (g) => Math.max(...g.map(s => s._slidePriority ?? 0));
-        // Randomize groups at the same priority level, then stable-sort by priority
-        for (let i = groups.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          if (groupPriority(groups[i]) === groupPriority(groups[j])) {
-            [groups[i], groups[j]] = [groups[j], groups[i]];
-          }
-        }
-        groups.sort((a, b) => groupPriority(a) - groupPriority(b));
-        this.slideQueue.splice(slidesBefore, newSlides.length, ...groups.flat(), ...tailSlides);
-        this.broadcastSlides();
-      }
-    }
-
-    // Night fallback: if no informative slides were pushed this night, show TIME PASSES
-    if (this.phase === GamePhase.NIGHT && this.slideQueue.length === this._nightStartSlideCount) {
-      this.pushSlide({
-        type: 'title',
-        title: str('slides', 'phase.timePasses.title'),
-        subtitle: str('slides', 'phase.timePasses.subtitle'),
-        style: SlideStyle.NEUTRAL,
-      });
-    }
-
-    return { success: true, results };
-  }
-
-  skipEvent(eventId) {
-    // Skip/cancel an event immediately with no effect (useful for player-resolved events)
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) {
-      return { success: false, error: 'Event not active' };
-    }
-
-    const { event, participants } = instance;
-
-    // Clear player event state
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (player) {
-        player.clearFromEvent(eventId);
-      }
-    }
-
-    // Remove from active events
-    this.activeEvents.delete(eventId);
-    this.clearEventTimer(eventId);
-
-    this.addLog(str('log', 'eventSkipped', { name: event.name }));
-    this.broadcastGameState();
-
-    return { success: true };
-  }
-
-  resetEvent(eventId) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) {
-      return { success: false, error: 'Event not active' };
-    }
-
-    const { event, participants } = instance;
-
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (player) {
-        player.clearFromEvent(eventId);
-      }
-    }
-
-    this.activeEvents.delete(eventId);
-    this.clearEventTimer(eventId);
-
-    // Return to pending so host can re-start it
-    this.pendingEvents.push(eventId);
-
-    this.addLog(str('log', 'eventReset', { name: event.name }));
-    this.broadcastGameState();
-
-    return { success: true };
-  }
+  resetEvent(eventId) { return this.events.resetEvent(eventId); }
 
   // Build vote tally slide data with all necessary info for rendering
-  buildTallySlide(eventId, results, event, outcome) {
-    // Compute tally counts and voter lists
-    const tally = {};
-    const voters = {}; // candidateId -> [voterId, ...]
-    for (const [voterId, targetId] of Object.entries(results)) {
-      if (targetId === null) continue;
-      tally[targetId] = (tally[targetId] || 0) + 1;
-      if (!voters[targetId]) voters[targetId] = [];
-      voters[targetId].push(voterId);
-    }
+  buildTallySlide(eventId, results, event, outcome) { return this.events.buildTallySlide(eventId, results, event, outcome); }
 
-    // Find frontrunners (candidates with max votes)
-    const maxVotes = Math.max(...Object.values(tally), 0);
-    const frontrunners = Object.keys(tally).filter(
-      (id) => tally[id] === maxVotes,
-    );
-    const isTied = frontrunners.length > 1;
+  showTallyAndDeferResolution(eventId, instance) { return this.events.showTallyAndDeferResolution(eventId, instance); }
 
-    // Determine title and subtitle based on outcome
-    let title = isTied ? str('slides', 'vote.tallyTitleTied') : str('slides', 'vote.tallyTitle');
-    let subtitle;
-    switch (outcome.type) {
-      case 'runoff':
-        subtitle = str('slides', 'vote.subtitleRunoff');
-        break;
-      case 'random':
-        subtitle = str('slides', 'vote.subtitleRandom');
-        break;
-      case 'selected':
-        subtitle = str('slides', 'vote.subtitleSelected', { name: outcome.selectedName });
-        break;
-      case 'no-selection':
-        subtitle = str('slides', 'vote.subtitleNoSelection');
-        break;
-      default:
-        subtitle = str('slides', 'vote.subtitleDefault', { count: Object.keys(tally).length });
-    }
+  triggerRunoff(eventId, frontrunners) { return this.events.triggerRunoff(eventId, frontrunners); }
 
-    return {
-      type: 'voteTally',
-      tally,
-      voters,
-      frontrunners,
-      anonymousVoting: event.anonymousVoting ?? false,
-      title,
-      subtitle,
-    };
-  }
-
-  showTallyAndDeferResolution(eventId, instance) {
-    const { event, results, participants } = instance;
-
-    // Pre-compute the resolution
-    const resolution = event.resolve(results, this);
-
-    // If this is a runoff, handle it immediately
-    if (resolution.runoff === true) {
-      const tallySlide = this.buildTallySlide(eventId, results, event, {
-        type: 'runoff',
-      });
-      this.pushSlide(tallySlide, true);
-      this.addLog(resolution.message);
-      return this.triggerRunoff(eventId, resolution.frontrunners);
-    }
-
-    // Check if any flow wants to intercept the vote resolution (e.g., judge pardon)
-    const flowContext = { voteEventId: eventId, resolution, instance };
-    const interceptingFlow = [...this.flows.values()].find(
-      (f) =>
-        f.constructor.hooks.includes('onVoteResolution') &&
-        f.canTrigger(flowContext),
-    );
-
-    if (interceptingFlow) {
-      const selectedName = resolution.victim?.name || 'Unknown';
-      const tallySlide = this.buildTallySlide(eventId, results, event, {
-        type: 'selected',
-        selectedName,
-      });
-      this.pushSlide(tallySlide, true);
-
-      // Common vote cleanup (applies to any vote-interrupting flow)
-      this.activeEvents.delete(eventId);
-      for (const pid of participants) {
-        const player = this.getPlayer(pid);
-        if (player) {
-          player.clearFromEvent(eventId);
-          player.syncState(this);
-        }
-      }
-
-      // Consume novote items — vote has resolved
-      if (eventId === EventId.VOTE) {
-        for (const p of this.getAlivePlayers()) {
-          if (p.hasItem('novote')) this.consumeItem(p.id, 'novote');
-        }
-      }
-
-      this.broadcastGameState();
-
-      // Trigger the intercepting flow
-      interceptingFlow.trigger(flowContext);
-      return { success: true, showingTally: true, awaitingPardon: true };
-    }
-
-    // === Execute immediately (no deferred resolution) ===
-
-    // Clear player event state
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (player) {
-        player.clearFromEvent(eventId);
-        player.syncState(this);
-      }
-    }
-
-    // Remove from active events
-    this.activeEvents.delete(eventId);
-
-    // Consume novote items — vote has resolved
-    if (eventId === EventId.VOTE) {
-      for (const p of this.getAlivePlayers()) {
-        if (p.hasItem('novote')) this.consumeItem(p.id, 'novote');
-      }
-    }
-
-    // Log and record result
-    if (!resolution.silent) {
-      this.eventResults.push(resolution);
-      this.addLog(resolution.message);
-    }
-
-    // Execute the kill if there's a victim
-    if (resolution.outcome === 'eliminated' && resolution.victim) {
-      this.killPlayer(resolution.victim.id, 'eliminated');
-    }
-
-    // Determine outcome type for tally slide
-    let outcomeInfo;
-    if (resolution.outcome === 'eliminated' && resolution.victim) {
-      outcomeInfo = { type: 'selected', selectedName: resolution.victim.name };
-    } else if (resolution.outcome === 'no-kill') {
-      outcomeInfo = { type: 'no-selection' };
-    } else if (resolution.tally && resolution.message?.includes('randomly')) {
-      outcomeInfo = { type: 'random' };
-    } else {
-      outcomeInfo = {
-        type: 'selected',
-        selectedName:
-          resolution.victim?.name || resolution.winner?.name || 'Unknown',
-      };
-    }
-
-    // Queue slides: tally first, then result
-    const tallySlide = this.buildTallySlide(
-      eventId,
-      results,
-      event,
-      outcomeInfo,
-    );
-    this.pushSlide(tallySlide, false);
-
-    let resultSlideCount = 0;
-    if (resolution.slide) {
-      // Use queueDeathSlide for death slides (handles hunter revenge automatically)
-      if (resolution.slide.type === 'death') {
-        // Add voter IDs to death slide for vote results (shows who voted for elimination)
-        const victimId = resolution.victim?.id;
-        const voterIds = victimId ? tallySlide.voters[victimId] || [] : [];
-        const slidesBefore = this.slideQueue.length;
-        this.queueDeathSlide({ ...resolution.slide, voterIds }, false);
-        resultSlideCount = this.slideQueue.length - slidesBefore;
-      } else {
-        this.pushSlide(resolution.slide, false);
-        resultSlideCount = 1;
-      }
-    }
-
-    // Jump to tally (host advances through result slides)
-    this.currentSlideIndex = this.slideQueue.length - resultSlideCount - 1;
-    this.broadcastSlides();
-
-    // Check win condition
-    const winner = this.checkWinCondition();
-    if (winner) {
-      this.endGame(winner);
-    }
-
-    this.broadcastGameState();
-    return { success: true, resolution };
-  }
-
-  triggerRunoff(eventId, frontrunners) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) {
-      return { success: false, error: 'Event not active' };
-    }
-
-    // Set runoff state but DON'T clear player selections or send prompts yet.
-    // Players stay in LOCKED state showing their previous vote until the
-    // runoff gallery slide becomes current (via _onSlideActivated).
-    instance.runoffCandidates = frontrunners;
-    instance.runoffRound = (instance.runoffRound || 0) + 1;
-    instance.results = {}; // Clear previous votes
-
-    // Build context-aware subtitle
-    let runoffSubtitle = 'Choose who to eliminate';
-    if (eventId === EventId.CUSTOM_EVENT && instance.config) {
-      const { rewardType, rewardParam } = instance.config;
-      if (rewardType === 'resurrection')
-        runoffSubtitle = 'Choose who to resurrect';
-      else if (rewardType === 'item')
-        runoffSubtitle = `Choose who to give ${rewardParam}`;
-      else if (rewardType === 'role')
-        runoffSubtitle = `Choose who to elect as ${rewardParam}`;
-    }
-
-    // Warn on final runoff that another deadlock ends the vote
-    if (instance.runoffRound >= 2) {
-      runoffSubtitle = str('slides', 'vote.runoffFinalWarning');
-    }
-
-    // Queue runoff slide with all participants (not just frontrunners)
-    // so that vote confirmation highlights work the same as normal votes
-    this.pushSlide(
-      {
-        type: 'gallery',
-        title: str('slides', 'vote.runoffTitle', { n: instance.runoffRound }),
-        subtitle: runoffSubtitle,
-        playerIds: instance.participants,
-        targetsOnly: true,
-        activeEventId: eventId,
-        style: SlideStyle.NEUTRAL,
-        activateRunoff: eventId,
-      },
-      false,
-    );
-
-    this.addLog(str('log', 'runoffRound', { name: instance.event.name, round: instance.runoffRound }));
-    this.broadcastGameState();
-
-    return { success: true, runoff: true };
-  }
-
-  _activateRunoff(eventId) {
-    const instance = this.activeEvents.get(eventId);
-    if (!instance) return;
-
-    const { event, participants } = instance;
-
-    // Now clear player selections and send new prompts
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (player) {
-        player.clearSelection();
-      }
-    }
-
-    const runoffParticipants = participants
-      .map((pid) => this.getPlayer(pid))
-      .filter((p) => p);
-
-    for (const player of runoffParticipants) {
-      const targets = event.validTargets(player, this);
-
-      // Auto-select if only one target
-      if (targets.length === 1) {
-        player.currentSelection = targets[0].id;
-      }
-
-      const baseDescription = instance.config?.description || event.description;
-      const description = `RUNOFF VOTE (Round ${instance.runoffRound}): ${baseDescription}`;
-
-      player.send(ServerMsg.EVENT_PROMPT, {
-        eventId,
-        eventName: event.name,
-        description,
-        targets: targets.map((t) => t.getPublicState()),
-        allowAbstain: event.allowAbstain !== false,
-      });
-    }
-
-    // Sync each player without skipTerminalIfSelecting — terminals may still
-    // be in the fast path from the previous vote round and need the new targets.
-    for (const pid of participants) {
-      const player = this.getPlayer(pid);
-      if (player) player.syncState(this);
-    }
-    this.broadcastGameState();
-  }
+  _activateRunoff(eventId) { return this.events._activateRunoff(eventId); }
 
   // === Win Conditions ===
 
@@ -2200,109 +836,8 @@ export class Game {
       false,
     ); // Queue after death slide, don't jump to it
 
-    this._awardEndGameScores(winner);
+    this.persistence.awardEndGameScores(winner);
     this.broadcastGameState();
-  }
-
-  _awardEndGameScores(winner) {
-    const config = this._hostSettings.scoringConfig;
-    if (!config) return;
-
-    const allPlayers = [...this.players.values()].filter(p => p.name);
-    const toSlidePlayer = (p) => ({ id: p.id, name: p.name, portrait: p.portrait });
-
-    // --- Survived + Winning Team slide ---
-    const survivedPlayers = [];
-    const winningPlayers = [];
-
-    for (const player of allPlayers) {
-      let points = 0;
-      const survived = config.survived && (player.isAlive || player.deathDay === this.dayCount);
-      const onWinningTeam = config.winningTeam && player.role.team === winner;
-
-      if (survived) {
-        points += config.survived;
-        survivedPlayers.push(toSlidePlayer(player));
-      }
-      if (onWinningTeam) {
-        points += config.winningTeam;
-        winningPlayers.push(toSlidePlayer(player));
-      }
-
-      if (points > 0) {
-        const current = this._scores.get(player.name) ?? 0;
-        this._scores.set(player.name, current + points);
-        const reasons = [];
-        if (survived) reasons.push(str('slides', 'scoring.survivedLabel'));
-        if (onWinningTeam) reasons.push(str('slides', 'scoring.winningTeamLabel'));
-        this.addLog(str('log', 'scoreAwarded', { name: player.getNameWithEmoji(), points, reason: reasons.join(', ') }));
-      }
-    }
-
-    // Push score update slide if anyone earned points
-    const groups = [];
-    if (winningPlayers.length > 0) {
-      groups.push({ label: str('slides', 'scoring.winningTeamLabel'), players: winningPlayers, points: config.winningTeam });
-    }
-    if (survivedPlayers.length > 0) {
-      groups.push({ label: str('slides', 'scoring.survivedLabel'), players: survivedPlayers, points: config.survived });
-    }
-    if (groups.length > 0) {
-      this.pushSlide({
-        type: SlideType.SCORE_UPDATE,
-        title: str('slides', 'scoring.updateTitle'),
-        groups,
-      }, false);
-    }
-
-    // --- Best investigator: most correct suspect events ---
-    if (config.bestInvestigator) {
-      let bestCount = 0;
-      let fewestWrong = Infinity;
-      let bestPlayers = [];
-
-      for (const player of allPlayers) {
-        const suspicions = player.suspicions || [];
-        const correct = suspicions.filter(s => s.wasCorrect).length;
-        const wrong = suspicions.filter(s => !s.wasCorrect).length;
-        if (correct < 1) continue;
-        if (correct > bestCount || (correct === bestCount && wrong < fewestWrong)) {
-          bestCount = correct;
-          fewestWrong = wrong;
-          bestPlayers = [player];
-        } else if (correct === bestCount && wrong === fewestWrong) {
-          bestPlayers.push(player);
-        }
-      }
-
-      for (const player of bestPlayers) {
-        const current = this._scores.get(player.name) ?? 0;
-        this._scores.set(player.name, current + config.bestInvestigator);
-        const total = (player.suspicions || []).length;
-        this.addLog(str('log', 'scoreBestSuspect', { name: player.getNameWithEmoji(), points: config.bestInvestigator, correct: bestCount, total }));
-
-        // Build suspect history with portraits
-        const suspects = (player.suspicions || []).map(s => {
-          const target = this.getPlayer(s.targetId);
-          return {
-            name: target?.name || 'Unknown',
-            portrait: target?.portrait || 'default.png',
-            wasCorrect: s.wasCorrect,
-          };
-        });
-
-        this.pushSlide({
-          type: SlideType.BEST_SUSPECT,
-          title: str('slides', 'scoring.bestSuspectTitle'),
-          winner: toSlidePlayer(player),
-          suspects,
-          points: config.bestInvestigator,
-        }, false);
-      }
-    }
-
-    this._saveScoresToDisk();
-    this.sendScoresToHost();
   }
 
   // === Flow Dispatch ===
@@ -2411,12 +946,8 @@ export class Game {
       this.removeItem(player.id, ItemId.POISONED);
       player.poisonedAt = null;
 
-      // Medic protection on the death night cures the poison — no slide
-      if (player.isProtected) {
-        player.isProtected = false;
-        this.addLog(str('log', 'playerSavedPoison', { name: player.getNameWithEmoji() }));
-        continue;
-      }
+      // Poison is unstoppable once applied — protection on a subsequent night has no effect.
+      // (Medic CAN prevent poisoning on the same night it is administered — see kill event.)
 
       this.addLog(str('log', 'playerDiedPoison', { name: player.getNameWithEmoji() }));
       this.killPlayer(player.id, 'poison');
@@ -2588,184 +1119,22 @@ export class Game {
   //      and sets subtitle to victim name.
   //   2. Role reveal slide: team name in title (e.g. "CIRCLE KILLED"), shows role.
   //      If victim.isRoleCleaned, title becomes "??? {ACTION}" and shows revealText instead.
-  queueDeathSlide(slide, jumpTo = true) {
-    const victim = this.players.get(slide.playerId);
-    const victimName = victim?.name ?? 'PLAYER';
-    // Map team suffixes (which may be thematic like "SHRINKS") to identity verbs
-    const lastWord = slide.title.split(' ').pop();
-    const IDENTITY_VERBS = {
-      [str('slides', 'death.suffixKilled')]: 'KILLED',
-      [str('slides', 'death.suffixEliminated')]: 'ELIMINATED',
-      [str('slides', 'death.suffixPoisoned')]: 'POISONED',
-    };
-    const action = IDENTITY_VERBS[lastWord] || lastWord;
-    const isRoleCleaned = victim?.isRoleCleaned ?? false;
-    const jesterWon = !!victim?.jesterWon;
-
-    // Slide 1: identity — shows who died, no role info
-    const identitySlide = {
-      ...slide,
-      jesterWon,
-      title: slide.identityTitle ?? `${victimName.toUpperCase()} ${action}`,
-      subtitle: slide.identityTitle ? victimName : slide.subtitle,
-      revealRole: false,
-      revealText: undefined,
-      identityTitle: undefined,
-    };
-    this.pushSlide(identitySlide, jumpTo);
-
-    // Slide 2: role reveal — team name in title, shows role (or cleaned indicator)
-    const remainingComposition = [];
-    for (const p of this.players.values()) {
-      if (p.status === PlayerStatus.SPECTATOR) continue;
-      const isDead = p.status === PlayerStatus.DEAD;
-      const isCoward = p.isAlive && p.hasItem(ItemId.COWARD);
-      remainingComposition.push({
-        team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'circle'),
-        dim: isDead || isCoward,
-      });
-    }
-    const roleSlide = {
-      ...slide,
-      jesterWon,
-      title: isRoleCleaned ? `??? ${action}` : slide.title,
-      identityTitle: undefined,
-      remainingComposition,
-    };
-    this.pushSlide(roleSlide, false);
-
-    // Check all flows for pending slides to queue after the death slide
-    for (const flow of this.flows.values()) {
-      const pendingSlide = flow.getPendingSlide();
-      if (pendingSlide) {
-        this.pushSlide({ ...pendingSlide, _slidePriority: 100, _flowSlide: true }, false);
-      }
-    }
-  }
+  queueDeathSlide(slide, jumpTo = true) { return this.slides.queueDeathSlide(slide, jumpTo); }
 
   // Create a death slide for a given cause (used when events don't provide custom slides)
-  createDeathSlide(player, cause) {
-    const teamNames = {
-      circle: str('slides', 'death.teamCircle'),
-      cell: str('slides', 'death.teamCell'),
-      neutral: str('slides', 'death.teamNeutral'),
-    };
-    const teamName = player.role?.id === RoleId.JESTER
-      ? str('slides', 'death.teamJester')
-      : (teamNames[player.role?.team] || str('slides', 'death.teamUnknown'));
+  createDeathSlide(player, cause) { return this.slides.createDeathSlide(player, cause); }
 
-    const killed = str('slides', 'death.suffixKilled');
-    const titles = {
-      eliminated: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
-      cell:       `${teamName} ${killed}`,
-      vigilante:  `${teamName} ${killed}`,
-      shot:       `${teamName} ${killed}`,
-      hunter:     `${teamName} ${killed}`,
-      heartbreak: `${teamName} ${str('slides', 'death.suffixHeartbroken')}`,
-      host:       `${teamName} ${str('slides', 'death.suffixRemoved')}`,
-      poison:     `${teamName} ${killed}`,
-    };
+  pushSlide(slide, jumpTo = true) { return this.slides.pushSlide(slide, jumpTo); }
 
-    const subtitles = {
-      eliminated: player.name,
-      cell:       player.name,
-      vigilante:  player.name,
-      shot:       str('slides', 'death.subtitleShot',        { name: player.name }),
-      hunter:     str('slides', 'death.subtitleHunter',      { name: player.name }),
-      heartbreak: str('slides', 'death.subtitleHeartbreak',  { name: player.name }),
-      host:       str('slides', 'death.subtitleHost',        { name: player.name }),
-      poison:     str('slides', 'death.subtitlePoison',      { name: player.name }),
-    };
+  nextSlide() { return this.slides.nextSlide(); }
 
-    return {
-      type: 'death',
-      playerId: player.id,
-      title: titles[cause] || `${teamName} ${str('slides', 'death.suffixDead')}`,
-      subtitle: subtitles[cause] || player.name,
-      revealRole: true,
-      hostKill: cause === 'host',
-      style: SlideStyle.HOSTILE,
-      skipProtected: true,
-    };
-  }
+  prevSlide() { return this.slides.prevSlide(); }
 
-  pushSlide(slide, jumpTo = true) {
-    const slideWithId = { ...slide, id: `slide-${++this.slideIdCounter}` };
-    this.slideQueue.push(slideWithId);
+  _onSlideActivated() { return this.slides._onSlideActivated(); }
 
-    if (this.currentSlideIndex === -1 || jumpTo) {
-      this.currentSlideIndex = this.slideQueue.length - 1;
-    }
+  clearSlides() { return this.slides.clearSlides(); }
 
-    this.broadcastSlides();
-  }
-
-  nextSlide() {
-    if (this.currentSlideIndex < this.slideQueue.length - 1) {
-      this.currentSlideIndex++;
-      this.broadcastSlides();
-      this._onSlideActivated();
-    }
-  }
-
-  prevSlide() {
-    if (this.currentSlideIndex > 0) {
-      this.currentSlideIndex--;
-      this.broadcastSlides();
-    }
-  }
-
-  _onSlideActivated() {
-    const slide = this.slideQueue[this.currentSlideIndex];
-    if (!slide) return;
-
-    if (slide.activateRunoff) {
-      this._activateRunoff(slide.activateRunoff);
-      delete slide.activateRunoff; // Only fire once
-    }
-  }
-
-  clearSlides() {
-    this.slideQueue = [];
-    this.currentSlideIndex = -1;
-
-    // Push current phase slide
-    if (this.phase === GamePhase.DAY) {
-      this.pushSlide({
-        type: 'gallery',
-        title: str('slides', 'phase.dayN.title', { n: this.dayCount }),
-        subtitle: str('slides', 'phase.dayN.subtitle'),
-        playerIds: this.getAlivePlayers().map((p) => p.id),
-        style: SlideStyle.NEUTRAL,
-      });
-    } else if (this.phase === GamePhase.NIGHT) {
-      this.pushSlide({
-        type: 'gallery',
-        title: str('slides', 'phase.nightN.title', { n: this.dayCount }),
-        subtitle: str('slides', 'phase.nightN.subtitle'),
-        playerIds: this.getAlivePlayers().map((p) => p.id),
-        style: SlideStyle.NEUTRAL,
-      });
-    } else if (this.phase === GamePhase.LOBBY) {
-      this.pushSlide({
-        type: 'gallery',
-        title: str('slides', 'phase.lobby.title'),
-        subtitle: str('slides', 'phase.lobby.subtitle'),
-        playerIds: [...this.players.values()].map((p) => p.id),
-        style: SlideStyle.NEUTRAL,
-      });
-    }
-  }
-
-  getCurrentSlide() {
-    if (
-      this.currentSlideIndex >= 0 &&
-      this.currentSlideIndex < this.slideQueue.length
-    ) {
-      return this.slideQueue[this.currentSlideIndex];
-    }
-    return null;
-  }
+  getCurrentSlide() { return this.slides.getCurrentSlide(); }
 
   // === Operator Terminal ===
 
@@ -3230,39 +1599,7 @@ export class Game {
     }
   }
 
-  broadcastSlides() {
-    const currentSlide = this.getCurrentSlide();
-    const slideData = {
-      queue: this.slideQueue,
-      currentIndex: this.currentSlideIndex,
-      current: currentSlide,
-    };
-    this.broadcast(ServerMsg.SLIDE_QUEUE, slideData);
-
-    this.sendToScreen(ServerMsg.SLIDE, currentSlide);
-
-    // Enable/disable heartrate monitor for heartbeat slide subjects
-    const newSlidePlayerId = (currentSlide?.type === SlideType.HEARTBEAT)
-      ? currentSlide.playerId : null;
-
-    if (newSlidePlayerId !== this._heartrateSlidePlayerId) {
-      // Disable previous slide subject (unless still needed by HB mode/calibration)
-      if (this._heartrateSlidePlayerId) {
-        const prev = this.getPlayer(this._heartrateSlidePlayerId);
-        if (prev?.terminalConnected && !this.heartbeatMode && !this._calibration) {
-          prev.send(ServerMsg.HEARTRATE_MONITOR, { enabled: false });
-        }
-      }
-      // Enable new slide subject
-      if (newSlidePlayerId) {
-        const player = this.getPlayer(newSlidePlayerId);
-        if (player?.terminalConnected) {
-          player.send(ServerMsg.HEARTRATE_MONITOR, { enabled: true });
-        }
-      }
-      this._heartrateSlidePlayerId = newSlidePlayerId;
-    }
-  }
+  broadcastSlides() { return this.slides.broadcastSlides(); }
 
   sendToScreen(type, payload) {
     this._sendToScreen(type, payload);
@@ -3332,169 +1669,23 @@ export class Game {
     }
   }
 
-  getEventParticipantMap() {
-    const map = {};
-    for (const [eventId, instance] of this.activeEvents) {
-      map[eventId] = instance.participants;
-    }
-    return map;
-  }
+  getEventParticipantMap() { return this.events.getEventParticipantMap(); }
 
-  getEventProgressMap() {
-    const map = {};
-    for (const [eventId, instance] of this.activeEvents) {
-      const responded = Object.keys(instance.results).length;
-      map[eventId] = {
-        responded,
-        total: instance.participants.length,
-        complete: responded === instance.participants.length,
-      };
-    }
-    return map;
-  }
+  getEventProgressMap() { return this.events.getEventProgressMap(); }
 
-  getEventMetadataMap() {
-    const map = {};
-    for (const [eventId, instance] of this.activeEvents) {
-      map[eventId] = {
-        playerResolved: instance.event.playerResolved || false,
-        playerInitiated: instance.event.playerInitiated || false,
-      };
-    }
-    return map;
-  }
+  getEventMetadataMap() { return this.events.getEventMetadataMap(); }
 
-  getEventRespondentsMap() {
-    const map = {};
-    for (const [eventId, instance] of this.activeEvents) {
-      map[eventId] = Object.keys(instance.results);
-    }
-    return map;
-  }
+  getEventRespondentsMap() { return this.events.getEventRespondentsMap(); }
 
   // === Lobby Tutorial Slides ===
 
-  pushCompSlide() {
-    const players = [...this.players.values()];
-    // In lobby use preAssignedRole; in game use active role
-    const assigned = players.filter((p) => p.preAssignedRole || p.role);
-    if (assigned.length === 0) {
-      return { success: false, error: 'No roles assigned' };
-    }
+  pushCompSlide() { return this.slides.pushCompSlide(); }
 
-    // Count roles by team
-    const roleCounts = {};
-    const teamCounts = { circle: 0, cell: 0 };
-    for (const player of assigned) {
-      const roleDef = getRole(player.preAssignedRole) || player.role;
-      if (!roleDef) continue;
-      if (!roleCounts[roleDef.id]) {
-        roleCounts[roleDef.id] = {
-          roleId: roleDef.id,
-          roleName: roleDef.name,
-          roleEmoji: roleDef.emoji,
-          roleColor: roleDef.color,
-          team: roleDef.team,
-          count: 0,
-        };
-      }
-      roleCounts[roleDef.id].count++;
-      if (roleDef.team === Team.CIRCLE) teamCounts.circle++;
-      else if (roleDef.team === Team.CELL) teamCounts.cell++;
-    }
+  pushRoleTipSlide(roleId) { return this.slides.pushRoleTipSlide(roleId); }
 
-    const unassigned = players.length - assigned.length;
+  pushItemTipSlide(itemId) { return this.slides.pushItemTipSlide(itemId); }
 
-    this.pushSlide({
-      type: SlideType.COMPOSITION,
-      title: str('slides', 'misc.compositionTitle'),
-      playerIds: players.map((p) => p.id),
-      roles: Object.values(roleCounts),
-      teamCounts: { ...teamCounts, unassigned },
-      style: SlideStyle.NEUTRAL,
-    });
-
-    this.addLog(str('log', 'compositionPushed'));
-    return { success: true };
-  }
-
-  pushRoleTipSlide(roleId) {
-    const roleDef = getRole(roleId);
-    if (!roleDef) {
-      return { success: false, error: 'Unknown role' };
-    }
-
-    this.pushSlide({
-      type: SlideType.ROLE_TIP,
-      title: str('slides', 'misc.roleTipTitle'),
-      roleId: roleDef.id,
-      roleName: roleDef.name,
-      roleEmoji: roleDef.emoji,
-      roleColor: roleDef.color,
-      team: roleDef.team,
-      abilities: this._getRoleAbilities(roleDef),
-      detailedTip: roleDef.detailedTip || roleDef.description,
-      style:
-        roleDef.team === Team.CELL
-          ? SlideStyle.HOSTILE
-          : SlideStyle.NEUTRAL,
-    });
-
-    this.addLog(str('log', 'roleTipPushed', { role: roleDef.name }));
-    return { success: true };
-  }
-
-  pushItemTipSlide(itemId) {
-    const itemDef = getItem(itemId);
-    if (!itemDef) {
-      return { success: false, error: 'Unknown item' };
-    }
-
-    const display = ITEM_DISPLAY[itemId] || {};
-    this.pushSlide({
-      type: SlideType.ITEM_TIP,
-      title: str('slides', 'misc.itemTipTitle'),
-      itemId: itemDef.id,
-      itemName: itemDef.name,
-      itemEmoji: display.emoji || '📦',
-      itemDescription: itemDef.description,
-      maxUses: itemDef.maxUses,
-      style: SlideStyle.WARNING,
-    });
-
-    this.addLog(str('log', 'itemTipPushed', { item: itemDef.name }));
-    return { success: true };
-  }
-
-  // Derive display ability labels from a role's events (and passives/flows)
-  _getRoleAbilities(roleDef) {
-    const abilityColors = {
-      vote: ABILITY_COLOR.NEUTRAL,
-      kill: ABILITY_COLOR.HOSTILE,
-      hunt: ABILITY_COLOR.HOSTILE,
-      vigil: ABILITY_COLOR.HOSTILE,
-      block: ABILITY_COLOR.HOSTILE,
-      clean: ABILITY_COLOR.HOSTILE,
-      revenge: ABILITY_COLOR.HOSTILE,
-      protect: ABILITY_COLOR.HELPFUL,
-      investigate: ABILITY_COLOR.HELPFUL,
-      pardon: ABILITY_COLOR.HELPFUL,
-    };
-
-    const abilities = Object.keys(roleDef.events || {}).map((e) => ({
-      label: e.toUpperCase(),
-      color: abilityColors[e] || ABILITY_COLOR.NEUTRAL,
-    }));
-
-    // Roles whose key abilities are passive/flow-based, not in events
-    const passiveAbilities = {
-      [RoleId.HUNTER]: [{ label: 'REVENGE', color: abilityColors.revenge }],
-      [RoleId.JUDGE]: [{ label: 'PARDON', color: abilityColors.pardon }],
-    };
-    const extras = passiveAbilities[roleDef.id] || [];
-
-    return [...abilities, ...extras];
-  }
+  _getRoleAbilities(roleDef) { return this.slides._getRoleAbilities(roleDef); }
 
   // === Logging ===
 

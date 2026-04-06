@@ -80,8 +80,8 @@ export class HunterRevengeFlow extends InterruptFlow {
       },
     };
 
-    // Create the event using Game's flow event helper
-    this.game._startFlowEvent(this.id, {
+    // Create the event via EventResolver (flows own the EventResolver boundary)
+    this.game.events._startFlowEvent(this.id, {
       name: str('events', 'hunterRevenge.name'),
       description: str('events', 'hunterRevenge.description'),
       verb: 'shoot',

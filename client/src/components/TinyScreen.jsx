@@ -82,6 +82,7 @@ function drawChar(ctx, charCode, x, baselineY, font) {
  * Draw a text string at (x, baselineY) using the given font
  */
 function drawText(ctx, text, x, baselineY, font) {
+  if (!text) return
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i)
     if (code >= 32 && code <= 126) {
@@ -308,7 +309,7 @@ function renderDisplay(ctx, display, color, line2Color = null, iconColors = null
   ctx.fillStyle = color
 
   // === LINE 3: small font, centered or left/right within text area ===
-  const hasLine3Split = line3.left || line3.right
+  const hasLine3Split = line3.left || line3.right || line3.center
 
   if (hasLine3Split) {
     if (line3.left) {

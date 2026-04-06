@@ -104,8 +104,8 @@ export class GovernorPardonFlow extends InterruptFlow {
       judge.pendingEvents.delete(voteEventId);
     }
 
-    // Create the pardon event
-    this.game._startFlowEvent(this.id, {
+    // Create the pardon event via EventResolver (flows own the EventResolver boundary)
+    this.game.events._startFlowEvent(this.id, {
       name: str('events', 'judgePardon.name'),
       description: str('events', 'judgePardon.description'),
       verb: 'pardon',
