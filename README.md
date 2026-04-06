@@ -105,7 +105,13 @@ murderhouse/
 │   └── firmware/                 # OTA deployment: version.json + firmware.bin
 ├── client/
 │   └── src/
-│       ├── context/GameContext.jsx    # Central WebSocket state management
+│       ├── context/
+│       │   ├── GameContext.jsx        # Provider + useGame() hook — composes reducer + WS hook
+│       │   └── gameReducer.js        # initialState + gameReducer (all server-message-driven state)
+│       ├── hooks/
+│       │   ├── useWebSocket.js       # WS connection lifecycle + exponential-backoff reconnect
+│       │   ├── useAutoAdvance.js     # Slide auto-advance timer for Host
+│       │   └── useHostModals.js      # Modal/overlay visibility state for Host
 │       ├── strings/index.js           # getStr(cat, key, tokens) — catalog + localStorage overrides
 │       ├── pages/                     # Landing, Player, Host, Screen, DebugGrid, Operator, SlideEditor, StringSheets
 │       └── components/               # PlayerConsole, TinyScreen, PlayerGrid, EventPanel, SlideControls, modals, etc.
@@ -153,12 +159,12 @@ See `esp32-terminal/README.md` for hardware setup.
 
 ## Testing
 
-300 tests across server (Vitest/node) and React client (Vitest/jsdom + Testing Library). Covers Game lifecycle, phase transitions, role assignment, event resolution, vote/runoff logic, death cascades, win conditions, interrupt flows, all role abilities, all item mechanics, and game interaction paths. Sub-object unit tests for `PersistenceManager`, `SlideManager`, `EventResolver`. React component tests for `GameContext`, `Player`, `Host`, and `TinyScreen`.
+304 tests across server (Vitest/node) and React client (Vitest/jsdom + Testing Library). Covers Game lifecycle, phase transitions, role assignment, event resolution, vote/runoff logic, death cascades, win conditions, interrupt flows, all role abilities, all item mechanics, and game interaction paths. Sub-object unit tests for `PersistenceManager`, `SlideManager`, `EventResolver`. React component tests for `GameContext`, `Player`, `Host`, and `TinyScreen`.
 
 ```bash
-npm test                          # Run all 300 tests (server + client)
-npm test -- --project server      # Server tests only (246)
-npm test -- --project client      # Client tests only (54)
+npm test                          # Run all 304 tests (server + client)
+npm test -- --project server      # Server tests only (249)
+npm test -- --project client      # Client tests only (55)
 npm run test:watch                # Watch mode
 ```
 
@@ -177,11 +183,6 @@ Enabled outside production (`process.env.NODE_ENV !== 'production'`). Access `/d
 
 ### Open
 
-- **`EventResolver.js` vote path** — `showTallyAndDeferResolution` has two nearly-independent code paths (flow-intercept and direct-execute) sharing one function. Extract `VoteResolver` (~250 lines of tally/runoff logic) and split the function.
-- **`_startFlowEvent` boundary** — Flows call `this.game._startFlowEvent()`, a private method crossing into Game from an external class. This belongs on `EventResolver`; flows should receive an injected reference.
-- **`handlers/index.js`** — 70+ handlers in a flat object. Extract into domain groups with per-message payload validation.
-- **`Host.jsx`** — 6 modals and 8+ state variables. Extract `AutoAdvanceManager` hook and modal context.
-- **`GameContext.jsx`** — 30+ useState variables and giant message switch. Replace with `useReducer` + `WebSocketManager`.
 - **`network.cpp` operator words** — 142 words baked in at compile time. Move to `shared/operatorWords.js` and send from server.
 - **`main.cpp`** — 10+ static state variables for connection, selection, heartbeat. Extract focused modules.
 - **No structured logging** — Server uses `console.log` with manual prefix markers. No log levels.
