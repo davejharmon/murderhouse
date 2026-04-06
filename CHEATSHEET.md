@@ -56,11 +56,12 @@ Each player uses a personal terminal (phone or ESP32 device) with a 3-line displ
 |------|-------------|-------|
 | **Nobody** | Suspect a player | No special powers. Vote by day, suspect by night. Backbone of the Circle. |
 | **Seeker** | Investigate a player | Learn if target is **CELL** or **NOT CELL**. Beware: the Marked appears as CELL. |
-| **Medic** | Protect a player | Target is saved from one kill that night. Can't protect the same person two nights in a row. Can protect self. |
+| **Medic** | Protect a player | Target is saved from one kill that night. Can protect self. |
 | **Hunter** | Suspect a player | No night power, but on death (any cause) gets a **revenge shot** — picks one player to take with them. |
 | **Vigilante** | Shoot a player | Kills target at night (one-time use). Can be blocked by Medic protection. Friendly fire is permanent. |
-| **Judge** | None (vote only) | Holds the **Gavel**. After a vote elimination, can **pardon** the condemned player once per game. |
+| **Judge** | None (vote only) | Holds the **Gavel**. After a vote condemns someone, can **pardon** them once per game. |
 | **Cupid** | Link two lovers (setup only) | At game start, chooses 2 players to be **linked**. If one lover dies, the other dies too. |
+| **Jailer** | Jail a player | Target is both **protected** and **roleblocked** for that night. Cannot jail self. |
 | **Marked** | Suspect a player | Thinks they're a Nobody, but **appears guilty** when investigated. A Circle member the town may accidentally lynch. |
 | **Amateur** | "Investigate" a player | Thinks they're a Seeker, but their action is **random**: 25% real investigate, 25% kill, 25% protect, 25% block. Always shown a result as if they investigated. |
 
@@ -84,13 +85,15 @@ Each player uses a personal terminal (phone or ESP32 device) with a 3-line displ
 
 ## Items
 
-| Item | Type | Uses | Effect |
-|------|------|------|--------|
-| **Pistol** | Active (Day) | 1 | Shoot and kill any player during the day. Immediate, no vote needed. |
-| **Gavel** | Passive | 1 | After a vote condemns someone, you can **pardon** them. Given to the Judge. |
-| **Clue** | Active (Night) | 1 | One investigation, like the Seeker. Learn if a target is CELL or NOT CELL. |
-| **Hardened** | Passive | 1 | Survive one Cell kill attempt. The attack is silently absorbed — nobody knows it happened. |
-| **Coward** | Passive | Permanent | Cannot be targeted by anything. Also cannot participate in events. Untouchable but powerless. |
+| Item | Uses | Effect |
+|------|------|--------|
+| **Pistol** | 1 | Shoot and kill any player during the day. Immediate, no vote needed. |
+| **Gavel** | 1 | After a vote condemns someone, you can **pardon** them. Given to the Judge. |
+| **Clue** | 1 | One investigation, like the Seeker. Learn if a target is CELL or NOT CELL. |
+| **Warden** | Permanent | Jail one player each night — they are protected and roleblocked. Like a permanent Jailer. |
+| **Syringe** | 1 | Poison a player at night. They die when next night's events resolve. |
+| **Hardened** | 1 | Survive one Cell kill attempt. The attack is silently absorbed — nobody knows it happened. |
+| **Coward** | Permanent | Cannot be targeted by anything. Also cannot participate in events. Untouchable but powerless. |
 
 Some items are **hidden** — the holder doesn't know they have them:
 
@@ -99,6 +102,7 @@ Some items are **hidden** — the holder doesn't know they have them:
 | **Marked** | Appear guilty when investigated. |
 | **Prospect** | If killed by the Cell, join the Cell instead of dying. |
 | **No Vote** | Cannot participate in the next elimination vote. |
+| **Poisoned** | A slow-acting toxin. Die when next night's events resolve. |
 
 ---
 
@@ -120,15 +124,16 @@ Some items are **hidden** — the holder doesn't know they have them:
 
 Actions resolve top-to-bottom. Earlier actions take effect before later ones.
 
-1. **Handler Block** — roleblock applied first
-2. **Medic Protect** — protection shield set
-3. **Investigate / Amateur Stumble** — Seeker and Amateur act
-4. **Sleeper Hunt** — target suggestions
-5. **Vigilante Shot** — independent night kill
-6. **Fixer Cover-up** — armed for this night's kill
-7. **Chemist Poison** — poison replaces the normal kill
-8. **Cell Kill** — Alpha's chosen target dies (or is poisoned/protected)
-9. **Suspect** — Nobodies, Marked, Hunter, Judge record suspicions
+1. **Jailer Jail** — target is protected and roleblocked for the night
+2. **Handler Block** — roleblock applied
+3. **Medic Protect** — protection shield set
+4. **Investigate / Amateur Stumble** — Seeker and Amateur act
+5. **Vigilante Shot / Syringe Inject** — independent night kill or poison application
+6. **Sleeper Suggest** — target suggestions recorded
+7. **Fixer Cover-up** — armed for this night's kill
+8. **Chemist Poison** — poison replaces the normal kill
+9. **Cell Kill** — Alpha's chosen target dies (or is poisoned/protected)
+10. **Suspect** — Nobodies, Marked, Hunter, Judge record suspicions
 
 ---
 
@@ -137,6 +142,5 @@ Actions resolve top-to-bottom. Earlier actions take effect before later ones.
 - **Cell members know each other.** Circle members don't know anyone's role.
 - **Dead players' roles are revealed** on the big screen (unless the Fixer covers it up).
 - **Linked lovers** (from Cupid) die together — be careful who you trust.
-- **The Medic can't protect the same person twice in a row**, so vary your protection.
-- **Voting ties** go to a runoff. After 3 tied runoffs, the winner is chosen randomly.
+- **Voting ties** go to a runoff. Two failed runoffs deadlock — no one is eliminated.
 - **The Jester wins even if their team loses** — they just need to get voted out.
