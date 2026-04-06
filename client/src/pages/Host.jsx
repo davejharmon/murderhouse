@@ -7,7 +7,6 @@ import {
   GamePhase,
   PlayerStatus,
   SlideStyle,
-  AUTO_ADVANCE_DELAY,
 } from '@shared/constants.js';
 import PlayerGrid from '../components/PlayerGrid';
 import ScreenPreview from '../components/ScreenPreview';
@@ -20,6 +19,8 @@ import HeartbeatModal from '../components/HeartbeatModal';
 import CalibrationModal from '../components/CalibrationModal';
 import ScoresModal from '../components/ScoresModal';
 import { getStr } from '../strings/index.js';
+import { useAutoAdvance } from '../hooks/useAutoAdvance.js';
+import { useHostModals } from '../hooks/useHostModals.js';
 import styles from './Host.module.css';
 
 const TAB_CONTROLS = 0;
@@ -41,7 +42,7 @@ export default function Host() {
     connectAsHost,
     gamePresets,
     presetSettings,
-    setPresetSettings,
+    clearPresetSettings,
     hostSettings,
     operatorState,
     scores,
@@ -53,28 +54,18 @@ export default function Host() {
   const [heartbeatThreshold, setHeartbeatThreshold] = useState(110);
   const [loadedPresetId, setLoadedPresetId] = useState(null);
   const hostSettingsApplied = useRef(false);
-  const autoAdvanceTimerRef = useRef(null);
-  const autoAdvancePausedRef = useRef(false);
-  const prevQueueLengthRef = useRef(0);
 
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [showLog, setShowLog] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showTutorialSlides, setShowTutorialSlides] = useState(false);
-  const [showHeartbeat, setShowHeartbeat] = useState(false);
-  const [showCalibration, setShowCalibration] = useState(false);
-  const [showScores, setShowScores] = useState(false);
-  const [showScreenPreview, setShowScreenPreview] = useState(
-    () => localStorage.getItem('host.showScreenPreview') !== 'false',
-  );
-  const [showOperator, setShowOperator] = useState(true);
-  const toggleScreenPreview = (v) => {
-    setShowScreenPreview((prev) => {
-      const next = typeof v === 'boolean' ? v : !prev;
-      localStorage.setItem('host.showScreenPreview', next);
-      return next;
-    });
-  };
+  const {
+    showSidebar, setShowSidebar,
+    showLog, setShowLog,
+    showSettings, setShowSettings,
+    showTutorialSlides, setShowTutorialSlides,
+    showHeartbeat, setShowHeartbeat,
+    showCalibration, setShowCalibration,
+    showScores, setShowScores,
+    showScreenPreview, toggleScreenPreview,
+    showOperator, setShowOperator,
+  } = useHostModals();
 
   // Mobile tab navigation
   const [mobileTab, setMobileTab] = useState(TAB_PLAYERS);
@@ -122,57 +113,18 @@ export default function Host() {
       if ((current.portrait ?? null) !== (saved.portrait ?? null)) return true;
     }
     if (loadedPreset.roleMode === 'assigned' && loadedPreset.roleAssignments) {
-      // Compare every connected player's preAssignedRole against the saved assignment (or null if absent)
       for (const player of players) {
         const saved = loadedPreset.roleAssignments[player.id] ?? null;
         if ((player.preAssignedRole ?? null) !== saved) return true;
       }
     } else {
-      // Random-pool preset: any pre-assignment is a deviation
       if (players.some((p) => p.preAssignedRole)) return true;
     }
     return false;
   }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.fakeHeartbeats, gameState?.players]);
 
-  // Auto-advance logic
-  useEffect(() => {
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-      autoAdvanceTimerRef.current = null;
-    }
-
-    if (!autoAdvanceEnabled || !slideQueue) return;
-
-    const { currentIndex = -1, queue = [] } = slideQueue;
-
-    // Unpause when a new slide is pushed (queue grew)
-    if (queue.length > prevQueueLengthRef.current) {
-      autoAdvancePausedRef.current = false;
-    }
-    prevQueueLengthRef.current = queue.length;
-
-    const canAdvance = currentIndex < queue.length - 1;
-    const currentSlide = queue[currentIndex];
-
-    if (canAdvance && !autoAdvancePausedRef.current && !currentSlide?.skipProtected) {
-      // For operator slides, wait until the word-reveal animation finishes
-      let delay = AUTO_ADVANCE_DELAY;
-      if (currentSlide?.type === 'operator') {
-        const words = currentSlide.words ?? [];
-        const animDone = 1600 + Math.max(0, words.length - 1) * 1100 + 180;
-        delay = Math.max(delay, animDone + 1000);
-      }
-      autoAdvanceTimerRef.current = setTimeout(() => {
-        send(ClientMsg.NEXT_SLIDE);
-      }, delay);
-    }
-
-    return () => {
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-    };
-  }, [autoAdvanceEnabled, slideQueue, send]);
+  // Auto-advance
+  const { pause: pauseAutoAdvance } = useAutoAdvance(autoAdvanceEnabled, slideQueue, send);
 
   // Touch handlers for swipe
   const handleTouchStart = useCallback((e) => {
@@ -188,7 +140,6 @@ export default function Host() {
     const ref = touchRef.current;
     const dx = e.touches[0].clientX - ref.startX;
     const dy = e.touches[0].clientY - ref.startY;
-    // Only count as swipe if horizontal movement dominates
     if (!ref.swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
       ref.swiping = true;
     }
@@ -200,8 +151,8 @@ export default function Host() {
     const dx = e.changedTouches[0].clientX - ref.startX;
     if (Math.abs(dx) >= SWIPE_THRESHOLD) {
       setMobileTab((prev) => {
-        if (dx < 0) return Math.min(prev + 1, 2); // swipe left → next
-        return Math.max(prev - 1, 0); // swipe right → prev
+        if (dx < 0) return Math.min(prev + 1, 2);
+        return Math.max(prev - 1, 0);
       });
     }
   }, []);
@@ -276,7 +227,7 @@ export default function Host() {
 
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => {
-    autoAdvancePausedRef.current = true;
+    pauseAutoAdvance();
     send(ClientMsg.PREV_SLIDE);
   };
   const handleClearSlides = () => send(ClientMsg.CLEAR_SLIDES);
@@ -298,6 +249,7 @@ export default function Host() {
     send(ClientMsg.GIVE_ITEM, { playerId, itemId });
   const handleRemoveItem = (playerId, itemId) =>
     send(ClientMsg.REMOVE_ITEM, { playerId, itemId });
+
   // Apply settings when a game preset is loaded (server already persisted them)
   useEffect(() => {
     if (!presetSettings) return;
@@ -305,8 +257,8 @@ export default function Host() {
       setTimerDuration(presetSettings.timerDuration);
     if (presetSettings.autoAdvanceEnabled != null)
       setAutoAdvanceEnabled(presetSettings.autoAdvanceEnabled);
-    setPresetSettings(null);
-  }, [presetSettings, setPresetSettings]);
+    clearPresetSettings();
+  }, [presetSettings, clearPresetSettings]);
 
   const handleSaveGamePreset = (name, overwriteId) =>
     send(ClientMsg.SAVE_GAME_PRESET, {

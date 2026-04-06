@@ -37,7 +37,7 @@ vi.mock('../context/GameContext', () => ({
     connectAsHost: mockConnectAsHost,
     gamePresets: mockGamePresets,
     presetSettings: mockPresetSettings,
-    setPresetSettings: vi.fn(),
+    clearPresetSettings: vi.fn(),
     hostSettings: mockHostSettings,
     operatorState: mockOperatorState,
     scores: mockScores,

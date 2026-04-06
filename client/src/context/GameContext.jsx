@@ -1,265 +1,130 @@
 // client/src/context/GameContext.jsx
 // Central state management via WebSocket
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { ServerMsg, ClientMsg } from '@shared/constants.js';
+import { createContext, useContext, useReducer, useCallback } from 'react'
+import { ServerMsg, ClientMsg } from '@shared/constants.js'
+import { gameReducer, initialState } from './gameReducer.js'
+import { useWebSocket } from '../hooks/useWebSocket.js'
 
-const GameContext = createContext(null);
-
-const LOG_MAX_ENTRIES = 200;  // Client-side log trim threshold
+const GameContext = createContext(null)
 
 const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:8080`
-  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
 
 export function GameProvider({ children }) {
-  const [connected, setConnected] = useState(false);
-  const [gameState, setGameState] = useState(null);
-  const [playerState, setPlayerState] = useState(null);
-  const [slideQueue, setSlideQueue] = useState({ queue: [], currentIndex: -1, current: null });
-  const [currentSlide, setCurrentSlide] = useState(null);
-  const [log, setLog] = useState([]);
-  const [eventPrompt, setEventPrompt] = useState(null);
-  const [eventResult, setEventResult] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [eventTimers, setEventTimers] = useState({});
-  const [gamePresets, setGamePresets] = useState([]);
-  const [presetSettings, setPresetSettings] = useState(null);
-  const [hostSettings, setHostSettings] = useState(null);
-  const [operatorState, setOperatorState] = useState({ words: [], ready: false });
-  const [scores, setScores] = useState({});
-  const [calibrationState, setCalibrationState] = useState(null);
+  const [state, dispatch] = useReducer(gameReducer, initialState)
 
-  const wsRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
-  const reconnectDelayRef = useRef(2000); // Exponential backoff: 2s → 4s → 8s → 30s max
+  const addNotification = useCallback((message, type = 'info') => {
+    const id = Date.now()
+    dispatch({ type: 'ADD_NOTIFICATION', payload: { id, message, type } })
+    setTimeout(() => dispatch({ type: 'REMOVE_NOTIFICATION', payload: id }), 5000)
+  }, [])
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('[WS] Connected');
-      reconnectDelayRef.current = 2000; // Reset backoff on successful connection
-      setConnected(true);
-    };
-
-    ws.onclose = () => {
-      console.log('[WS] Disconnected');
-      setConnected(false);
-      const delay = reconnectDelayRef.current;
-      reconnectDelayRef.current = Math.min(delay * 2, 30000);
-      console.log(`[WS] Reconnecting in ${delay / 1000}s`);
-      reconnectTimeoutRef.current = setTimeout(connect, delay);
-    };
-
-    ws.onerror = (err) => {
-      console.error('[WS] Error:', err);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const { type, payload } = JSON.parse(event.data);
-        handleMessage(type, payload);
-      } catch (e) {
-        console.error('[WS] Parse error:', e);
-      }
-    };
-  }, []);
-
-  // Handle incoming messages
   const handleMessage = useCallback((type, payload) => {
     switch (type) {
       case ServerMsg.WELCOME:
-        console.log('[WS] Welcome:', payload);
-        break;
+        console.log('[WS] Welcome:', payload)
+        break
 
       case ServerMsg.ERROR:
-        console.error('[WS] Error:', payload.message);
-        addNotification(payload.message, 'error');
-        break;
+        console.error('[WS] Error:', payload.message)
+        addNotification(payload.message, 'error')
+        break
 
       case ServerMsg.GAME_STATE:
-        setGameState(payload);
-        break;
+        dispatch({ type: 'SET_GAME_STATE', payload })
+        break
 
       case ServerMsg.PLAYER_STATE:
-        setPlayerState(payload);
-        // Clear event prompt if its event is no longer in pendingEvents
-        setEventPrompt(prev => {
-          if (!prev) return null;
-          if (!payload?.pendingEvents || !payload.pendingEvents.includes(prev.eventId)) {
-            return null;
-          }
-          return prev;
-        });
-        break;
+        dispatch({ type: 'SET_PLAYER_STATE', payload })
+        break
 
       case ServerMsg.PLAYER_LIST:
-        setGameState(prev => prev ? { ...prev, players: payload } : null);
-        break;
+        dispatch({ type: 'UPDATE_PLAYER_LIST', payload })
+        break
 
       case ServerMsg.SLIDE_QUEUE:
-        setSlideQueue(payload);
-        break;
+        dispatch({ type: 'SET_SLIDE_QUEUE', payload })
+        break
 
       case ServerMsg.SLIDE:
-        setCurrentSlide(payload);
-        break;
+        dispatch({ type: 'SET_CURRENT_SLIDE', payload })
+        break
 
       case ServerMsg.LOG:
-        setLog(payload);
-        break;
+        dispatch({ type: 'SET_LOG', payload })
+        break
 
       case ServerMsg.LOG_APPEND:
-        setLog(prev => {
-          const next = [...prev, ...payload];
-          return next.length > LOG_MAX_ENTRIES ? next.slice(-LOG_MAX_ENTRIES) : next;
-        });
-        break;
+        dispatch({ type: 'APPEND_LOG', payload })
+        break
 
       case ServerMsg.EVENT_TIMER:
-        if (payload.paused) {
-          // Freeze all timers at their current remaining time
-          setEventTimers(prev => {
-            const next = {};
-            for (const [eid, t] of Object.entries(prev)) {
-              next[eid] = { ...t, paused: true, remaining: Math.max(0, t.endsAt - Date.now()) };
-            }
-            return next;
-          });
-        } else if (payload.cancelled) {
-          setEventTimers({});
-        } else if (payload.duration != null) {
-          setEventTimers(prev => ({ ...prev, [payload.eventId]: { endsAt: Date.now() + payload.duration, duration: payload.duration, paused: false } }));
-        } else {
-          setEventTimers(prev => {
-            const next = { ...prev };
-            delete next[payload.eventId];
-            return next;
-          });
-        }
-        break;
+        dispatch({ type: 'UPDATE_EVENT_TIMER', payload })
+        break
 
       case ServerMsg.EVENT_PROMPT:
-        setEventPrompt(payload);
-        setEventResult(null); // Clear previous event results when new event starts
-        break;
+        dispatch({ type: 'SET_EVENT_PROMPT', payload })
+        break
 
       case ServerMsg.EVENT_RESULT:
-        addNotification(payload.message, 'info');
-        setEventResult(payload);
-        setEventPrompt(null);
-        break;
+        addNotification(payload.message, 'info')
+        dispatch({ type: 'SET_EVENT_RESULT', payload })
+        break
 
       case ServerMsg.PHASE_CHANGE:
-        addNotification(`Phase changed to ${payload.phase}`, 'info');
-        break;
+        addNotification(`Phase changed to ${payload.phase}`, 'info')
+        break
 
       case ServerMsg.GAME_PRESETS:
-        setGamePresets(payload.presets);
-        break;
+        dispatch({ type: 'SET_GAME_PRESETS', payload: payload.presets })
+        break
 
       case ServerMsg.GAME_PRESET_LOADED:
-        setPresetSettings(payload);
-        break;
+        dispatch({ type: 'SET_PRESET_SETTINGS', payload })
+        break
 
       case ServerMsg.HOST_SETTINGS:
-        setHostSettings(payload);
-        break;
+        dispatch({ type: 'SET_HOST_SETTINGS', payload })
+        break
 
       case ServerMsg.OPERATOR_STATE:
-        setOperatorState(payload);
-        break;
+        dispatch({ type: 'SET_OPERATOR_STATE', payload })
+        break
 
       case ServerMsg.SCORES:
-        setScores(payload.scores ?? {});
-        break;
+        dispatch({ type: 'SET_SCORES', payload: payload.scores ?? {} })
+        break
 
       case ServerMsg.CALIBRATION_STATE:
-        setCalibrationState(payload);
-        break;
+        dispatch({ type: 'SET_CALIBRATION_STATE', payload })
+        break
 
       case ServerMsg.KICKED:
-        console.log('[WS] Kicked from game');
-        addNotification('You have been kicked from the game', 'error');
-        break;
+        console.log('[WS] Kicked from game')
+        addNotification('You have been kicked from the game', 'error')
+        break
 
       default:
-        console.log('[WS] Unknown message:', type, payload);
+        console.log('[WS] Unknown message:', type, payload)
     }
-  }, []);
+  }, [addNotification])
 
-  // Add notification
-  const addNotification = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  }, []);
+  const { connected, send } = useWebSocket(WS_URL, handleMessage)
 
-  // Send message
-  const send = useCallback((type, payload = {}) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type, payload }));
-    } else {
-      console.warn('[WS] Not connected, cannot send:', type);
-    }
-  }, []);
-
-  // Connect on mount
-  useEffect(() => {
-    connect();
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      wsRef.current?.close();
-    };
-  }, [connect]);
-
-  // Helper functions
-  const joinAsPlayer = useCallback((playerId) => {
-    send(ClientMsg.JOIN, { playerId });
-  }, [send]);
-
-  const rejoinAsPlayer = useCallback((playerId) => {
-    send(ClientMsg.REJOIN, { playerId });
-  }, [send]);
-
-  const connectAsHost = useCallback(() => {
-    send(ClientMsg.HOST_CONNECT);
-  }, [send]);
-
-  const connectAsScreen = useCallback(() => {
-    send(ClientMsg.SCREEN_CONNECT);
-  }, [send]);
+  const joinAsPlayer = useCallback((playerId) => send(ClientMsg.JOIN, { playerId }), [send])
+  const rejoinAsPlayer = useCallback((playerId) => send(ClientMsg.REJOIN, { playerId }), [send])
+  const connectAsHost = useCallback(() => send(ClientMsg.HOST_CONNECT), [send])
+  const connectAsScreen = useCallback(() => send(ClientMsg.SCREEN_CONNECT), [send])
+  const clearPresetSettings = useCallback(() => dispatch({ type: 'SET_PRESET_SETTINGS', payload: null }), [])
 
   const value = {
     // Connection state
     connected,
 
-    // Game state
-    gameState,
-    playerState,
-    slideQueue,
-    currentSlide,
-    log,
-    eventPrompt,
-    eventResult,
-    eventTimers,
-    notifications,
-    gamePresets,
-    presetSettings,
-    setPresetSettings,
-    hostSettings,
-    operatorState,
-    scores,
-    calibrationState,
+    // Game state (spread from reducer)
+    ...state,
 
     // Actions
     send,
@@ -268,19 +133,20 @@ export function GameProvider({ children }) {
     connectAsHost,
     connectAsScreen,
     addNotification,
-  };
+    clearPresetSettings,
+  }
 
   return (
     <GameContext.Provider value={value}>
       {children}
     </GameContext.Provider>
-  );
+  )
 }
 
 export function useGame() {
-  const context = useContext(GameContext);
+  const context = useContext(GameContext)
   if (!context) {
-    throw new Error('useGame must be used within a GameProvider');
+    throw new Error('useGame must be used within a GameProvider')
   }
-  return context;
+  return context
 }

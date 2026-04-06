@@ -193,7 +193,7 @@ Enabled outside production (`process.env.NODE_ENV !== 'production'`). Access `/d
 - **Phase 3 — Core** ✅ — 124 unit tests for `Game.js`. Extracted `EventResolver`, `SlideManager`, `PersistenceManager` from `Game.js` (3500 → 1700 lines).
 - **Phase 3b — Comprehensive mechanics tests** ✅ — Full coverage of all role abilities, item mechanics, and game mechanics. Unified test runner covers server (Vitest/node) and React client (Vitest/jsdom + Testing Library). Sub-object unit tests for `PersistenceManager`, `SlideManager`, `EventResolver`.
 - **Phase 3c — EventResolver refinement** ✅ — Extracted `VoteResolver` from `EventResolver` (tally slides, runoff, deferred/immediate resolution paths). Fixed `_startFlowEvent` boundary (flows now call `game.events._startFlowEvent`, not `game._startFlowEvent`). Split `showTallyAndDeferResolution` into `_resolveDeferred` + `_resolveImmediate`.
-- **Phase 4 — Client** — `GameContext.jsx` → `useReducer` + `WebSocketManager`. `Host.jsx` → `AutoAdvanceManager` + modal context.
+- **Phase 4 — Client** ✅ — `GameContext.jsx` split into `gameReducer.js` (state + reducer) + `useWebSocket.js` (WS transport hook). `Host.jsx` split into `useAutoAdvance.js` (slide auto-advance timer) + `useHostModals.js` (overlay/modal visibility state). All 304 tests passing.
 - **Phase 5 — ESP32** — Move hardcoded operator words to `shared/operatorWords.js`. Refactor `main.cpp` globals into focused modules. Add C++ unit tests via PlatformIO's Unity framework (`esp32-terminal/test/`) to cover display layout, button input, and network message parsing — deferred until Phase 5; React client tests (Track B) provide equivalent behavioral coverage in the interim.
 
 ## Improvements
