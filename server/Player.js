@@ -43,6 +43,9 @@ export class Player {
     this.isRoleCleaned = false;
     this.linkedTo = null; // For Cupid
 
+    // Elder recruit mode — true when Elder is sole Child at game start; permanently false once threshold hit
+    this.elderRecruitMode = false;
+
     // Event state
     this.currentSelection = null; // Currently highlighted target
     this.pendingEvents = new Set(); // Events waiting for this player
@@ -321,13 +324,13 @@ export class Player {
 
   // Get pack info (for cell team members)
   getPackInfo(game) {
-    if (!this.role || this.role.team !== Team.CELL) {
+    if (!this.role || this.role.team !== Team.CHILDREN) {
       return null;
     }
 
     const packMembers = game
       .getAlivePlayers()
-      .filter((p) => p.role.team === Team.CELL && p.id !== this.id)
+      .filter((p) => p.role.team === Team.CHILDREN && p.id !== this.id)
       .map((p) => {
         const result = p.getActiveResult(game);
         return {
@@ -336,7 +339,7 @@ export class Player {
           portrait: p.portrait,
           role: p.role.id,
           roleName: p.role.name,
-          isAlpha: p.role.id === RoleId.ALPHA,
+          isAlpha: p.role.id === RoleId.ELDER,
           currentSelection: p.currentSelection,
           confirmedSelection: (result && !result.abstained) ? result.targetId : null,
         };
@@ -345,7 +348,7 @@ export class Player {
     return {
       packMembers,
       playerRole: this.role.id,
-      isAlpha: this.role.id === RoleId.ALPHA,
+      isAlpha: this.role.id === RoleId.ELDER,
     };
   }
 

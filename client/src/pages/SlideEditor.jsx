@@ -147,7 +147,7 @@ export default function SlideEditor() {
     setSelectedVariant(0)
   }
 
-  const isCellBg = selectedType === SlideType.ROLE_TIP && slide?.team === 'cell'
+  const isCellBg = selectedType === SlideType.ROLE_TIP && slide?.team === 'children'
   const isHeartbeatBg = selectedType === SlideType.HEARTBEAT
 
   return (

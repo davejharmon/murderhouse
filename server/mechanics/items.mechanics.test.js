@@ -23,7 +23,7 @@ vi.mock('fs', () => ({
 describe('Pistol', () => {
   it('pistol starts shoot event during DAY', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.giveItem(players[1].id, 'pistol')
     const result = game.startEvent('shoot')
@@ -32,7 +32,7 @@ describe('Pistol', () => {
 
   it('shoot event during NIGHT returns error (day-phase item)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.giveItem(players[1].id, 'pistol')
     game.nextPhase() // DAY → NIGHT
@@ -48,7 +48,7 @@ describe('Pistol', () => {
 describe('Clue', () => {
   it('clue adds holder to investigate participants (grantsParticipation)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     // nobody at seat 2 gets a clue — investigate normally has no participants (only seekers)
@@ -60,7 +60,7 @@ describe('Clue', () => {
 
   it('clue not in participants when no clue held', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const participants = game.events.getEventParticipants('investigate')
@@ -69,7 +69,7 @@ describe('Clue', () => {
 
   it('clue consumed when investigate event resolves', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const clueHolder = players[1]
@@ -90,42 +90,42 @@ describe('Clue', () => {
 describe('Hardened', () => {
   it('absorbs any kill on first trigger', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'hardened')
 
-    const result = game.killPlayer(target.id, 'cell')
+    const result = game.killPlayer(target.id, 'children')
     expect(result).toBe('barricaded')
     expect(target.isAlive).toBe(true)
   })
 
   it('hardened item removed after absorbing', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'hardened')
-    game.killPlayer(target.id, 'cell')
+    game.killPlayer(target.id, 'children')
 
     expect(target.hasItem('hardened')).toBe(false)
   })
 
   it('second kill kills the player (no item)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'hardened')
-    game.killPlayer(target.id, 'cell') // absorbed
-    game.killPlayer(target.id, 'cell') // second kill
+    game.killPlayer(target.id, 'children') // absorbed
+    game.killPlayer(target.id, 'children') // second kill
 
     expect(target.isAlive).toBe(false)
   })
 
   it('hardened absorbs vigilante kill too', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'vigilante', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'vigilante', 'detective', 'citizen', 'citizen'])
 
     const target = players[3]
     game.giveItem(target.id, 'hardened')
@@ -141,21 +141,21 @@ describe('Hardened', () => {
 describe('Prospect', () => {
   it('cell kill on prospect → player joins cell (role changes to sleeper)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'prospect')
 
-    game.killPlayer(target.id, 'cell')
+    game.killPlayer(target.id, 'children')
 
     expect(target.isAlive).toBe(true)
-    expect(target.role.id).toBe('sleeper')
+    expect(target.role.id).toBe('child')
     expect(target.hasItem('prospect')).toBe(false)
   })
 
   it('non-cell kill does not trigger prospect', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'prospect')
@@ -163,7 +163,7 @@ describe('Prospect', () => {
     game.killPlayer(target.id, 'vigilante')
 
     expect(target.isAlive).toBe(false)
-    expect(target.role.id).toBe('nobody') // unchanged
+    expect(target.role.id).toBe('citizen') // unchanged
   })
 })
 
@@ -172,7 +172,7 @@ describe('Prospect', () => {
 describe('Syringe', () => {
   it('syringe gives POISONED item to target', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const user = players[2]
@@ -189,7 +189,7 @@ describe('Syringe', () => {
 
   it('syringe target dies at next night resolve', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const user = players[2]
@@ -215,7 +215,7 @@ describe('Syringe', () => {
 describe('Poisoned item', () => {
   it('_processPoisonDeaths fires on NIGHT resolveAllEvents', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const target = players[2]
@@ -229,7 +229,7 @@ describe('Poisoned item', () => {
 
   it('poison does not fire same day it was applied', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const target = players[2]
@@ -243,7 +243,7 @@ describe('Poisoned item', () => {
 
   it('poisoned item removed after death', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const target = players[2]
@@ -261,7 +261,7 @@ describe('Poisoned item', () => {
 describe('No Vote', () => {
   it('novote holder excluded from vote participants', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
 
     const silenced = players[2]
     game.giveItem(silenced.id, 'novote')
@@ -273,7 +273,7 @@ describe('No Vote', () => {
 
   it('players without novote can still vote', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
 
     game.giveItem(players[2].id, 'novote')
 
@@ -288,7 +288,7 @@ describe('No Vote', () => {
 describe('Coward', () => {
   it('coward holder excluded from event participants', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const coward = players[2]
@@ -300,8 +300,8 @@ describe('Coward', () => {
   })
 
   it('coward excluded from valid targets', () => {
-    const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+    const { game, players } = createTestGame(6)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
 
     const coward = players[2]
@@ -319,7 +319,7 @@ describe('Coward', () => {
 describe('Marked item', () => {
   it('player with marked item appears CELL when investigated', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const target = players[2] // nobody — normally NOT CELL
@@ -335,12 +335,12 @@ describe('Marked item', () => {
 
   it('marked item does not change team membership', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const target = players[2]
     game.giveItem(target.id, 'marked')
 
-    expect(target.role.team).toBe('circle')
+    expect(target.role.team).toBe('citizens')
   })
 })
 
@@ -349,7 +349,7 @@ describe('Marked item', () => {
 describe('Warden', () => {
   it('warden adds holder to jail event participants', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     // nobody at seat 3 gets warden — jail normally only has jailer role
@@ -362,7 +362,7 @@ describe('Warden', () => {
 
   it('warden has unlimited uses (maxUses=-1)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const wardenHolder = players[2]

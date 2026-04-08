@@ -68,6 +68,8 @@
   "simsCanLose": false,
   "heartbeatAddNoise": true,
   "poisonKillsGeneric": true,
+  "elderRecruitRole": "bitter",
+  "elderRecruitThreshold": 2,
   "defaultPresetId": "1774662274545",
   "lastLoadedPresetId": "1774662274545"
 }

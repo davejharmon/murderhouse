@@ -55,13 +55,13 @@ export default function EventPanel({
   }));
 
   const availableRoles = [
-    { id: 'nobody', name: 'Nobody' },
-    { id: 'sleeper', name: 'Sleeper' },
-    { id: 'handler', name: 'Handler' },
-    { id: 'seeker', name: 'Seeker' },
-    { id: 'medic', name: 'Medic' },
-    { id: 'hunter', name: 'Hunter' },
-  { id: 'jailer', name: 'Jailer' },
+    { id: 'citizen', name: 'Citizen' },
+    { id: 'child', name: 'Child' },
+    { id: 'silent', name: 'Silent' },
+    { id: 'detective', name: 'Detective' },
+    { id: 'doctor', name: 'Doctor' },
+    { id: 'paranoid', name: 'Paranoid' },
+    { id: 'jailer', name: 'Jailer' },
   ];
 
   const handleCustomEventSubmit = (config) => {

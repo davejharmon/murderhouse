@@ -64,7 +64,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const judges = this.game.getAlivePlayers().filter((p) => {
       if (p.hasItem(ItemId.COWARD)) return false;
       return (
-        p.role.id === RoleId.JUDGE ||
+        p.role.id === RoleId.GOVERNOR ||
         (p.hasItem(ItemId.GAVEL) && p.canUseItem(ItemId.GAVEL))
       );
     });
@@ -73,7 +73,7 @@ export class GovernorPardonFlow extends InterruptFlow {
   }
 
   /**
-   * Initialize the Judge pardon flow
+   * Initialize the Governor pardon flow
    * @param {Object} context - { voteEventId, resolution, instance }
    * @returns {Object} - { interrupt: true, flowId: 'pardon' }
    */
@@ -84,7 +84,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const judges = this.game.getAlivePlayers().filter((p) => {
       if (p.hasItem(ItemId.COWARD)) return false;
       return (
-        p.role.id === RoleId.JUDGE ||
+        p.role.id === RoleId.GOVERNOR ||
         (p.hasItem(ItemId.GAVEL) && p.canUseItem(ItemId.GAVEL))
       );
     });
@@ -106,8 +106,8 @@ export class GovernorPardonFlow extends InterruptFlow {
 
     // Create the pardon event via EventResolver (flows own the EventResolver boundary)
     this.game.events._startFlowEvent(this.id, {
-      name: str('events', 'judgePardon.name'),
-      description: str('events', 'judgePardon.description'),
+      name: str('events', 'governorPardon.name'),
+      description: str('events', 'governorPardon.description'),
       verb: 'pardon',
       participants: this.state.judgeIds,
       getValidTargets: (playerId) => this.getValidTargets(playerId),
@@ -128,7 +128,7 @@ export class GovernorPardonFlow extends InterruptFlow {
       false // Don't jump - tally slide is already shown
     );
 
-    this.game.addLog(str('log', 'judgeDecision', { name: condemned.getNameWithEmoji() }));
+    this.game.addLog(str('log', 'governorDecision', { name: condemned.getNameWithEmoji() }));
 
     return { interrupt: true, flowId: GovernorPardonFlow.id };
   }
@@ -298,7 +298,7 @@ export class GovernorPardonFlow extends InterruptFlow {
     const condemned = this.game.getPlayer(this.state.condemnedId);
     const judge = player; // use disconnecting player as the "decider" for logging
     if (!condemned) { this.cleanup(); return null; }
-    this.game.addLog(str('log', 'judgeDisconnected', { name: player.getNameWithEmoji() }));
+    this.game.addLog(str('log', 'governorDisconnected', { name: player.getNameWithEmoji() }));
     return this.resolveExecution(judge, condemned);
   }
 

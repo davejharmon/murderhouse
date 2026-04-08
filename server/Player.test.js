@@ -75,7 +75,7 @@ describe('kill / revive', () => {
 describe('reset', () => {
   it('clears role and inventory', () => {
     const p = new Player('1')
-    p.assignRole(getRole('seeker'))
+    p.assignRole(getRole('detective'))
     p.addItem(getItem('clue'))
     p.reset()
     expect(p.role).toBeNull()

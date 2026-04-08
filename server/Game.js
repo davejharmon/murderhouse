@@ -346,6 +346,13 @@ export class Game {
     // Assign roles
     this.assignRoles();
 
+    // If the Elder is the only Children-team player, enable recruit mode
+    const allPlayers = [...this.players.values()];
+    const childrenTeam = allPlayers.filter((p) => p.role?.team === Team.CHILDREN);
+    if (childrenTeam.length === 1 && childrenTeam[0].role?.id === RoleId.ELDER) {
+      childrenTeam[0].elderRecruitMode = true;
+    }
+
     // Set tutorial tips for each player
     this._setTutorialTips();
 
@@ -470,7 +477,7 @@ export class Game {
       if (poolIndex !== -1) {
         pool.splice(poolIndex, 1);
       } else {
-        const nobodyIndex = pool.lastIndexOf('nobody');
+        const nobodyIndex = pool.lastIndexOf('citizen');
         if (nobodyIndex !== -1) {
           pool.splice(nobodyIndex, 1);
         } else {
@@ -487,7 +494,7 @@ export class Game {
       if (!roleDef?.companions) continue;
       for (const companionId of roleDef.companions) {
         if (allRoleIds.includes(companionId)) continue;
-        const nobodyIndex = pool.lastIndexOf('nobody');
+        const nobodyIndex = pool.lastIndexOf('citizen');
         if (nobodyIndex === -1) continue; // No room — skip silently
         pool.splice(nobodyIndex, 1, companionId);
         allRoleIds.push(companionId);
@@ -508,8 +515,8 @@ export class Game {
       .filter((p) => p.preAssignedRole)
       .map((p) => p.preAssignedRole);
 
-    // Check duplicate unique roles (alpha can only appear once)
-    const uniqueRoles = [RoleId.ALPHA];
+    // Check duplicate unique roles (elder can only appear once)
+    const uniqueRoles = [RoleId.ELDER];
     for (const roleId of uniqueRoles) {
       const count = preAssigned.filter((r) => r === roleId).length;
       if (count > 1) {
@@ -528,7 +535,7 @@ export class Game {
       if (idx !== -1) {
         remaining.splice(idx, 1);
       } else {
-        const vi = remaining.lastIndexOf(RoleId.NOBODY);
+        const vi = remaining.lastIndexOf(RoleId.CITIZEN);
         if (vi !== -1) remaining.splice(vi, 1);
         else remaining.pop();
       }
@@ -537,28 +544,28 @@ export class Game {
 
     // Count teams
     const wolves = finalRoles.filter(
-      (r) => getRole(r)?.team === Team.CELL,
+      (r) => getRole(r)?.team === Team.CHILDREN,
     ).length;
     const circleMembers = finalRoles.filter(
-      (r) => getRole(r)?.team === Team.CIRCLE,
+      (r) => getRole(r)?.team === Team.CITIZENS,
     ).length;
 
     if (circleMembers === 0) {
       return {
         valid: false,
-        error: 'No circle team members — cell wins instantly',
+        error: 'No citizens team members — children wins instantly',
       };
     }
     if (wolves === 0) {
       return {
         valid: false,
-        error: 'No cell team members — circle wins instantly',
+        error: 'No children team members — citizens wins instantly',
       };
     }
     if (wolves >= circleMembers) {
       return {
         valid: false,
-        error: `${wolves} cell members vs ${circleMembers} circle members — cell wins instantly`,
+        error: `${wolves} children members vs ${circleMembers} citizens members — children wins instantly`,
       };
     }
 
@@ -567,7 +574,7 @@ export class Game {
 
   _setTutorialTips() {
     for (const player of this.players.values()) {
-      if (player.role.team === Team.CELL) {
+      if (player.role.team === Team.CHILDREN) {
         player.tutorialTip = null; // Computed dynamically in _buildDisplay
       } else {
         player.tutorialTip = player.role.tip || 'Good luck!';
@@ -641,6 +648,17 @@ export class Game {
       // Snapshot slide count after the night gallery — used to detect silent nights
       this._nightStartSlideCount = this.slideQueue.length;
     } else if (this.phase === GamePhase.NIGHT) {
+      // Check if any Elder in recruit mode should permanently switch to kill
+      const threshold = this._hostSettings.elderRecruitThreshold ?? 2;
+      for (const player of this.players.values()) {
+        if (!player.elderRecruitMode) continue;
+        const childrenCount = this.getAlivePlayers().filter((p) => p.role?.team === Team.CHILDREN).length;
+        if (childrenCount >= threshold) {
+          player.elderRecruitMode = false;
+          this.addLog(str('log', 'elderSwitchedToKill', { name: player.getNameWithEmoji() }));
+        }
+      }
+
       this.phase = GamePhase.DAY;
       this.dayCount++;
       this.heartbeatSpikesThisDay.clear();
@@ -780,15 +798,15 @@ export class Game {
     if (this._winCache !== WIN_CACHE_EMPTY) return this._winCache;
 
     const alive = this.getAlivePlayers();
-    const cellMembers = alive.filter((p) => p.role.team === Team.CELL);
-    // Cowards can't vote, so they provide no effective voting power to the circle.
-    // Exclude them from the majority calculation so the cell isn't artificially
-    // blocked by unvotable circle members.
-    const circleMembers = alive.filter((p) => p.role.team === Team.CIRCLE && !p.hasItem('coward'));
+    const cellMembers = alive.filter((p) => p.role.team === Team.CHILDREN);
+    // Cowards can't vote, so they provide no effective voting power to the citizens.
+    // Exclude them from the majority calculation so the children aren't artificially
+    // blocked by unvotable citizens members.
+    const circleMembers = alive.filter((p) => p.role.team === Team.CITIZENS && !p.hasItem('coward'));
 
     let result = null;
-    if (cellMembers.length === 0) result = Team.CIRCLE;
-    else if (cellMembers.length >= circleMembers.length) result = Team.CELL;
+    if (cellMembers.length === 0) result = Team.CITIZENS;
+    else if (cellMembers.length >= circleMembers.length) result = Team.CHILDREN;
 
     this._winCache = result;
     return result;
@@ -803,7 +821,7 @@ export class Game {
       player.isRoleCleaned = false;
     }
 
-    const winnerName = winner === Team.CIRCLE
+    const winnerName = winner === Team.CITIZENS
       ? str('slides', 'victory.circleName')
       : str('slides', 'victory.cellName');
 
@@ -827,11 +845,11 @@ export class Game {
         winners,
         title: `${winnerName} WIN`,
         subtitle:
-          winner === Team.CIRCLE
+          winner === Team.CITIZENS
             ? str('slides', 'victory.circleSubtitle')
             : str('slides', 'victory.cellSubtitle'),
         style:
-          winner === Team.CIRCLE ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
+          winner === Team.CITIZENS ? SlideStyle.POSITIVE : SlideStyle.HOSTILE,
       },
       false,
     ); // Queue after death slide, don't jump to it
@@ -952,9 +970,9 @@ export class Game {
       this.addLog(str('log', 'playerDiedPoison', { name: player.getNameWithEmoji() }));
       this.killPlayer(player.id, 'poison');
       const teamNames = {
-        circle: str('slides', 'death.teamCircle'),
-        cell: str('slides', 'death.teamCell'),
-        neutral: str('slides', 'death.teamNeutral'),
+        citizens: str('slides', 'death.teamCircle'),
+        children: str('slides', 'death.teamCell'),
+        outsider: str('slides', 'death.teamNeutral'),
       };
       const teamName = teamNames[player.role?.team] || str('slides', 'death.teamUnknown');
       const deathSuffix = this._hostSettings.poisonKillsGeneric
@@ -982,8 +1000,8 @@ export class Game {
       return 'barricaded';
     }
 
-    // PROSPECT: cell kill on a prospect → recruit instead of kill
-    if (cause === 'cell' && player.hasItem(ItemId.PROSPECT)) {
+    // PROSPECT: children kill on a prospect → recruit instead of kill
+    if (cause === 'children' && player.hasItem(ItemId.PROSPECT)) {
       this._recruitProspect(player);
       return true;
     }
@@ -1014,7 +1032,7 @@ export class Game {
 
   _recruitProspect(player) {
     player.removeItem(ItemId.PROSPECT);
-    player.assignRole(getRole(RoleId.SLEEPER));
+    player.assignRole(getRole(RoleId.CHILD));
     this._invalidateWinCache(); // Team changed
     player.lastEventResult = { message: str('feedback', 'prospect.changed'), detail: str('feedback', 'prospect.detail'), critical: true };
     this.addLog(str('log', 'playerRecruited', { name: player.getNameWithEmoji() }));
@@ -1582,16 +1600,16 @@ export class Game {
     // Broadcast for any cell member's night event — packsense includes
     // suggestion target, cleanup status, and poison status
     return (
-      (eventId === EventId.SUGGEST || eventId === EventId.KILL ||
+      (eventId === EventId.SUGGEST || eventId === EventId.KILL || eventId === EventId.RECRUIT ||
        eventId === EventId.CLEAN || eventId === EventId.POISON) &&
-      player?.role?.team === Team.CELL
+      player?.role?.team === Team.CHILDREN
     );
   }
 
-  // Broadcast pack state to all cell members (for real-time hunt updates)
+  // Broadcast pack state to all children members (for real-time hunt updates)
   broadcastPackState() {
     const cellMembers = this.getAlivePlayers().filter(
-      (p) => p.role && p.role.team === Team.CELL,
+      (p) => p.role && p.role.team === Team.CHILDREN,
     );
 
     for (const member of cellMembers) {
@@ -1633,9 +1651,9 @@ export class Game {
       return base;
     });
 
-    // Count total cell members (both alive and dead)
+    // Count total children members (both alive and dead)
     const totalCellMembers = [...this.players.values()].filter(
-      (p) => p.role && p.role.team === Team.CELL,
+      (p) => p.role && p.role.team === Team.CHILDREN,
     ).length;
 
     return {

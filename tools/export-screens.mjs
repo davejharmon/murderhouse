@@ -241,40 +241,40 @@ const screens = [
     name: 'lobby-waiting.png',
     desc: 'Lobby - waiting for game to start',
     display: {
-      line1: { left: 'P3 SLEEPER', right: 'LOBBY' },
+      line1: { left: 'P3 CHILD', right: 'LOBBY' },
       line2: { text: 'Waiting...', style: 'normal' },
       line3: { text: '' },
-      icons: [{ id: 'sleeper' }, { id: 'empty' }, { id: 'empty' }],
+      icons: [{ id: 'child' }, { id: 'empty' }, { id: 'empty' }],
     }
   },
   {
     name: 'night-target-select.png',
     desc: 'Night phase - selecting a target (locked)',
     display: {
-      line1: { left: 'P1 ALPHA', right: 'NIGHT 2' },
+      line1: { left: 'P1 ELDER', right: 'NIGHT 2' },
       line2: { text: 'Dave', style: 'locked' },
       line3: { left: '[YES] Pick', center: '', right: 'Skip [NO]' },
-      icons: [{ id: 'alpha' }, { id: 'empty' }, { id: 'empty' }],
+      icons: [{ id: 'elder' }, { id: 'empty' }, { id: 'empty' }],
     }
   },
   {
     name: 'day-vote.png',
     desc: 'Day phase - voting on a player',
     display: {
-      line1: { left: 'P5 SEEKER', right: 'DAY 3' },
+      line1: { left: 'P5 DETECTIVE', right: 'DAY 3' },
       line2: { text: 'Condemn?', style: 'normal' },
       line3: { left: '[YES] Vote', center: 'Mike', right: 'Pass [NO]' },
-      icons: [{ id: 'seeker' }, { id: 'empty' }, { id: 'empty' }],
+      icons: [{ id: 'detective' }, { id: 'empty' }, { id: 'empty' }],
     }
   },
   {
     name: 'idle-three-icons.png',
     desc: 'Idle screen with 3 icons and selection bar on slot 1',
     display: {
-      line1: { left: 'P2 HUNTER', right: 'DAY 1' },
+      line1: { left: 'P2 PARANOID', right: 'DAY 1' },
       line2: { text: 'IDLE', style: 'normal' },
       line3: { left: '[YES] Use', center: 'Pistol', right: 'Next [NO]' },
-      icons: [{ id: 'hunter' }, { id: 'pistol' }, { id: 'clue' }],
+      icons: [{ id: 'paranoid' }, { id: 'pistol' }, { id: 'clue' }],
       idleScrollIndex: 1,
     }
   },
@@ -282,10 +282,10 @@ const screens = [
     name: 'action-select-bar-top.png',
     desc: 'Action layer with 3 icons, selection bar on slot 0',
     display: {
-      line1: { left: 'P4 MEDIC', right: 'NIGHT 1' },
+      line1: { left: 'P4 DOCTOR', right: 'NIGHT 1' },
       line2: { text: 'Protect', style: 'normal' },
       line3: { left: '[YES] Select', center: '', right: 'Next [NO]' },
-      icons: [{ id: 'medic' }, { id: 'pistol' }, { id: 'hardened' }],
+      icons: [{ id: 'doctor' }, { id: 'pistol' }, { id: 'hardened' }],
       idleScrollIndex: 0,
     }
   },
@@ -293,10 +293,10 @@ const screens = [
     name: 'action-select-bar-bottom.png',
     desc: 'Action layer with 3 icons, selection bar on slot 2',
     display: {
-      line1: { left: 'P7 HANDLER', right: 'NIGHT 3' },
+      line1: { left: 'P7 SILENT', right: 'NIGHT 3' },
       line2: { text: 'Investigate', style: 'normal' },
       line3: { left: '[YES] Select', center: '', right: 'Next [NO]' },
-      icons: [{ id: 'handler' }, { id: 'clue' }, { id: 'gavel' }],
+      icons: [{ id: 'silent' }, { id: 'clue' }, { id: 'gavel' }],
       idleScrollIndex: 2,
     }
   },
@@ -304,7 +304,7 @@ const screens = [
     name: 'dead-screen.png',
     desc: 'Dead player screen',
     display: {
-      line1: { left: 'P6 SLEEPER', right: 'NIGHT 2' },
+      line1: { left: 'P6 CHILD', right: 'NIGHT 2' },
       line2: { text: 'DEAD', style: 'normal' },
       line3: { text: '' },
       icons: [{ id: 'skull' }, { id: 'empty' }, { id: 'empty' }],
@@ -315,20 +315,20 @@ const screens = [
     name: 'game-over.png',
     desc: 'Game over screen',
     display: {
-      line1: { left: 'P3 ALPHA', right: 'GAME OVER' },
+      line1: { left: 'P3 ELDER', right: 'GAME OVER' },
       line2: { text: 'YOU WIN', style: 'locked' },
       line3: { text: 'House wins!' },
-      icons: [{ id: 'alpha' }, { id: 'empty' }, { id: 'empty' }],
+      icons: [{ id: 'elder' }, { id: 'empty' }, { id: 'empty' }],
     }
   },
   {
     name: 'night-result.png',
     desc: 'Night event result - confirmed',
     display: {
-      line1: { left: 'P1 ALPHA', right: 'NIGHT 2' },
+      line1: { left: 'P1 ELDER', right: 'NIGHT 2' },
       line2: { text: 'CONFIRMED', style: 'normal' },
       line3: { text: '' },
-      icons: [{ id: 'alpha' }, { id: 'empty' }, { id: 'empty' }],
+      icons: [{ id: 'elder' }, { id: 'empty' }, { id: 'empty' }],
     }
   },
   {

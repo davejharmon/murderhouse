@@ -52,6 +52,8 @@ export default function Host() {
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false);
   const [timerDuration, setTimerDuration] = useState(30);
   const [heartbeatThreshold, setHeartbeatThreshold] = useState(110);
+  const [elderRecruitRole, setElderRecruitRole] = useState('child');
+  const [elderRecruitThreshold, setElderRecruitThreshold] = useState(2);
   const [loadedPresetId, setLoadedPresetId] = useState(null);
   const hostSettingsApplied = useRef(false);
 
@@ -90,6 +92,8 @@ export default function Host() {
     setTimerDuration(hostSettings.timerDuration ?? 30);
     setAutoAdvanceEnabled(hostSettings.autoAdvanceEnabled ?? false);
     setHeartbeatThreshold(hostSettings.heartbeatThreshold ?? 110);
+    setElderRecruitRole(hostSettings.elderRecruitRole ?? 'child');
+    setElderRecruitThreshold(hostSettings.elderRecruitThreshold ?? 2);
     if (hostSettings.lastLoadedPresetId)
       setLoadedPresetId(hostSettings.lastLoadedPresetId);
   }, [hostSettings]);
@@ -104,6 +108,8 @@ export default function Host() {
     if (!loadedPreset) return false;
     if (timerDuration !== loadedPreset.timerDuration) return true;
     if (autoAdvanceEnabled !== loadedPreset.autoAdvanceEnabled) return true;
+    if (elderRecruitRole !== (loadedPreset.elderRecruitRole ?? 'child')) return true;
+    if (elderRecruitThreshold !== (loadedPreset.elderRecruitThreshold ?? 2)) return true;
     if ((gameState?.fakeHeartbeats ?? false) !== (loadedPreset.fakeHeartbeats ?? false)) return true;
     const players = gameState?.players ?? [];
     for (const [seatId, saved] of Object.entries(loadedPreset.players ?? {})) {
@@ -121,7 +127,7 @@ export default function Host() {
       if (players.some((p) => p.preAssignedRole)) return true;
     }
     return false;
-  }, [loadedPreset, timerDuration, autoAdvanceEnabled, gameState?.fakeHeartbeats, gameState?.players]);
+  }, [loadedPreset, timerDuration, autoAdvanceEnabled, elderRecruitRole, elderRecruitThreshold, gameState?.fakeHeartbeats, gameState?.players]);
 
   // Auto-advance
   const { pause: pauseAutoAdvance } = useAutoAdvance(autoAdvanceEnabled, slideQueue, send);
@@ -225,6 +231,16 @@ export default function Host() {
     send(ClientMsg.SAVE_HOST_SETTINGS, { heartbeatThreshold: val });
   };
 
+  const handleElderRecruitRoleChange = (val) => {
+    setElderRecruitRole(val);
+    send(ClientMsg.SAVE_HOST_SETTINGS, { elderRecruitRole: val });
+  };
+
+  const handleElderRecruitThresholdChange = (val) => {
+    setElderRecruitThreshold(val);
+    send(ClientMsg.SAVE_HOST_SETTINGS, { elderRecruitThreshold: val });
+  };
+
   const handleNextSlide = () => send(ClientMsg.NEXT_SLIDE);
   const handlePrevSlide = () => {
     pauseAutoAdvance();
@@ -257,6 +273,10 @@ export default function Host() {
       setTimerDuration(presetSettings.timerDuration);
     if (presetSettings.autoAdvanceEnabled != null)
       setAutoAdvanceEnabled(presetSettings.autoAdvanceEnabled);
+    if (presetSettings.elderRecruitRole != null)
+      setElderRecruitRole(presetSettings.elderRecruitRole);
+    if (presetSettings.elderRecruitThreshold != null)
+      setElderRecruitThreshold(presetSettings.elderRecruitThreshold);
     clearPresetSettings();
   }, [presetSettings, clearPresetSettings]);
 
@@ -266,6 +286,8 @@ export default function Host() {
       timerDuration,
       autoAdvanceEnabled,
       fakeHeartbeats: gameState?.fakeHeartbeats ?? false,
+      elderRecruitRole,
+      elderRecruitThreshold,
       overwriteId,
     });
   const handleLoadGamePreset = (id) => {
@@ -515,6 +537,10 @@ export default function Host() {
         onSetDefault={handleSetDefaultPreset}
         timerDuration={timerDuration}
         onTimerDurationChange={handleTimerDurationChange}
+        elderRecruitRole={elderRecruitRole}
+        onElderRecruitRoleChange={handleElderRecruitRoleChange}
+        elderRecruitThreshold={elderRecruitThreshold}
+        onElderRecruitThresholdChange={handleElderRecruitThresholdChange}
         onOpenCalibration={() => { setShowSettings(false); setShowCalibration(true); }}
         onOpenScores={() => { setShowSettings(false); setShowScores(true); }}
         hostSettings={hostSettings}

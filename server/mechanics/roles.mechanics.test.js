@@ -24,8 +24,8 @@ describe('Medic — protect', () => {
   let game, players
 
   beforeEach(() => {
-    ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'medic', 'seeker', 'nobody', 'nobody'])
+    ;({ game, players } = createTestGame(6))
+    startGameWithRoles(game, ['elder', 'doctor', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -89,7 +89,7 @@ describe('Seeker — investigate', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'marked', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'marked', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -165,7 +165,7 @@ describe('Vigilante — vigil', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'vigilante', 'medic', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'vigilante', 'doctor', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -227,7 +227,7 @@ describe('Handler — block', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'handler', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'silent', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -285,7 +285,7 @@ describe('Fixer — clean', () => {
     // 7 players: 2 cell (alpha, fixer) vs 5 circle — so killing one circle member
     // (2 vs 4) doesn't trigger cell win and call endGame (which resets isRoleCleaned)
     ;({ game, players } = createTestGame(7))
-    startGameWithRoles(game, ['alpha', 'fixer', 'seeker', 'nobody', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'hidden', 'detective', 'citizen', 'citizen', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -362,7 +362,7 @@ describe('Chemist — poison (chemist replaces kill with delayed poison)', () =>
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'chemist', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'bitter', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -418,7 +418,7 @@ describe('Chemist — poison (chemist replaces kill with delayed poison)', () =>
   it('medic protection on same night as poisoning prevents poison from being applied', () => {
     // Need a medic — create a separate 6-player game for this test
     const { game: g, players: ps } = createTestGame(6)
-    startGameWithRoles(g, ['alpha', 'chemist', 'medic', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(g, ['elder', 'bitter', 'doctor', 'detective', 'citizen', 'citizen'])
     g.nextPhase() // DAY → NIGHT
 
     const alpha = ps[0]
@@ -446,7 +446,7 @@ describe('Chemist — poison (chemist replaces kill with delayed poison)', () =>
   it('medic protection on a subsequent night does NOT cure poison', () => {
     // Need a medic — create a separate 6-player game for this test
     const { game: g, players: ps } = createTestGame(6)
-    startGameWithRoles(g, ['alpha', 'chemist', 'medic', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(g, ['elder', 'bitter', 'doctor', 'detective', 'citizen', 'citizen'])
     g.nextPhase() // DAY → NIGHT
 
     const alpha = ps[0]
@@ -482,7 +482,7 @@ describe('Jailer — jail', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'jailer', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'jailer', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -541,7 +541,7 @@ describe('Amateur — stumble', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'amateur', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'wildcard', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
   })
 
@@ -567,8 +567,8 @@ describe('Amateur — stumble', () => {
 
   it('amateur appears as seeker (disguiseAs)', () => {
     const amateur = players[1]
-    expect(amateur.role.id).toBe('amateur')
-    expect(amateur.role.disguiseAs.id).toBe('seeker')
+    expect(amateur.role.id).toBe('wildcard')
+    expect(amateur.role.disguiseAs.id).toBe('detective')
   })
 
   it('stumble event is in amateur participants', () => {
@@ -582,7 +582,7 @@ describe('Amateur — stumble', () => {
 describe('Jester — voted out', () => {
   it('jesterWon set on player when voted out (eliminated cause)', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'jester', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'trickster', 'citizen', 'citizen', 'citizen'])
 
     const jester = players[1]
 
@@ -601,10 +601,10 @@ describe('Jester — voted out', () => {
 
   it('jesterWon NOT set when killed by cell (not eliminated)', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'jester', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'trickster', 'citizen', 'citizen', 'citizen'])
 
     const jester = players[1]
-    game.killPlayer(jester.id, 'cell')
+    game.killPlayer(jester.id, 'children')
 
     expect(jester.jesterWon).toBeFalsy()
   })
@@ -615,14 +615,14 @@ describe('Jester — voted out', () => {
 describe('Cupid — heartbreak (additional)', () => {
   it('killing one linked player kills the other', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const p3 = players[2]
     const p4 = players[3]
     p3.linkedTo = p4.id
     p4.linkedTo = p3.id
 
-    game.killPlayer(p3.id, 'cell')
+    game.killPlayer(p3.id, 'children')
 
     expect(p3.isAlive).toBe(false)
     expect(p4.isAlive).toBe(false)
@@ -630,14 +630,14 @@ describe('Cupid — heartbreak (additional)', () => {
 
   it('killing the other linked player also kills the first', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const p3 = players[2]
     const p4 = players[3]
     p3.linkedTo = p4.id
     p4.linkedTo = p3.id
 
-    game.killPlayer(p4.id, 'cell')
+    game.killPlayer(p4.id, 'children')
 
     expect(p4.isAlive).toBe(false)
     expect(p3.isAlive).toBe(false)
@@ -645,9 +645,9 @@ describe('Cupid — heartbreak (additional)', () => {
 
   it('unlinked player death does not cascade', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
-    game.killPlayer(players[2].id, 'cell')
+    game.killPlayer(players[2].id, 'children')
 
     expect(players[3].isAlive).toBe(true)
   })
@@ -662,7 +662,7 @@ describe('display state — pack hint line3 regression', () => {
     // hasLine3Split = ('' || '') = false, falling into the else branch where
     // line3.text was undefined.
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'sleeper', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const alpha = players[0]
@@ -688,7 +688,7 @@ describe('display state — pack hint line3 regression', () => {
   it('alpha display has valid line3 when sleeper has a hunt suggestion', () => {
     // Symmetric case: alpha's pack hint reads sleeper suggestions from HUNT event
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'sleeper', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const alpha = players[0]

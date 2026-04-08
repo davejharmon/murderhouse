@@ -110,14 +110,14 @@ describe('getTeamDisplayName', () => {
   })
 
   it('werewolf-team role → returns cell team string', () => {
-    const alpha = getRole('alpha')
+    const alpha = getRole('elder')
     const result = getTeamDisplayName(alpha)
     expect(typeof result).toBe('string')
     expect(result.length).toBeGreaterThan(0)
   })
 
   it('jester role → returns jester-specific string (different from neutral)', () => {
-    const jester = getRole('jester')
+    const jester = getRole('trickster')
     const neutral = getRole('vigilante')
     const jesterStr = getTeamDisplayName(jester)
     const neutralStr = getTeamDisplayName(neutral)

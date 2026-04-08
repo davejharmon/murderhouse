@@ -4,7 +4,7 @@
 // LSB = leftmost pixel (XBM standard)
 // Active area is 16px wide with 2px right margin before selection bar
 
-export const ICON_NOBODY = [
+export const ICON_CITIZEN = [
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
   0xc0, 0x03, 0x00,
@@ -25,7 +25,7 @@ export const ICON_NOBODY = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_ALPHA = [
+export const ICON_ELDER = [
   0xa8, 0x1a, 0x00,
   0xf1, 0x8f, 0x00,
   0xf3, 0xcf, 0x00,
@@ -46,7 +46,7 @@ export const ICON_ALPHA = [
   0x40, 0x02, 0x00,
 ];
 
-export const ICON_SLEEPER = [
+export const ICON_CHILD = [
   0x00, 0x00, 0x00,
   0x01, 0x80, 0x00,
   0x03, 0xc0, 0x00,
@@ -67,7 +67,7 @@ export const ICON_SLEEPER = [
   0x40, 0x02, 0x00,
 ];
 
-export const ICON_SEEKER = [
+export const ICON_DETECTIVE = [
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
   0x00, 0x00, 0x00,
@@ -88,7 +88,7 @@ export const ICON_SEEKER = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_MEDIC = [
+export const ICON_DOCTOR = [
   0x00, 0x00, 0x00,
   0xc0, 0x03, 0x00,
   0xc0, 0x03, 0x00,
@@ -109,7 +109,7 @@ export const ICON_MEDIC = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_HUNTER = [
+export const ICON_PARANOID = [
   0x00, 0x00, 0x00,
   0x80, 0x01, 0x00,
   0x80, 0x01, 0x00,
@@ -151,7 +151,7 @@ export const ICON_VIGILANTE = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_JUDGE = [
+export const ICON_GOVERNOR = [
   0xff, 0xff, 0x00,
   0xff, 0xff, 0x00,
   0xff, 0xff, 0x00,
@@ -172,7 +172,7 @@ export const ICON_JUDGE = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_CUPID = [
+export const ICON_LOVER = [
   0x00, 0x00, 0x00,
   0x3c, 0x3c, 0x00,
   0x7e, 0x7e, 0x00,
@@ -193,7 +193,7 @@ export const ICON_CUPID = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_HANDLER = [
+export const ICON_SILENT = [
   0x00, 0x00, 0x00,
   0xf0, 0x0f, 0x00,
   0xfc, 0x3f, 0x00,
@@ -298,7 +298,7 @@ export const ICON_EMPTY = [
   0x00, 0x00, 0x00,
 ];
 
-export const ICON_CHEMIST = [
+export const ICON_BITTER = [
   0x00, 0x00, 0x00,  // blank
   0xC0, 0x01, 0x00,  // stopper cap (cols 6-8)
   0x20, 0x02, 0x00,  // neck (cols 5,9)
@@ -448,8 +448,8 @@ export const ICON_OP_TICK = [
   0x00, 0x00, 0x00,  // row 17
 ]
 
-// Fixer - broom (diagonal handle upper-right to lower-left, solid head, tine bristles)
-export const ICON_FIXER = [
+// Hidden - broom (diagonal handle upper-right to lower-left, solid head, tine bristles)
+export const ICON_HIDDEN = [
   0x00, 0x60, 0x00,  // row  0: handle tip (cols 13,14)
   0x00, 0x30, 0x00,  // row  1: cols 12,13
   0x00, 0x18, 0x00,  // row  2: cols 11,12
@@ -470,7 +470,7 @@ export const ICON_FIXER = [
   0x00, 0x00, 0x00,  // row 17: blank
 ];
 
-export const ICON_JESTER = [
+export const ICON_TRICKSTER = [
   0x00, 0x03, 0x00,
   0x00, 0x03, 0x00,
   0x83, 0x07, 0x03,
@@ -514,23 +514,23 @@ export const ICON_JAILER = [
 
 // Map icon IDs to their data
 export const Icons = {
-  nobody: ICON_NOBODY,
-  alpha: ICON_ALPHA,
-  sleeper: ICON_SLEEPER,
-  seeker: ICON_SEEKER,
-  medic: ICON_MEDIC,
-  hunter: ICON_HUNTER,
+  citizen: ICON_CITIZEN,
+  elder: ICON_ELDER,
+  child: ICON_CHILD,
+  detective: ICON_DETECTIVE,
+  doctor: ICON_DOCTOR,
+  paranoid: ICON_PARANOID,
   vigilante: ICON_VIGILANTE,
-  judge: ICON_JUDGE,
-  cupid: ICON_CUPID,
-  handler: ICON_HANDLER,
-  fixer: ICON_FIXER,
+  governor: ICON_GOVERNOR,
+  lover: ICON_LOVER,
+  silent: ICON_SILENT,
+  hidden: ICON_HIDDEN,
   marked: ICON_MARKED,
   prospect: ICON_PROSPECT,
-  chemist: ICON_CHEMIST,
-  jester: ICON_JESTER,
+  bitter: ICON_BITTER,
+  trickster: ICON_TRICKSTER,
   jailer: ICON_JAILER,
-  syringe: ICON_CHEMIST, // Same chemist icon for the item version
+  syringe: ICON_BITTER, // Same bitter icon for the item version
   warden: ICON_JAILER, // Same jail bars icon for the item version
   pistol: ICON_PISTOL,
   gavel: ICON_GAVEL,

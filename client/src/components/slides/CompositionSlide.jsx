@@ -8,8 +8,8 @@ import styles from '../../pages/Screen.module.css'
 export default function CompositionSlide({ slide, strings = SLIDE_STRINGS.composition }) {
   const { roles = [], teamCounts = {} } = slide
 
-  const cellRoles = roles.filter((r) => r.team === 'cell')
-  const circleRoles = roles.filter((r) => r.team === 'circle')
+  const cellRoles = roles.filter((r) => r.team === 'children')
+  const circleRoles = roles.filter((r) => r.team === 'citizens')
   const unassignedCount = teamCounts.unassigned || 0
 
   const pluralize = (name, count) => {

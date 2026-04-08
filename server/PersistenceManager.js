@@ -47,6 +47,8 @@ export class PersistenceManager {
       simsCanLose: false,
       heartbeatAddNoise: false,
       poisonKillsGeneric: false,
+      elderRecruitRole: 'child',
+      elderRecruitThreshold: 2,
     }
     if (!fs.existsSync(HOST_SETTINGS_PATH)) {
       this._hostSettings = defaults
@@ -157,7 +159,7 @@ export class PersistenceManager {
     return { presets: this._gamePresets }
   }
 
-  saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats = false, overwriteId = null) {
+  saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats = false, overwriteId = null, elderRecruitRole = 'child', elderRecruitThreshold = 2) {
     const players = {}
     for (const [id, cust] of this.game.playerCustomizations) {
       if (cust.name || cust.portrait) {
@@ -193,7 +195,7 @@ export class PersistenceManager {
       if (index !== -1) {
         this._gamePresets[index] = {
           ...this._gamePresets[index],
-          name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled, fakeHeartbeats,
+          name, players, roleMode, rolePool, roleAssignments, timerDuration, autoAdvanceEnabled, fakeHeartbeats, elderRecruitRole, elderRecruitThreshold,
         }
         this._saveGamePresetsToDisk()
         this.game.addLog(str('log', 'presetUpdated', { name }))
@@ -212,6 +214,8 @@ export class PersistenceManager {
       timerDuration,
       autoAdvanceEnabled,
       fakeHeartbeats,
+      elderRecruitRole,
+      elderRecruitThreshold,
     }
 
     this._gamePresets.push(preset)
@@ -261,6 +265,8 @@ export class PersistenceManager {
     this.saveHostSettings({
       timerDuration: preset.timerDuration,
       autoAdvanceEnabled: preset.autoAdvanceEnabled,
+      elderRecruitRole: preset.elderRecruitRole ?? 'child',
+      elderRecruitThreshold: preset.elderRecruitThreshold ?? 2,
       lastLoadedPresetId: preset.id,
     })
 

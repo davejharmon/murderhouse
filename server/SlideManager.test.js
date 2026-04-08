@@ -22,7 +22,7 @@ vi.mock('fs', () => ({
 describe('SlideManager.pushSlide', () => {
   it('adds a slide with a unique id', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const before = game.slides.slideQueue.length
     game.slides.pushSlide({ type: 'title', title: 'Test' })
@@ -32,7 +32,7 @@ describe('SlideManager.pushSlide', () => {
 
   it('jumpTo=true updates currentSlideIndex to last slide', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.slides.pushSlide({ type: 'title', title: 'A' }, true)
     const idx = game.slides.currentSlideIndex
@@ -43,7 +43,7 @@ describe('SlideManager.pushSlide', () => {
 
   it('jumpTo=false does not move currentSlideIndex', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.slides.pushSlide({ type: 'title', title: 'A' }, true)
     const idx = game.slides.currentSlideIndex
@@ -54,7 +54,7 @@ describe('SlideManager.pushSlide', () => {
 
   it('slide IDs are unique across multiple pushes', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.slides.pushSlide({ type: 'title', title: 'X' })
     game.slides.pushSlide({ type: 'title', title: 'Y' })
@@ -73,7 +73,7 @@ describe('SlideManager navigation', () => {
 
   beforeEach(() => {
     ;({ game } = createTestGame(4))
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.slides.pushSlide({ type: 'title', title: 'A' })
     game.slides.pushSlide({ type: 'title', title: 'B' }, false)
     game.slides.pushSlide({ type: 'title', title: 'C' }, false)
@@ -116,7 +116,7 @@ describe('SlideManager.getCurrentSlide', () => {
 
   it('returns slide at currentSlideIndex', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     // Slide queue already has the DAY gallery slide from startGame.
     // Push two more and point to the second-to-last (the 'First' slide).
     game.slides.pushSlide({ type: 'title', title: 'First' }, false)
@@ -135,7 +135,7 @@ describe('SlideManager.getCurrentSlide', () => {
 describe('SlideManager.reset', () => {
   it('clears slideQueue and resets index', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.slides.pushSlide({ type: 'title', title: 'Existing' })
 
     game.slides.reset()
@@ -146,7 +146,7 @@ describe('SlideManager.reset', () => {
 
   it('does not reset slideIdCounter (IDs unique across lifetime)', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.slides.pushSlide({ type: 'title', title: 'Before' })
     const counterBefore = game.slides.slideIdCounter
@@ -163,7 +163,7 @@ describe('SlideManager.reset', () => {
 describe('SlideManager.clearSlides', () => {
   it('clears queue and pushes a gallery slide for DAY phase', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     // Game starts in DAY
     game.slides.clearSlides()
 
@@ -173,7 +173,7 @@ describe('SlideManager.clearSlides', () => {
 
   it('clears queue and pushes gallery for NIGHT phase', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
     game.slides.clearSlides()
 
@@ -187,7 +187,7 @@ describe('SlideManager.clearSlides', () => {
 describe('SlideManager.queueDeathSlide', () => {
   it('pushes two slides: identity then role reveal', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const queueBefore = game.slides.slideQueue.length
     const victim = players[2]
@@ -211,7 +211,7 @@ describe('SlideManager.queueDeathSlide', () => {
 
   it('identity slide uses victim name in title', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const victim = players[2]
     victim.name = 'Alice'
@@ -243,14 +243,14 @@ describe('SlideManager.pushCompSlide', () => {
 
   it('returns success after roles assigned', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const result = game.slides.pushCompSlide()
     expect(result.success).toBe(true)
   })
 
   it('pushes a composition-type slide', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const before = game.slides.slideQueue.length
     game.slides.pushCompSlide()
     const slide = game.slides.slideQueue[before]

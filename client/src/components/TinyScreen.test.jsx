@@ -46,7 +46,7 @@ const withIconsDisplay = {
   line2: { text: 'Select target', style: 'normal' },
   line3: { left: 'YES', right: 'NO' },
   icons: [
-    { id: 'seeker', state: 'active' },
+    { id: 'detective', state: 'active' },
     { id: 'pistol', state: null },
     null,
   ],
@@ -127,7 +127,7 @@ describe('TinyScreen icon state variants', () => {
   })
 
   it('renders with active icon state', () => {
-    const display = { ...blankDisplay, icons: [{ id: 'seeker', state: 'active' }, null, null] }
+    const display = { ...blankDisplay, icons: [{ id: 'detective', state: 'active' }, null, null] }
     expect(() => render(<TinyScreen display={display} />)).not.toThrow()
   })
 

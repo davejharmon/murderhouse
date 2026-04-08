@@ -34,9 +34,9 @@ describe('role definitions — structural validation', () => {
 
 describe('getRole', () => {
   it('returns role for valid id', () => {
-    const role = getRole('alpha')
+    const role = getRole('elder')
     expect(role).not.toBeNull()
-    expect(role.id).toBe('alpha')
+    expect(role.id).toBe('elder')
   })
 
   it('returns null for unknown id', () => {
@@ -48,8 +48,8 @@ describe('getRole', () => {
 
 describe('alpha passives.onDeath', () => {
   it('with living sleeper → promotes to alpha, returns message', () => {
-    const alpha = getRole('alpha')
-    const sleeper = getRole('sleeper')
+    const alpha = getRole('elder')
+    const sleeper = getRole('child')
     const mockSleeper = {
       id: '2',
       isAlive: true,
@@ -63,11 +63,11 @@ describe('alpha passives.onDeath', () => {
     }
     const result = alpha.passives.onDeath({ id: '1', role: alpha }, null, fakeGame)
     expect(result).not.toBeNull()
-    expect(mockSleeper.role.id).toBe('alpha')
+    expect(mockSleeper.role.id).toBe('elder')
   })
 
   it('no living cell members → returns null', () => {
-    const alpha = getRole('alpha')
+    const alpha = getRole('elder')
     const fakeGame = {
       getAlivePlayers: () => [],
     }
@@ -78,7 +78,7 @@ describe('alpha passives.onDeath', () => {
 
 describe('hunter passives.onDeath', () => {
   it('returns interrupt: true', () => {
-    const hunter = getRole('hunter')
+    const hunter = getRole('paranoid')
     expect(hunter.passives).toBeDefined()
     const result = hunter.passives.onDeath({ id: '1', role: hunter }, null, {})
     expect(result?.interrupt).toBe(true)
@@ -87,7 +87,7 @@ describe('hunter passives.onDeath', () => {
 
 describe('seeker role', () => {
   it('has investigate event', () => {
-    const seeker = getRole('seeker')
+    const seeker = getRole('detective')
     expect(seeker.events).toHaveProperty('investigate')
   })
 })
@@ -118,7 +118,7 @@ describe('GAME_COMPOSITION', () => {
 
   it('every composition includes exactly 1 alpha', () => {
     for (const composition of Object.values(GAME_COMPOSITION)) {
-      const alphaCount = composition.filter((id) => id === RoleId.ALPHA).length
+      const alphaCount = composition.filter((id) => id === RoleId.ELDER).length
       expect(alphaCount).toBe(1)
     }
   })

@@ -69,10 +69,10 @@ export default function DeathSlide({ slide, players, strings = SLIDE_STRINGS.dea
         )}
         {slide.revealRole && slide.remainingComposition?.length > 0 && (() => {
           const sortKey = (e) => {
-            if (e.team === 'circle')  return e.dim ? 0 : 1
-            if (e.team === 'neutral')  return e.dim ? 2 : 3
-            if (e.team === 'unknown')  return 4
-            if (e.team === 'cell') return e.dim ? 6 : 5
+            if (e.team === 'citizens')  return e.dim ? 0 : 1
+            if (e.team === 'outsider')  return e.dim ? 2 : 3
+            if (e.team === 'unknown')   return 4
+            if (e.team === 'children')  return e.dim ? 6 : 5
             return 4
           }
           const sorted = [...slide.remainingComposition].sort((a, b) => sortKey(a) - sortKey(b))

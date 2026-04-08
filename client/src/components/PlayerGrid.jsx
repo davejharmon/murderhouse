@@ -5,6 +5,7 @@ import {
   DEBUG_MODE,
   AVAILABLE_ROLES,
   ROLE_DISPLAY,
+  ROLE_GROUPS,
   ITEM_DISPLAY,
 } from '@shared/constants.js';
 import PortraitSelectorModal from './PortraitSelectorModal';
@@ -155,10 +156,14 @@ const PlayerCard = memo(function PlayerCard({
             title='Pre-assign role'
           >
             <option value=''>Random</option>
-            {AVAILABLE_ROLES.map((roleId) => (
-              <option key={roleId} value={roleId}>
-                {roleId}
-              </option>
+            {ROLE_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.roles.map((roleId) => (
+                  <option key={roleId} value={roleId}>
+                    {ROLE_DISPLAY[roleId]?.name || roleId}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         ) : player.role && !isLobby && onChangeRole ? (
@@ -173,10 +178,14 @@ const PlayerCard = memo(function PlayerCard({
             }}
             title='Change role'
           >
-            {AVAILABLE_ROLES.map((roleId) => (
-              <option key={roleId} value={roleId}>
-                {ROLE_DISPLAY[roleId]?.name || roleId}
-              </option>
+            {ROLE_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.roles.map((roleId) => (
+                  <option key={roleId} value={roleId}>
+                    {ROLE_DISPLAY[roleId]?.name || roleId}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         ) : player.role ? (

@@ -25,7 +25,7 @@ describe('HunterRevengeFlow', () => {
 
   beforeEach(() => {
     ;({ game } = createTestGame(5))
-    startGameWithRoles(game, ['alpha', 'sleeper', 'hunter', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'paranoid', 'citizen', 'citizen'])
   })
 
   describe('canTrigger', () => {
@@ -130,8 +130,8 @@ describe('GovernorPardonFlow', () => {
 
   beforeEach(() => {
     ;({ game } = createTestGame(5))
-    // 'judge' is the internal role ID (displays as Governor)
-    startGameWithRoles(game, ['alpha', 'seeker', 'judge', 'nobody', 'nobody'])
+    // 'governor' is the internal role ID (displays as Governor)
+    startGameWithRoles(game, ['elder', 'detective', 'governor', 'citizen', 'citizen'])
   })
 
   function setupVoteForElimination(targetId = '1') {
@@ -222,7 +222,7 @@ describe('GovernorPardonFlow', () => {
     it('returns [] if judge IS the condemned player', () => {
       // Reset with judge as potential condemned
       ;({ game } = createTestGame(5))
-      startGameWithRoles(game, ['alpha', 'seeker', 'judge', 'nobody', 'nobody'])
+      startGameWithRoles(game, ['elder', 'detective', 'governor', 'citizen', 'citizen'])
       game.startEvent('vote')
       // Everyone votes for judge (player 3)
       for (const p of game.getAlivePlayers()) {
@@ -273,7 +273,7 @@ describe('GovernorPardonFlow', () => {
   describe('gavel item', () => {
     it('gavel holder can trigger pardon flow', () => {
       ;({ game } = createTestGame(5))
-      startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+      startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
       game.giveItem('3', ItemId.GAVEL)
       const pardonFlow = game.flows.get('pardon')
       const alpha = game.getPlayer('1')
@@ -283,7 +283,7 @@ describe('GovernorPardonFlow', () => {
 
     it('gavel is consumed after pardon', () => {
       ;({ game } = createTestGame(5))
-      startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody', 'nobody'])
+      startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'citizen'])
       game.giveItem('3', ItemId.GAVEL)
       game.startEvent('vote')
       // Everyone votes for player 1

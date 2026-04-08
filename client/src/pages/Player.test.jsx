@@ -49,7 +49,7 @@ function makePlayerState(overrides = {}) {
   return {
     id: '3',
     name: 'Player 3',
-    role: { id: 'nobody', name: 'Nobody' },
+    role: { id: 'citizen', name: 'Citizen' },
     isAlive: true,
     pendingEvents: [],
     inventory: [],

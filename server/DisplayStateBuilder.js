@@ -55,7 +55,7 @@ function getEventActions(eventId) {
 export class DisplayStateBuilder {
   constructor(player) {
     this.player = player
-    // Temporary role override for this render pass (e.g. amateur displays as seeker)
+    // Temporary role override for this render pass (e.g. wildcard displays as detective)
     this.displayRoleOverride = null
   }
 
@@ -75,7 +75,7 @@ export class DisplayStateBuilder {
     // Get current event info
     const activeEventId = hasActiveEvent ? [...p.pendingEvents][0] : null
     const activeEvent = activeEventId ? game?.activeEvents?.get(activeEventId) : null
-    // Use displayName when rendering for the player themselves (e.g. amateur's stumble → "Investigate")
+    // Use displayName when rendering for the player themselves (e.g. wildcard's stumble → "Investigate")
     const eventName =
       (displayRole && activeEvent?.event?.displayName) ||
       activeEvent?.event?.name ||
@@ -219,19 +219,19 @@ export class DisplayStateBuilder {
 
     // Poisoned players don't know they're poisoned — no display notification
 
-    // Dynamically compute packmate tip for cell members (reflects living members)
-    if (p.role?.team === Team.CELL) {
+    // Dynamically compute packmate tip for children members (reflects living members)
+    if (p.role?.team === Team.CHILDREN) {
       const packmates = game
         .getAlivePlayers()
-        .filter((m) => m.id !== p.id && m.role.team === Team.CELL)
+        .filter((m) => m.id !== p.id && m.role.team === Team.CHILDREN)
       const cellNames = [p.name, ...packmates.map((m) => m.name)].join(', ')
       if (packmates.length === 0) {
         p.tutorialTip = `CELL: ${p.name}`
       } else {
-        // Non-alpha idle during KILL: show alpha's current/confirmed pick
+        // Non-elder idle during KILL: show elder's current/confirmed pick
         const killInstance = game.activeEvents?.get(EventId.KILL)
-        if (killInstance && p.role.id !== RoleId.ALPHA) {
-          const alpha = packmates.find((m) => m.role.id === RoleId.ALPHA)
+        if (killInstance && p.role.id !== RoleId.ELDER) {
+          const alpha = packmates.find((m) => m.role.id === RoleId.ELDER)
           if (alpha) {
             const alphaResult = alpha.getActiveResult(game)
             const alphaPick =
@@ -597,7 +597,7 @@ export class DisplayStateBuilder {
     // Determine what to show: role (if assigned) or player name (in lobby)
     let nameOrRole
     if (p.role) {
-      // Role assigned - show role name (use display override if set, e.g. amateur → seeker)
+      // Role assigned - show role name (use display override if set, e.g. wildcard → detective)
       const displayRole = this.displayRoleOverride || p.role
       nameOrRole = fitRoleName(displayRole, 12)
     } else {
@@ -661,7 +661,7 @@ export class DisplayStateBuilder {
       highlightSlot = itemIdx >= 0 ? itemIdx + 1 : 0 // +1 because slot 0 is role
     }
 
-    // Slot 0: role icon (use display override if set, e.g. amateur → seeker glyph)
+    // Slot 0: role icon (use display override if set, e.g. wildcard → detective glyph)
     let slot0
     if (!p.isAlive) {
       slot0 = { id: 'skull', state: IconState.INACTIVE }
@@ -709,20 +709,20 @@ export class DisplayStateBuilder {
    */
   _getPackHint(game, eventId) {
     const p = this.player
-    if (!p.role || p.role.team !== Team.CELL) return null
+    if (!p.role || p.role.team !== Team.CHILDREN) return null
     if (!game.activeEvents?.has(eventId)) return null
 
     const packMembers = game
       .getAlivePlayers()
-      .filter((m) => m.role.team === Team.CELL && m.id !== p.id)
+      .filter((m) => m.role.team === Team.CHILDREN && m.id !== p.id)
 
     // --- Center: suggestion/target ---
     let center = ''
-    if (p.role.id !== RoleId.ALPHA) {
-      // Non-alpha: show Alpha's KILL target
+    if (p.role.id !== RoleId.ELDER) {
+      // Non-elder: show Elder's KILL target
       const killInstance = game.activeEvents.get(EventId.KILL)
       if (killInstance) {
-        const alpha = packMembers.find((m) => m.role.id === RoleId.ALPHA)
+        const alpha = packMembers.find((m) => m.role.id === RoleId.ELDER)
         if (alpha) {
           const alphaPick =
             alpha.id in killInstance.results
@@ -735,7 +735,7 @@ export class DisplayStateBuilder {
         }
       }
     } else {
-      // Alpha: tally majority target from HUNT (sleeper suggestions)
+      // Elder: tally majority target from HUNT (child suggestions)
       const huntInstance = game.activeEvents.get(EventId.SUGGEST)
       if (huntInstance) {
         const tally = {}
@@ -759,7 +759,7 @@ export class DisplayStateBuilder {
     let left = ''
     const cleanInstance = game.activeEvents.get(EventId.CLEAN)
     if (cleanInstance) {
-      const fixer = game.getAlivePlayers().find((m) => m.role.id === RoleId.FIXER)
+      const fixer = game.getAlivePlayers().find((m) => m.role.id === RoleId.HIDDEN)
       if (fixer) {
         const fixerResult = fixer.id in cleanInstance.results
         const fixerYes = fixerResult && cleanInstance.results[fixer.id] !== null
@@ -771,7 +771,7 @@ export class DisplayStateBuilder {
     let right = ''
     const poisonInstance = game.activeEvents.get(EventId.POISON)
     if (poisonInstance) {
-      const chemist = game.getAlivePlayers().find((m) => m.role.id === RoleId.CHEMIST)
+      const chemist = game.getAlivePlayers().find((m) => m.role.id === RoleId.BITTER)
       if (chemist) {
         const chemistResult = chemist.id in poisonInstance.results
         const chemistYes = chemistResult && poisonInstance.results[chemist.id] !== null

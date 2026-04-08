@@ -22,8 +22,8 @@ vi.mock('fs', () => ({
 
 describe('EventResolver.buildPendingEvents', () => {
   it('builds night pending events for all eligible roles', () => {
-    const { game } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'medic', 'seeker', 'nobody', 'nobody'])
+    const { game } = createTestGame(6)
+    startGameWithRoles(game, ['elder', 'doctor', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
 
     // After nextPhase builds pending events, alpha/medic/seeker should be included
@@ -35,7 +35,7 @@ describe('EventResolver.buildPendingEvents', () => {
 
   it('does not include vote in night pending events', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     expect(game.events.pendingEvents).not.toContain('vote')
@@ -44,7 +44,7 @@ describe('EventResolver.buildPendingEvents', () => {
   it('does not include events with no participants', () => {
     const { game } = createTestGame(4)
     // No medic role — protect has no participants
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase()
 
     expect(game.events.pendingEvents).not.toContain('protect')
@@ -54,14 +54,14 @@ describe('EventResolver.buildPendingEvents', () => {
 describe('EventResolver.startEvent', () => {
   it('returns success:false for unknown event', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const result = game.startEvent('nonexistent_event_xyz')
     expect(result.success).toBe(false)
   })
 
   it('moves event from pending to active', () => {
-    const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    const { game } = createTestGame(5)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
 
     expect(game.events.pendingEvents).toContain('kill')
@@ -73,8 +73,8 @@ describe('EventResolver.startEvent', () => {
   it('starting an already-active event overwrites the instance', () => {
     // The game design allows re-starting an active event (e.g., for resets).
     // This test documents the actual behaviour: the second startEvent succeeds.
-    const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    const { game } = createTestGame(5)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase()
 
     game.startEvent('kill')
@@ -89,7 +89,7 @@ describe('EventResolver.startEvent', () => {
 describe('EventResolver.resolveEvent', () => {
   it('returns success:false when event is not active', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     const result = game.resolveEvent('kill')
     expect(result.success).toBe(false)
@@ -97,8 +97,8 @@ describe('EventResolver.resolveEvent', () => {
   })
 
   it('returns success:true after successful resolve', () => {
-    const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    const { game, players } = createTestGame(5)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase()
 
     game.startEvent('kill')
@@ -110,7 +110,7 @@ describe('EventResolver.resolveEvent', () => {
 
   it('event removed from activeEvents after resolve', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase()
 
     game.startEvent('kill')
@@ -124,14 +124,14 @@ describe('EventResolver.resolveEvent', () => {
 describe('EventResolver.getEventParticipants', () => {
   it('returns empty array for unknown event', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const participants = game.events.getEventParticipants('does_not_exist')
     expect(participants).toEqual([])
   })
 
   it('excludes coward holders from participants', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'nobody', 'nobody', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'citizen', 'citizen', 'citizen', 'citizen'])
 
     // Give nobody a coward item — they normally participate in 'suspect'
     // but coward excludes them
@@ -146,7 +146,7 @@ describe('EventResolver.getEventParticipants', () => {
 describe('EventResolver._applyRoleblocks', () => {
   it('nulls out roleblocked actor target', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'handler', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'silent', 'detective', 'citizen', 'citizen'])
     game.nextPhase()
 
     const alpha = players[0]
@@ -162,8 +162,8 @@ describe('EventResolver._applyRoleblocks', () => {
 
 describe('EventResolver.clearForPhase', () => {
   it('clears activeEvents and eventResults', () => {
-    const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    const { game, players } = createTestGame(5)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase()
 
     game.startEvent('kill')
@@ -178,7 +178,7 @@ describe('EventResolver.clearForPhase', () => {
 describe('EventResolver.reset', () => {
   it('resets all state to initial values', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase()
 
     game.startEvent('kill')

@@ -24,7 +24,7 @@ vi.mock('fs', () => ({
 describe('roleblock + kill interaction', () => {
   it('blocked alpha does not kill (target nulled by _applyRoleblocks)', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'handler', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'silent', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const alpha = players[0]
@@ -45,7 +45,7 @@ describe('roleblock + kill interaction', () => {
 
   it('unblocked alpha kills target normally', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'handler', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'silent', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const alpha = players[0]
@@ -60,7 +60,7 @@ describe('roleblock + kill interaction', () => {
 
   it('blocked seeker does not investigate', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'handler', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'silent', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const handler = players[1]
@@ -83,8 +83,8 @@ describe('roleblock + kill interaction', () => {
 
 describe('protect + kill interaction', () => {
   it('medic protect saves target from cell kill', () => {
-    const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'medic', 'seeker', 'nobody', 'nobody'])
+    const { game, players } = createTestGame(6)
+    startGameWithRoles(game, ['elder', 'doctor', 'detective', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
 
     const medic = players[1]
@@ -106,7 +106,7 @@ describe('protect + kill interaction', () => {
 
   it('protection is cleared after night phase', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'medic', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'doctor', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const medic = players[1]
@@ -123,7 +123,7 @@ describe('protect + kill interaction', () => {
 
   it('protection does not block vote elimination', () => {
     const { game, players } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'medic', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'doctor', 'detective', 'citizen', 'citizen'])
 
     const target = players[3]
     // Manually set protected (shouldn't happen during day, but testing the guard)
@@ -144,7 +144,7 @@ describe('protect + kill interaction', () => {
 describe('_processPoisonDeaths timing', () => {
   it('fires during NIGHT resolveAllEvents', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const victim = players[2]
@@ -158,7 +158,7 @@ describe('_processPoisonDeaths timing', () => {
 
   it('does NOT fire on DAY → NIGHT transition', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     // Give poison during day (unusual but testable)
     const victim = players[2]
@@ -176,7 +176,7 @@ describe('_processPoisonDeaths timing', () => {
 
   it('fires on NIGHT → DAY transition (nextPhase)', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
 
     const victim = players[2]
@@ -194,7 +194,7 @@ describe('_processPoisonDeaths timing', () => {
 describe('score awarding (awardEndGameScores)', () => {
   it('surviving players on winning team get both survived + winningTeam points', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     // Name players so scores are tracked
     players[0].name = 'Alpha'
@@ -204,7 +204,7 @@ describe('score awarding (awardEndGameScores)', () => {
 
     // Kill alpha — circle wins. endGame calls awardEndGameScores internally.
     game.killPlayer(players[0].id, 'test')
-    game.endGame(Team.CIRCLE)
+    game.endGame(Team.CITIZENS)
 
     const scores = game.persistence.getScoresObject()
     // Seeker + Nobody1 + Nobody2 survived and are on winning team: survived(1) + winningTeam(1) = 2 each
@@ -218,7 +218,7 @@ describe('score awarding (awardEndGameScores)', () => {
 
   it('dead player on winning team gets winningTeam points only', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     players[0].name = 'Alpha'
     players[1].name = 'Seeker'
@@ -226,9 +226,9 @@ describe('score awarding (awardEndGameScores)', () => {
     players[3].name = 'Nobody2'
 
     // Kill seeker (circle member) — then kill alpha to end game
-    game.killPlayer(players[1].id, 'cell')
+    game.killPlayer(players[1].id, 'children')
     game.killPlayer(players[0].id, 'test') // kill alpha to win
-    game.endGame(Team.CIRCLE) // awards scores internally
+    game.endGame(Team.CITIZENS) // awards scores internally
 
     const scores = game.persistence.getScoresObject()
     // Seeker died same day game ended — still counts as survived per implementation
@@ -240,7 +240,7 @@ describe('score awarding (awardEndGameScores)', () => {
 
   it('best investigator gets bonus points', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     players[0].name = 'Alpha'
     players[1].name = 'Seeker'
@@ -253,7 +253,7 @@ describe('score awarding (awardEndGameScores)', () => {
     ]
 
     game.killPlayer(players[0].id, 'test')
-    game.endGame(Team.CIRCLE) // awards scores internally
+    game.endGame(Team.CITIZENS) // awards scores internally
 
     const scores = game.persistence.getScoresObject()
     // Seeker: survived(1) + winningTeam(1) + bestInvestigator(2) = 4
@@ -265,8 +265,8 @@ describe('score awarding (awardEndGameScores)', () => {
 
 describe('resolveAllEvents — slide ordering', () => {
   it('death slides are grouped by player when multiple deaths occur', () => {
-    const { game, players } = createTestGame(6)
-    startGameWithRoles(game, ['alpha', 'vigilante', 'medic', 'nobody', 'nobody', 'nobody'])
+    const { game, players } = createTestGame(7)
+    startGameWithRoles(game, ['elder', 'vigilante', 'doctor', 'citizen', 'citizen', 'citizen', 'child'])
     game.nextPhase() // DAY → NIGHT
 
     const vigilante = players[1]

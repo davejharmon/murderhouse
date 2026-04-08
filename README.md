@@ -28,30 +28,30 @@ For production/remote deployment, `server/web.js` serves the built client over H
 
 **Night Phase**: Each role acts secretly on their device. Host resolves events in priority order. Deaths revealed on big screen.
 
-**Win conditions**: Circle wins when all Cell members are eliminated. Cell wins when they equal or outnumber the Circle.
+**Win conditions**: Citizens win when all Children are eliminated. Children win when they equal or outnumber the Citizens.
 
 ## Roles
 
-| Role          | Team    | Night Action | Special                                                                                          |
-| ------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------ |
-| **Nobody**    | Circle  | Suspect      | —                                                                                                |
-| **Seeker**    | Circle  | Investigate  | Learns if target is CELL or NOT CELL                                                             |
-| **Medic**     | Circle  | Protect      | Prevents one kill per night                                                                      |
-| **Hunter**    | Circle  | —            | Revenge kill on death (interrupt flow)                                                           |
-| **Vigilante** | Circle  | Kill (once)  | One-shot night kill                                                                              |
-| **Governor**  | Circle  | —            | Can pardon a condemned player once per game (via Gavel)                                          |
-| **Cupid**     | Circle  | Link (setup) | Links two lovers at game start; heartbreak kills both                                            |
-| **Marked**    | Circle  | Suspect      | Thinks they're a Nobody; appears CELL when investigated                                          |
-| **Amateur**   | Circle  | Stumble      | Disguised as Seeker; random action — investigate (accurate), kill/protect/block (shows INNOCENT) |
-| **Jailer**    | Circle  | Jail         | Jails a player: target is protected and roleblocked                                              |
-| **Alpha**     | Cell    | Kill         | Final kill decision; promotes successor on death                                                 |
-| **Sleeper**   | Cell    | Suggest      | Suggests targets to Alpha; sees pack selections live                                             |
-| **Handler**   | Cell    | Block        | Blocks one player's night ability                                                                |
-| **Fixer**     | Cell    | Clean        | Hides victim's role reveal when the Cell kills                                                   |
-| **Chemist**   | Cell    | Poison       | Replaces Cell kill with delayed poison (victim dies next night resolve)                          |
-| **Jester**    | Neutral | —            | Wins solo if voted out                                                                           |
+| Role          | Team      | Night Action | Special                                                                                               |
+| ------------- | --------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| **Citizen**   | Citizens  | Suspect      | —                                                                                                     |
+| **Detective** | Citizens  | Investigate  | Learns if target is CHILD or NOT CHILD                                                                |
+| **Doctor**    | Citizens  | Protect      | Prevents one kill per night                                                                           |
+| **Paranoid**  | Citizens  | —            | Revenge kill on death (interrupt flow)                                                                |
+| **Vigilante** | Citizens  | Kill (once)  | One-shot night kill                                                                                   |
+| **Governor**  | Citizens  | —            | Can pardon a condemned player once per game (via Gavel)                                               |
+| **Lover**     | Citizens  | Link (setup) | Links two lovers at game start; heartbreak kills both                                                 |
+| **Marked**    | Citizens  | Suspect      | Thinks they're a Citizen; appears CHILD when investigated                                             |
+| **Wildcard**  | Citizens  | Stumble      | Disguised as Detective; random action — investigate (accurate), kill/protect/block (shows NOT CHILD)  |
+| **Jailer**    | Citizens  | Jail         | Jails a player: target is protected and roleblocked                                                   |
+| **Elder**     | Children  | Kill         | Final kill decision; promotes successor on death                                                      |
+| **Child**     | Children  | Suggest      | Suggests targets to Elder; sees pack selections live                                                  |
+| **Silent**    | Children  | Block        | Blocks one player's night ability                                                                     |
+| **Hidden**    | Children  | Clean        | Hides victim's role reveal when the Children kill                                                     |
+| **Bitter**    | Children  | Poison       | Replaces Children kill with delayed poison (victim dies next night resolve)                           |
+| **Trickster** | Outsiders | —            | Wins solo if voted out                                                                                |
 
-Role composition is defined per player count in `GAME_COMPOSITION` (`server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Cupid) automatically inject their companion into the pool. Pre-assigned compositions are validated on game start.
+Role composition is defined per player count in `GAME_COMPOSITION` (`server/definitions/roles.js`). The host can pre-assign roles; roles with `companions` (e.g. Lover) automatically inject their companion into the pool. Pre-assigned compositions are validated on game start.
 
 ## Items
 
@@ -59,14 +59,14 @@ Role composition is defined per player count in `GAME_COMPOSITION` (`server/defi
 | ------------ | --------- | -------------------------------------------------------------------- |
 | **Pistol**   | 1         | Shoot a player during the day (player-initiated, instant resolution) |
 | **Gavel**    | 1         | Grants pardon ability (consumed only on actual pardon)               |
-| **Clue**     | 1         | Investigate a player (same as Seeker)                                |
+| **Clue**     | 1         | Investigate a player (same as Detective)                             |
 | **Warden**   | permanent | Jail a player each night: target is protected and roleblocked        |
 | **Syringe**  | 1         | Inject a player with poison (target dies next night resolve)         |
 | **Hardened** | 1         | Absorbs one kill; destroyed on use (silent)                          |
 | **No Vote**  | 1         | Holder is excluded from the next vote (hidden)                       |
 | **Coward**   | permanent | Cannot act or be targeted; immune to all (hidden)                    |
-| **Marked**   | permanent | Appears CELL when investigated (hidden)                              |
-| **Prospect** | 1         | Joins the Cell if killed by them (hidden)                            |
+| **Marked**   | permanent | Appears CHILD when investigated (hidden)                             |
+| **Prospect** | 1         | Joins the Children if killed by them (hidden)                        |
 | **Poisoned** | —         | Slow-acting toxin; dies when next night events resolve (hidden)      |
 
 ## Architecture
@@ -100,7 +100,7 @@ murderhouse/
 │   │   └── items.js              # 12 item definitions
 │   ├── flows/
 │   │   ├── InterruptFlow.js      # Base class (idle → active → resolving)
-│   │   ├── HunterRevengeFlow.js  # Hunter death → revenge pick → kill
+│   │   ├── HunterRevengeFlow.js  # Paranoid death → revenge pick → kill
 │   │   └── GovernorPardonFlow.js # Vote condemn → pardon/execute decision
 │   └── firmware/                 # OTA deployment: version.json + firmware.bin
 ├── client/
@@ -147,6 +147,7 @@ ESP32-based physical terminals can be used alongside or instead of mobile device
 **OTA firmware updates**: Host dashboard shows a banner when terminals are running outdated firmware. Press "Update" to push new firmware to all connected terminals over WiFi.
 
 To deploy firmware:
+
 1. Bump `FIRMWARE_VERSION` in `esp32-terminal/src/config.h`
 2. Build: `pio run` (in `esp32-terminal/`)
 3. Copy: `cp .pio/build/esp32/firmware.bin ../server/firmware/firmware.bin`
@@ -181,6 +182,7 @@ See [`server/TESTING.md`](server/TESTING.md) for the full test framework design.
 ### Test Coverage Gaps
 
 **Game mechanics** — paths not yet covered:
+
 - Custom event: item reward / role reward / resurrection paths
 
 ## Debug Mode
@@ -206,15 +208,10 @@ Enabled outside production (`process.env.NODE_ENV !== 'production'`). Access `/d
 
 ## Improvements
 
-- Add detonator
-- Add library of night and day fallback phrases
 - Add a rollback to last turn
-- Adjust poison turn started/item uses
 - Make dead/spectator/coward/gameover screen larger text on ESP32
-- Hunter should die after using revenge, not before (visually on their own terminal)
+- Paranoid should die after using revenge, not before (visually on their own terminal)
 
 ## Bugs
 
 - Reveal Comp tutorial slide shows hidden roles (prospect, marked) — should display them as Nobodies
-- Sleeper night action broken with alpha in game
-- Vote timer breaks on second attempt

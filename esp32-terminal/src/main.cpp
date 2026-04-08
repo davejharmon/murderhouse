@@ -163,6 +163,7 @@ void loop() {
         // psHandleInput() calls networkInit() on confirm; we wire the display callback here
         if (psIsConfirmed()) {
             networkSetDisplayCallback(onDisplayUpdate);
+            displayConnectionStatus(ConnectionState::WIFI_CONNECTING);  // flush display after WiFi init power spike
         } else {
             delay(1);
             return;

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import styles from './SettingsModal.module.css';
-import { ROLE_DISPLAY } from '@shared/constants.js';
+import { ROLE_DISPLAY, RoleId } from '@shared/constants.js';
 import { getStr } from '../strings/index.js';
 
 function presetRoleSummary(preset) {
@@ -31,6 +31,10 @@ export default function SettingsModal({
   onSetDefault,
   timerDuration,
   onTimerDurationChange,
+  elderRecruitRole = 'child',
+  onElderRecruitRoleChange,
+  elderRecruitThreshold = 2,
+  onElderRecruitThresholdChange,
   onOpenCalibration,
   onOpenScores,
   hostSettings = {},
@@ -135,6 +139,34 @@ export default function SettingsModal({
               onChange={e => onSaveSettings?.({ poisonKillsGeneric: e.target.checked })}
             />
             <span>Poison kills generic (hide cause of death)</span>
+          </label>
+        </section>
+
+        <section className={styles.section}>
+          <h3>Elder Recruit</h3>
+          <p className={styles.settingDesc}>When the Elder starts as the only Child, they recruit instead of killing. These settings control how that works.</p>
+          <label className={styles.settingRow}>
+            <span>Recruited role</span>
+            <select
+              value={elderRecruitRole}
+              onChange={e => onElderRecruitRoleChange?.(e.target.value)}
+            >
+              <option value={RoleId.CHILD}>{ROLE_DISPLAY[RoleId.CHILD]?.name ?? 'Child'}</option>
+              <option value={RoleId.BITTER}>{ROLE_DISPLAY[RoleId.BITTER]?.name ?? 'Bitter'}</option>
+              <option value={RoleId.SILENT}>{ROLE_DISPLAY[RoleId.SILENT]?.name ?? 'Silent'}</option>
+              <option value={RoleId.HIDDEN}>{ROLE_DISPLAY[RoleId.HIDDEN]?.name ?? 'Hidden'}</option>
+            </select>
+          </label>
+          <label className={styles.settingRow}>
+            <span>Switch to kill when Children reach</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              className={styles.timerInput}
+              value={elderRecruitThreshold}
+              onChange={e => onElderRecruitThresholdChange?.(parseInt(e.target.value) || 2)}
+            />
           </label>
         </section>
 

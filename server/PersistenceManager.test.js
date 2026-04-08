@@ -77,7 +77,7 @@ describe('PersistenceManager scores', () => {
 
   it('getScoresForConnectedPlayers returns sorted list', () => {
     const { game, players } = createTestGame(3)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen'])
 
     players[0].name = 'Alpha'
     players[1].name = 'Seeker'
@@ -121,7 +121,7 @@ describe('PersistenceManager game presets', () => {
 
   it('saveGamePreset adds a preset', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.persistence.saveGamePreset('My Preset', 30, false)
 
@@ -133,7 +133,7 @@ describe('PersistenceManager game presets', () => {
 
   it('deleteGamePreset removes the preset', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.persistence.saveGamePreset('Deletable', 30, false)
     const { presets } = game.persistence.getGamePresets()
@@ -151,7 +151,7 @@ describe('PersistenceManager game presets', () => {
 
   it('saveGamePreset with overwriteId updates existing preset', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     game.persistence.saveGamePreset('Original', 30, false)
     const { presets } = game.persistence.getGamePresets()
@@ -171,18 +171,18 @@ describe('PersistenceManager game presets', () => {
 describe('PersistenceManager.awardEndGameScores', () => {
   it('awards no points when scoringConfig is undefined', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     players[0].name = 'Alpha'
     game.persistence._hostSettings.scoringConfig = undefined
 
     // Should not throw
-    expect(() => game.persistence.awardEndGameScores(Team.CIRCLE)).not.toThrow()
+    expect(() => game.persistence.awardEndGameScores(Team.CITIZENS)).not.toThrow()
   })
 
   it('surviving player on winning team earns survived + winningTeam', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     players[0].name = 'Alpha'
     players[1].name = 'Seeker'
@@ -191,7 +191,7 @@ describe('PersistenceManager.awardEndGameScores', () => {
 
     // endGame calls awardEndGameScores internally — don't call it twice
     game.killPlayer(players[0].id, 'test')
-    game.endGame(Team.CIRCLE)
+    game.endGame(Team.CITIZENS)
 
     const scores = game.persistence.getScoresObject()
     expect(scores['Seeker']).toBe(2) // survived(1) + winningTeam(1)
@@ -199,7 +199,7 @@ describe('PersistenceManager.awardEndGameScores', () => {
 
   it('pushes score update slide when points awarded', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
 
     players[0].name = 'Alpha'
     players[1].name = 'Seeker'
@@ -208,7 +208,7 @@ describe('PersistenceManager.awardEndGameScores', () => {
 
     game.killPlayer(players[0].id, 'test')
     // endGame calls awardEndGameScores internally, which pushes slides
-    game.endGame(Team.CIRCLE)
+    game.endGame(Team.CITIZENS)
 
     const newSlides = game.slides.slideQueue
     expect(newSlides.some(s => s.type === 'scoreUpdate')).toBe(true)

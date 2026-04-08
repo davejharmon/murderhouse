@@ -44,7 +44,7 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
   const deadCellMembers = useMemo(
     () =>
       allPlayers
-        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'cell')
+        .filter(p => p.status !== PlayerStatus.ALIVE && p.roleTeam === 'children')
         .sort((a, b) => (a.deathTimestamp || 0) - (b.deathTimestamp || 0)),
     [allPlayers],
   )
@@ -176,7 +176,7 @@ export default function GallerySlide({ slide, players, gameState, eventTimers, s
 
   // ── Standard gallery ──────────────────────────────────────────────────────────
   const playersWithoutDeadCell = galleryPlayers.filter(
-    (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'cell',
+    (p) => p.status === PlayerStatus.ALIVE || p.roleTeam !== 'children',
   )
   const totalCellMembers = gameState?.totalCellMembers || 0
 

@@ -32,9 +32,9 @@ Each player uses a personal terminal (phone or ESP32 device) with a 3-line displ
 
 | Team | Condition |
 |------|-----------|
-| **Circle** | All Cell members are dead |
-| **Cell** | Cell members equal or outnumber Circle |
-| **Jester** | Get yourself voted out during the day |
+| **Citizens** | All Children are dead |
+| **Children** | Children equal or outnumber Citizens |
+| **Trickster** | Get yourself voted out during the day |
 
 ---
 
@@ -42,44 +42,44 @@ Each player uses a personal terminal (phone or ESP32 device) with a 3-line displ
 
 | Team | Goal |
 |------|------|
-| **Circle** | Find and eliminate all Cell members |
-| **Cell** | Kill enough Circle members to equal or outnumber them |
-| **Neutral** | Personal win condition (see role) |
+| **Citizens** | Find and eliminate all Children |
+| **Children** | Kill enough Citizens to equal or outnumber them |
+| **Outsiders** | Personal win condition (see role) |
 
 ---
 
 ## Roles
 
-### Circle (Town)
+### Citizens (Town)
 
 | Role | Night Action | Notes |
 |------|-------------|-------|
-| **Nobody** | Suspect a player | No special powers. Vote by day, suspect by night. Backbone of the Circle. |
-| **Seeker** | Investigate a player | Learn if target is **CELL** or **NOT CELL**. Beware: the Marked appears as CELL. |
-| **Medic** | Protect a player | Target is saved from one kill that night. Can protect self. |
-| **Hunter** | Suspect a player | No night power, but on death (any cause) gets a **revenge shot** — picks one player to take with them. |
-| **Vigilante** | Shoot a player | Kills target at night (one-time use). Can be blocked by Medic protection. Friendly fire is permanent. |
-| **Judge** | None (vote only) | Holds the **Gavel**. After a vote condemns someone, can **pardon** them once per game. |
-| **Cupid** | Link two lovers (setup only) | At game start, chooses 2 players to be **linked**. If one lover dies, the other dies too. |
+| **Citizen** | Suspect a player | No special powers. Vote by day, suspect by night. Backbone of the Citizens. |
+| **Detective** | Investigate a player | Learn if target is **CHILD** or **NOT CHILD**. Beware: the Marked appears as a Child. |
+| **Doctor** | Protect a player | Target is saved from one kill that night. Can protect self. |
+| **Paranoid** | Suspect a player | No night power, but on death (any cause) gets a **revenge shot** — picks one player to take with them. |
+| **Vigilante** | Shoot a player | Kills target at night (one-time use). Can be blocked by Doctor protection. Friendly fire is permanent. |
+| **Governor** | None (vote only) | Holds the **Gavel**. After a vote condemns someone, can **pardon** them once per game. |
+| **Lover** | Link two lovers (setup only) | At game start, chooses 2 players to be **linked**. If one lover dies, the other dies too. |
 | **Jailer** | Jail a player | Target is both **protected** and **roleblocked** for that night. Cannot jail self. |
-| **Marked** | Suspect a player | Thinks they're a Nobody, but **appears guilty** when investigated. A Circle member the town may accidentally lynch. |
-| **Amateur** | "Investigate" a player | Thinks they're a Seeker, but their action is **random**: 25% real investigate, 25% kill, 25% protect, 25% block. Always shown a result as if they investigated. |
+| **Marked** | Suspect a player | Thinks they're a Citizen, but **appears guilty** when investigated. A Citizen the town may accidentally eliminate. |
+| **Wildcard** | "Investigate" a player | Thinks they're a Detective, but their action is **random**: 25% real investigate, 25% kill, 25% protect, 25% block. Always shown a result as if they investigated. |
 
-### Cell (Mafia)
-
-| Role | Night Action | Notes |
-|------|-------------|-------|
-| **Alpha** | Choose a kill target | Leader of the Cell. If the Alpha dies, a living Cell member is **promoted** (Sleepers first). |
-| **Sleeper** | Suggest a target | Cell member who suggests targets to the Alpha. Cannot directly choose the kill. Knows their packmates. |
-| **Handler** | Block a player's ability | Prevents one player's night action from working. Resolves first. |
-| **Chemist** | Activate poison (yes/no) | Instead of the normal kill, the target is **poisoned** — dies at the end of the *next* night. Medic can prevent if protecting the same night. |
-| **Fixer** | Activate cover-up (yes/no) | When the Cell kills someone that night, the victim's **role is hidden** on the death reveal. |
-
-### Neutral
+### Children (Mafia)
 
 | Role | Night Action | Notes |
 |------|-------------|-------|
-| **Jester** | None (vote only) | **Wins if voted out** during the day. Getting killed at night does NOT count. |
+| **Elder** | Choose a kill target | Leader of the Children. If the Elder dies, a living Child is **promoted** (Children first). |
+| **Child** | Suggest a target | Suggests targets to the Elder. Cannot directly choose the kill. Knows their packmates. |
+| **Silent** | Block a player's ability | Prevents one player's night action from working. Resolves first. |
+| **Bitter** | Activate poison (yes/no) | Instead of the normal kill, the target is **poisoned** — dies at the end of the *next* night. Doctor can prevent if protecting the same night. |
+| **Hidden** | Activate cover-up (yes/no) | When the Children kill someone that night, the victim's **role is hidden** on the death reveal. |
+
+### Outsiders
+
+| Role | Night Action | Notes |
+|------|-------------|-------|
+| **Trickster** | None (vote only) | **Wins if voted out** during the day. Getting killed at night does NOT count. |
 
 ---
 
@@ -88,11 +88,11 @@ Each player uses a personal terminal (phone or ESP32 device) with a 3-line displ
 | Item | Uses | Effect |
 |------|------|--------|
 | **Pistol** | 1 | Shoot and kill any player during the day. Immediate, no vote needed. |
-| **Gavel** | 1 | After a vote condemns someone, you can **pardon** them. Given to the Judge. |
-| **Clue** | 1 | One investigation, like the Seeker. Learn if a target is CELL or NOT CELL. |
+| **Gavel** | 1 | After a vote condemns someone, you can **pardon** them. Given to the Governor. |
+| **Clue** | 1 | One investigation, like the Detective. Learn if a target is CHILD or NOT CHILD. |
 | **Warden** | Permanent | Jail one player each night — they are protected and roleblocked. Like a permanent Jailer. |
 | **Syringe** | 1 | Poison a player at night. They die when next night's events resolve. |
-| **Hardened** | 1 | Survive one Cell kill attempt. The attack is silently absorbed — nobody knows it happened. |
+| **Hardened** | 1 | Survive one Children kill attempt. The attack is silently absorbed — nobody knows it happened. |
 | **Coward** | Permanent | Cannot be targeted by anything. Also cannot participate in events. Untouchable but powerless. |
 
 Some items are **hidden** — the holder doesn't know they have them:
@@ -100,7 +100,7 @@ Some items are **hidden** — the holder doesn't know they have them:
 | Item | Effect |
 |------|--------|
 | **Marked** | Appear guilty when investigated. |
-| **Prospect** | If killed by the Cell, join the Cell instead of dying. |
+| **Prospect** | If killed by the Children, join the Children instead of dying. |
 | **No Vote** | Cannot participate in the next elimination vote. |
 | **Poisoned** | A slow-acting toxin. Die when next night's events resolve. |
 
@@ -108,15 +108,15 @@ Some items are **hidden** — the holder doesn't know they have them:
 
 ## Role Composition by Player Count
 
-| Players | Cell | Circle Specials | Nobodies |
-|---------|------|----------------|----------|
-| **4** | Alpha | Seeker | 2 |
-| **5** | Alpha | Seeker | 3 |
-| **6** | Alpha | Seeker, Medic | 3 |
-| **7** | Alpha, Sleeper | Seeker, Medic | 3 |
-| **8** | Alpha, Sleeper | Seeker, Medic, Vigilante | 3 |
-| **9** | Alpha, Sleeper, Handler | Seeker, Medic, Vigilante, Hunter | 2 |
-| **10** | Alpha, Sleeper, Handler | Seeker, Medic, Vigilante, Hunter, Judge | 2 |
+| Players | Children | Citizen Specials | Citizens |
+|---------|----------|-----------------|----------|
+| **4** | Elder | Detective | 2 |
+| **5** | Elder | Detective | 3 |
+| **6** | Elder | Detective, Doctor | 3 |
+| **7** | Elder, Child | Detective, Doctor | 3 |
+| **8** | Elder, Child | Detective, Doctor, Vigilante | 3 |
+| **9** | Elder, Child, Silent | Detective, Doctor, Vigilante, Paranoid | 2 |
+| **10** | Elder, Child, Silent | Detective, Doctor, Vigilante, Paranoid, Governor | 2 |
 
 ---
 
@@ -125,22 +125,22 @@ Some items are **hidden** — the holder doesn't know they have them:
 Actions resolve top-to-bottom. Earlier actions take effect before later ones.
 
 1. **Jailer Jail** — target is protected and roleblocked for the night
-2. **Handler Block** — roleblock applied
-3. **Medic Protect** — protection shield set
-4. **Investigate / Amateur Stumble** — Seeker and Amateur act
+2. **Silent Block** — roleblock applied
+3. **Doctor Protect** — protection shield set
+4. **Investigate / Wildcard Stumble** — Detective and Wildcard act
 5. **Vigilante Shot / Syringe Inject** — independent night kill or poison application
-6. **Sleeper Suggest** — target suggestions recorded
-7. **Fixer Cover-up** — armed for this night's kill
-8. **Chemist Poison** — poison replaces the normal kill
-9. **Cell Kill** — Alpha's chosen target dies (or is poisoned/protected)
-10. **Suspect** — Nobodies, Marked, Hunter, Judge record suspicions
+6. **Child Suggest** — target suggestions recorded
+7. **Hidden Cover-up** — armed for this night's kill
+8. **Bitter Poison** — poison replaces the normal kill
+9. **Children Kill** — Elder's chosen target dies (or is poisoned/protected)
+10. **Suspect** — Citizens, Marked, Paranoid, Governor record suspicions
 
 ---
 
 ## Tips
 
-- **Cell members know each other.** Circle members don't know anyone's role.
-- **Dead players' roles are revealed** on the big screen (unless the Fixer covers it up).
-- **Linked lovers** (from Cupid) die together — be careful who you trust.
+- **Children know each other.** Citizens don't know anyone's role.
+- **Dead players' roles are revealed** on the big screen (unless the Hidden Child covers it up).
+- **Linked lovers** (from the Lover) die together — be careful who you trust.
 - **Voting ties** go to a runoff. Two failed runoffs deadlock — no one is eliminated.
-- **The Jester wins even if their team loses** — they just need to get voted out.
+- **The Trickster wins even if their team loses** — they just need to get voted out.

@@ -74,7 +74,7 @@ export class SlideManager {
       const isDead = p.status === PlayerStatus.DEAD
       const isCoward = p.isAlive && p.hasItem(ItemId.COWARD)
       remainingComposition.push({
-        team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'circle'),
+        team: p.isRoleCleaned ? 'unknown' : (p.role?.team ?? 'citizens'),
         dim: isDead || isCoward,
       })
     }
@@ -99,21 +99,21 @@ export class SlideManager {
   // Create a death slide for a given cause (used when events don't provide custom slides)
   createDeathSlide(player, cause) {
     const teamNames = {
-      circle: str('slides', 'death.teamCircle'),
-      cell: str('slides', 'death.teamCell'),
-      neutral: str('slides', 'death.teamNeutral'),
+      citizens: str('slides', 'death.teamCircle'),
+      children: str('slides', 'death.teamCell'),
+      outsider: str('slides', 'death.teamNeutral'),
     }
-    const teamName = player.role?.id === RoleId.JESTER
+    const teamName = player.role?.id === RoleId.TRICKSTER
       ? str('slides', 'death.teamJester')
       : (teamNames[player.role?.team] || str('slides', 'death.teamUnknown'))
 
     const killed = str('slides', 'death.suffixKilled')
     const titles = {
       eliminated: `${teamName} ${str('slides', 'death.suffixEliminated')}`,
-      cell:       `${teamName} ${killed}`,
+      children:   `${teamName} ${killed}`,
       vigilante:  `${teamName} ${killed}`,
       shot:       `${teamName} ${killed}`,
-      hunter:     `${teamName} ${killed}`,
+      paranoid:   `${teamName} ${killed}`,
       heartbreak: `${teamName} ${str('slides', 'death.suffixHeartbroken')}`,
       host:       `${teamName} ${str('slides', 'death.suffixRemoved')}`,
       poison:     `${teamName} ${killed}`,
@@ -121,10 +121,10 @@ export class SlideManager {
 
     const subtitles = {
       eliminated: player.name,
-      cell:       player.name,
+      children:   player.name,
       vigilante:  player.name,
       shot:       str('slides', 'death.subtitleShot',        { name: player.name }),
-      hunter:     str('slides', 'death.subtitleHunter',      { name: player.name }),
+      paranoid:   str('slides', 'death.subtitleHunter',      { name: player.name }),
       heartbreak: str('slides', 'death.subtitleHeartbreak',  { name: player.name }),
       host:       str('slides', 'death.subtitleHost',        { name: player.name }),
       poison:     str('slides', 'death.subtitlePoison',      { name: player.name }),
@@ -259,7 +259,7 @@ export class SlideManager {
     }
 
     const roleCounts = {}
-    const teamCounts = { circle: 0, cell: 0 }
+    const teamCounts = { citizens: 0, children: 0 }
     for (const player of assigned) {
       const roleDef = getRole(player.preAssignedRole) || player.role
       if (!roleDef) continue
@@ -274,8 +274,8 @@ export class SlideManager {
         }
       }
       roleCounts[roleDef.id].count++
-      if (roleDef.team === Team.CIRCLE) teamCounts.circle++
-      else if (roleDef.team === Team.CELL) teamCounts.cell++
+      if (roleDef.team === Team.CITIZENS) teamCounts.citizens++
+      else if (roleDef.team === Team.CHILDREN) teamCounts.children++
     }
 
     const unassigned = players.length - assigned.length
@@ -309,7 +309,7 @@ export class SlideManager {
       team: roleDef.team,
       abilities: this._getRoleAbilities(roleDef),
       detailedTip: roleDef.detailedTip || roleDef.description,
-      style: roleDef.team === Team.CELL ? SlideStyle.HOSTILE : SlideStyle.NEUTRAL,
+      style: roleDef.team === Team.CHILDREN ? SlideStyle.HOSTILE : SlideStyle.NEUTRAL,
     })
 
     this.game.addLog(str('log', 'roleTipPushed', { role: roleDef.name }))
@@ -359,8 +359,8 @@ export class SlideManager {
     }))
 
     const passiveAbilities = {
-      [RoleId.HUNTER]: [{ label: 'REVENGE', color: abilityColors.revenge }],
-      [RoleId.JUDGE]: [{ label: 'PARDON', color: abilityColors.pardon }],
+      [RoleId.PARANOID]: [{ label: 'REVENGE', color: abilityColors.revenge }],
+      [RoleId.GOVERNOR]: [{ label: 'PARDON', color: abilityColors.pardon }],
     }
     const extras = passiveAbilities[roleDef.id] || []
 

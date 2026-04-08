@@ -11,9 +11,9 @@ export const GamePhase = {
 };
 
 export const Team = {
-  CIRCLE: 'circle',
-  CELL: 'cell',
-  NEUTRAL: 'neutral',
+  CITIZENS: 'citizens',
+  CHILDREN: 'children',
+  OUTSIDER: 'outsider',
 };
 
 export const PlayerStatus = {
@@ -187,21 +187,21 @@ export const SlideStyleColors = {
 };
 
 export const RoleId = {
-  NOBODY: 'nobody',
-  ALPHA: 'alpha',
-  SLEEPER: 'sleeper',
-  SEEKER: 'seeker',
-  MEDIC: 'medic',
-  HUNTER: 'hunter',
+  CITIZEN: 'citizen',
+  ELDER: 'elder',
+  CHILD: 'child',
+  DETECTIVE: 'detective',
+  DOCTOR: 'doctor',
+  PARANOID: 'paranoid',
   VIGILANTE: 'vigilante',
-  JUDGE: 'judge',
-  CUPID: 'cupid',
-  HANDLER: 'handler',
-  FIXER: 'fixer',
-  CHEMIST: 'chemist',
-  AMATEUR: 'amateur',
+  GOVERNOR: 'governor',
+  LOVER: 'lover',
+  SILENT: 'silent',
+  HIDDEN: 'hidden',
+  BITTER: 'bitter',
+  WILDCARD: 'wildcard',
   MARKED: 'marked',
-  JESTER: 'jester',
+  TRICKSTER: 'trickster',
   JAILER: 'jailer',
 };
 
@@ -222,6 +222,7 @@ export const EventId = {
   STUMBLE: 'stumble',
   JAIL: 'jail',
   INJECT: 'inject',
+  RECRUIT: 'recruit',
 };
 
 export const ItemId = {
@@ -240,22 +241,30 @@ export const ItemId = {
 
 // Display info for roles (used by host UI for tutorial slide buttons)
 export const ROLE_DISPLAY = {
-  [RoleId.NOBODY]:      { name: 'Nobody',       emoji: '👨‍🌾' },
-  [RoleId.ALPHA]:       { name: 'Alpha',        emoji: '👑' },
-  [RoleId.SLEEPER]:     { name: 'Sleeper',      emoji: '🐺' },
-  [RoleId.SEEKER]:      { name: 'Seeker',       emoji: '🔮' },
-  [RoleId.MEDIC]:       { name: 'Medic',        emoji: '🧑‍⚕️' },
-  [RoleId.HUNTER]:      { name: 'Hunter',       emoji: '🔫' },
+  [RoleId.CITIZEN]:     { name: 'Citizen',      emoji: '👨‍🌾' },
+  [RoleId.ELDER]:       { name: 'Elder',        emoji: '👑' },
+  [RoleId.CHILD]:       { name: 'Child',        emoji: '🐺' },
+  [RoleId.DETECTIVE]:   { name: 'Detective',    emoji: '🔮' },
+  [RoleId.DOCTOR]:      { name: 'Doctor',       emoji: '🧑‍⚕️' },
+  [RoleId.PARANOID]:    { name: 'Paranoid',     emoji: '🔫' },
   [RoleId.VIGILANTE]:   { name: 'Vigilante',    emoji: '🤠' },
-  [RoleId.JUDGE]:       { name: 'Governor',      emoji: '🎩' },
-  [RoleId.CUPID]:       { name: 'Cupid',        emoji: '💘' },
-  [RoleId.HANDLER]:     { name: 'Handler',      emoji: '🚫' },
-  [RoleId.FIXER]:       { name: 'Fixer',        emoji: '🧹' },
-  [RoleId.CHEMIST]:     { name: 'Chemist',      emoji: '🧪' },
-  [RoleId.AMATEUR]:     { name: 'Amateur',      emoji: '🥴' },
+  [RoleId.GOVERNOR]:    { name: 'Governor',     emoji: '🎩' },
+  [RoleId.LOVER]:       { name: 'Lover',        emoji: '💘' },
+  [RoleId.SILENT]:      { name: 'Silent',       emoji: '🚫' },
+  [RoleId.HIDDEN]:      { name: 'Hidden',       emoji: '🧹' },
+  [RoleId.BITTER]:      { name: 'Bitter',       emoji: '🧪' },
+  [RoleId.WILDCARD]:    { name: 'Wildcard',     emoji: '🥴' },
   [RoleId.MARKED]:      { name: 'Marked',       emoji: '🪡' },
-  [RoleId.JESTER]:      { name: 'Jester',       emoji: '🃏' },
+  [RoleId.TRICKSTER]:   { name: 'Trickster',    emoji: '🃏' },
+  [RoleId.JAILER]:      { name: 'Jailer',       emoji: '🔒' },
 };
+
+// Role groups for UI — ordered sections with labels
+export const ROLE_GROUPS = [
+  { label: 'Citizens', roles: [RoleId.CITIZEN, RoleId.DETECTIVE, RoleId.DOCTOR, RoleId.PARANOID, RoleId.VIGILANTE, RoleId.GOVERNOR, RoleId.LOVER, RoleId.JAILER, RoleId.MARKED, RoleId.WILDCARD] },
+  { label: 'Children', roles: [RoleId.ELDER, RoleId.CHILD, RoleId.SILENT, RoleId.BITTER, RoleId.HIDDEN] },
+  { label: 'Outsiders', roles: [RoleId.TRICKSTER] },
+];
 
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 10;
@@ -290,21 +299,21 @@ export const ITEM_DISPLAY = {
 
 // Available roles (for host pre-assignment UI)
 export const AVAILABLE_ROLES = [
-  RoleId.NOBODY,
-  RoleId.ALPHA,
-  RoleId.SLEEPER,
-  RoleId.SEEKER,
-  RoleId.MEDIC,
-  RoleId.HUNTER,
+  RoleId.CITIZEN,
+  RoleId.ELDER,
+  RoleId.CHILD,
+  RoleId.DETECTIVE,
+  RoleId.DOCTOR,
+  RoleId.PARANOID,
   RoleId.VIGILANTE,
-  RoleId.JUDGE,
-  RoleId.CUPID,
-  RoleId.HANDLER,
-  RoleId.FIXER,
-  RoleId.CHEMIST,
-  RoleId.AMATEUR,
+  RoleId.GOVERNOR,
+  RoleId.LOVER,
+  RoleId.SILENT,
+  RoleId.HIDDEN,
+  RoleId.BITTER,
+  RoleId.WILDCARD,
   RoleId.MARKED,
-  RoleId.JESTER,
+  RoleId.TRICKSTER,
   RoleId.JAILER,
 ];
 

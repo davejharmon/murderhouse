@@ -16,11 +16,11 @@ import { str } from '../strings.js';
 
 /** Map team to display name for slides/messages */
 function getTeamDisplayName(role) {
-  if (role?.id === RoleId.JESTER) return str('slides', 'death.teamJester');
+  if (role?.id === RoleId.TRICKSTER) return str('slides', 'death.teamJester');
   const names = {
-    circle: str('slides', 'death.teamCircle'),
-    cell: str('slides', 'death.teamCell'),
-    neutral: str('slides', 'death.teamNeutral'),
+    citizens: str('slides', 'death.teamCircle'),
+    children: str('slides', 'death.teamCell'),
+    outsider: str('slides', 'death.teamNeutral'),
   };
   return names[role?.team] || str('slides', 'death.teamUnknown');
 }
@@ -311,10 +311,10 @@ const events = {
         .getAlivePlayers()
         .filter(
           (p) =>
-            p.role.id === RoleId.NOBODY ||
+            p.role.id === RoleId.CITIZEN ||
             p.role.id === RoleId.MARKED ||
-            p.role.id === RoleId.HUNTER ||
-            p.role.id === RoleId.JUDGE,
+            p.role.id === RoleId.PARANOID ||
+            p.role.id === RoleId.GOVERNOR,
         );
     },
 
@@ -338,7 +338,7 @@ const events = {
         actor.suspicions.push({
           day: game.dayCount,
           targetId,
-          wasCorrect: target.role.team === Team.CELL,
+          wasCorrect: target.role.team === Team.CHILDREN,
         });
 
         suspicions.push({ actor, target });
@@ -366,7 +366,7 @@ const events = {
     priority: 59, // Just before kill (60)
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.CHEMIST);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.BITTER);
     },
 
     validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
@@ -403,7 +403,7 @@ const events = {
     priority: 58,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.FIXER);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.HIDDEN);
     },
 
     validTargets: (actor, game) => [actor], // Self-target: YES/NO choice
@@ -437,13 +437,13 @@ const events = {
     priority: 60,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.ALPHA); // Only alphas
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.ELDER && !p.elderRecruitMode);
     },
 
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.CELL && !p.hasItem(ItemId.COWARD));
+        .filter((p) => p.role.team !== Team.CHILDREN && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'majority', // Cell votes together
@@ -485,7 +485,7 @@ const events = {
         // Apply poison via item — victim dies when next night's events resolve
         game.giveItem(victim.id, ItemId.POISONED, { silent: true });
         victim.poisonedAt = game.dayCount;
-        const chemist = [...game.players.values()].find((p) => p.role?.id === RoleId.CHEMIST && p.isAlive);
+        const chemist = [...game.players.values()].find((p) => p.role?.id === RoleId.BITTER && p.isAlive);
         return {
           success: true,
           outcome: 'poisoned',
@@ -513,7 +513,7 @@ const events = {
         };
       }
 
-      const killResult = game.killPlayer(victim.id, 'cell');
+      const killResult = game.killPlayer(victim.id, 'children');
 
       // HARDENED: attack was absorbed — victim survives silently
       if (killResult === 'barricaded') {
@@ -555,6 +555,72 @@ const events = {
     },
   },
 
+  recruit: {
+    id: 'recruit',
+    get name() { return str('events', 'recruit.name') },
+    get description() { return str('events', 'recruit.description') },
+    verb: 'recruit',
+    verbPastTense: 'recruited',
+    phase: [GamePhase.NIGHT],
+    priority: 60,
+
+    participants: (game) => {
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.ELDER && p.elderRecruitMode);
+    },
+
+    validTargets: (actor, game) => {
+      return game
+        .getAlivePlayers()
+        .filter((p) => p.role.team !== Team.CHILDREN && !p.hasItem(ItemId.COWARD));
+    },
+
+    aggregation: 'individual',
+    allowAbstain: true,
+
+    resolve: (results, game) => {
+      for (const [actorId, targetId] of Object.entries(results)) {
+        if (targetId === null) continue;
+
+        const elder = game.getPlayer(actorId);
+        const victim = game.getPlayer(targetId);
+        if (!elder || !victim) continue;
+
+        // Doctor protection blocks the recruit silently
+        if (victim.isProtected) {
+          victim.isProtected = false;
+          return { success: true, silent: true };
+        }
+
+        const recruitRoleId = game._hostSettings.elderRecruitRole ?? RoleId.CHILD;
+        const newRole = getRole(recruitRoleId);
+        victim.assignRole(newRole);
+
+        game._invalidateWinCache();
+
+        const roleName = newRole.name;
+        const packMsg = str('events', 'recruit.packNotify', { name: victim.name, role: roleName });
+        const victimMsg = str('events', 'recruit.playerNotify', { role: roleName });
+
+        // Notify the recruited player (critical — role reveal)
+        victim.lastEventResult = { message: victimMsg, critical: true };
+        victim.syncState(game);
+
+        // Notify Elder and all other living Children (non-critical confirmation)
+        for (const p of game.getAlivePlayers()) {
+          if (p.role.team !== Team.CHILDREN) continue;
+          if (p.id === victim.id) continue;
+          p.lastEventResult = { message: packMsg, critical: false };
+          if (p.id !== actorId) p.syncState(game); // elder's sync handled by _cleanupParticipants
+        }
+
+        // Sync pack info (roles/names) to all Children including the new recruit
+        game.broadcastPackState();
+      }
+
+      return { success: true, silent: true };
+    },
+  },
+
   hunt: {
     id: 'hunt',
     get name() { return str('events', 'hunt.name') },
@@ -567,13 +633,13 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.id === RoleId.SLEEPER); // Only regular sleepers
+        .filter((p) => p.role.id === RoleId.CHILD); // Only regular children
     },
 
     validTargets: (actor, game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.team !== Team.CELL && !p.hasItem(ItemId.COWARD));
+        .filter((p) => p.role.team !== Team.CHILDREN && !p.hasItem(ItemId.COWARD));
     },
 
     aggregation: 'individual', // Each sleeper suggests independently
@@ -617,7 +683,7 @@ const events = {
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.SEEKER);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DETECTIVE);
     },
 
     validTargets: (actor, game) => {
@@ -634,7 +700,7 @@ const events = {
         if (targetId === null) continue;
         const seeker = game.getPlayer(actorId);
         const target = game.getPlayer(targetId);
-        const isEvil = target.role.team === Team.CELL || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED);
+        const isEvil = target.role.team === Team.CHILDREN || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED);
 
         if (!seeker.investigations) seeker.investigations = [];
         seeker.investigations.push({
@@ -682,7 +748,7 @@ const events = {
     priority: 30,
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.AMATEUR);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.WILDCARD);
     },
 
     validTargets: (actor, game) => {
@@ -708,7 +774,7 @@ const events = {
           if (target.isProtected) {
             target.isProtected = false;
           } else if (target.isAlive) {
-            game.killPlayer(target.id, 'amateur');
+            game.killPlayer(target.id, 'wildcard');
             game.queueDeathSlide({
               type: 'death',
               playerId: target.id,
@@ -729,7 +795,7 @@ const events = {
 
         // Real investigate (25%) returns accurate result; other actions always show INNOCENT
         const isEvil = action === 'investigate'
-          ? (target.role.team === Team.CELL || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED))
+          ? (target.role.team === Team.CHILDREN || !!target.role.appearsGuilty || target.hasItem(ItemId.MARKED))
           : false;
 
         if (!actor.investigations) actor.investigations = [];
@@ -828,7 +894,7 @@ const events = {
     participants: (game) => {
       return game
         .getAlivePlayers()
-        .filter((p) => p.role.id === RoleId.HANDLER);
+        .filter((p) => p.role.id === RoleId.SILENT);
     },
 
     validTargets: (actor, game) => {
@@ -928,7 +994,7 @@ const events = {
     priority: 10, // First to resolve
 
     participants: (game) => {
-      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.MEDIC);
+      return game.getAlivePlayers().filter((p) => p.role.id === RoleId.DOCTOR);
     },
 
     validTargets: (actor, game) => {

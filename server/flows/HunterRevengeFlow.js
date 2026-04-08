@@ -52,7 +52,7 @@ export class HunterRevengeFlow extends InterruptFlow {
   canTrigger(context) {
     const { player, deathResult } = context;
     return (
-      deathResult?.interrupt === true && player.role?.id === RoleId.HUNTER
+      deathResult?.interrupt === true && player.role?.id === RoleId.PARANOID
     );
   }
 
@@ -82,8 +82,8 @@ export class HunterRevengeFlow extends InterruptFlow {
 
     // Create the event via EventResolver (flows own the EventResolver boundary)
     this.game.events._startFlowEvent(this.id, {
-      name: str('events', 'hunterRevenge.name'),
-      description: str('events', 'hunterRevenge.description'),
+      name: str('events', 'paranoidRevenge.name'),
+      description: str('events', 'paranoidRevenge.description'),
       verb: 'shoot',
       participants: [player.id],
       getValidTargets: (actorId) => this.getValidTargets(actorId),
@@ -91,7 +91,7 @@ export class HunterRevengeFlow extends InterruptFlow {
       playerResolved: false, // Host resolves, or auto-resolve on selection
     });
 
-    this.game.addLog(str('log', 'hunterRevenge', { name: player.getNameWithEmoji() }));
+    this.game.addLog(str('log', 'paranoidRevenge', { name: player.getNameWithEmoji() }));
 
     return { interrupt: true, flowId: HunterRevengeFlow.id };
   }
@@ -171,14 +171,14 @@ export class HunterRevengeFlow extends InterruptFlow {
     this.phase = 'resolving';
 
     const teamNames = {
-      circle: str('slides', 'death.teamCircle'),
-      cell: str('slides', 'death.teamCell'),
-      neutral: str('slides', 'death.teamNeutral'),
+      citizens: str('slides', 'death.teamCircle'),
+      children: str('slides', 'death.teamCell'),
+      outsider: str('slides', 'death.teamNeutral'),
     };
-    const teamName = victim.role?.id === 'jester'
+    const teamName = victim.role?.id === 'trickster'
       ? str('slides', 'death.teamJester')
       : (teamNames[victim.role?.team] || str('slides', 'death.teamUnknown'));
-    const message = str('log', 'hunterRevengeKill', { hunter: hunter.getNameWithEmoji(), victim: victim.getNameWithEmoji() });
+    const message = str('log', 'paranoidRevengeKill', { hunter: hunter.getNameWithEmoji(), victim: victim.getNameWithEmoji() });
 
     // Cleanup before returning (frees flow for potential nested hunter revenge)
     this.cleanup();
@@ -187,7 +187,7 @@ export class HunterRevengeFlow extends InterruptFlow {
       success: true,
       victim,
       message,
-      kills: [{ playerId: victim.id, cause: 'hunter' }],
+      kills: [{ playerId: victim.id, cause: 'paranoid' }],
       slides: [{
         slide: {
           type: 'death',
@@ -216,10 +216,10 @@ export class HunterRevengeFlow extends InterruptFlow {
     if (targets.length === 0) {
       // No valid targets — skip the revenge quietly.
       this.cleanup();
-      return { success: true, kills: [], slides: [], log: str('log', 'hunterDisconnected', { name: player.getNameWithEmoji() }) };
+      return { success: true, kills: [], slides: [], log: str('log', 'paranoidDisconnected', { name: player.getNameWithEmoji() }) };
     }
     const target = targets[Math.floor(Math.random() * targets.length)];
-    this.game.addLog(str('log', 'hunterAutoResolved', { name: player.getNameWithEmoji() }));
+    this.game.addLog(str('log', 'paranoidAutoResolved', { name: player.getNameWithEmoji() }));
     return this.resolve(target.id);
   }
 

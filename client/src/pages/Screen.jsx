@@ -144,7 +144,7 @@ export default function Screen() {
       <div
         key={effectiveSlide?.id}
         ref={wrapperRef}
-        className={`${styles.slideWrapper} ${effectiveSlide?.type === SlideType.ROLE_TIP && effectiveSlide?.team === 'cell' ? styles.cellBg : ''} ${effectiveSlide?.type === SlideType.HEARTBEAT ? styles.heartbeatBg : ''}`}
+        className={`${styles.slideWrapper} ${effectiveSlide?.type === SlideType.ROLE_TIP && effectiveSlide?.team === 'children' ? styles.cellBg : ''} ${effectiveSlide?.type === SlideType.HEARTBEAT ? styles.heartbeatBg : ''}`}
       >
         {renderSlide()}
       </div>

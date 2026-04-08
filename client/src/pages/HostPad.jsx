@@ -433,7 +433,7 @@ export default function HostPad() {
       <CustomEventModal isOpen={showCustomEvent} onClose={() => setShowCustomEvent(false)}
         onSubmit={handleCreateCustomEvent}
         availableItems={AVAILABLE_ITEMS.map(id => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1) }))}
-        availableRoles={AVAILABLE_ROLES.filter(r => !['alpha','jester'].includes(r)).map(r => ({ id: r, name: ROLE_DISPLAY[r]?.name || r }))} />
+        availableRoles={AVAILABLE_ROLES.filter(r => !['elder','trickster'].includes(r)).map(r => ({ id: r, name: ROLE_DISPLAY[r]?.name || r }))} />
       {showItemManager && (
         <ItemManagerModal
           isOpen={true} onClose={() => setShowItemManager(null)}

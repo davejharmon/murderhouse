@@ -92,7 +92,7 @@ function makeDayState() {
     ...makeLobbyState(),
     phase: GamePhase.DAY,
     dayCount: 1,
-    players: makeLobbyState().players.map(p => ({ ...p, role: { id: 'nobody', team: 'circle' } })),
+    players: makeLobbyState().players.map(p => ({ ...p, role: { id: 'citizen', team: 'citizens' } })),
   }
 }
 

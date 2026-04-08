@@ -213,8 +213,8 @@ export function createHostHandlers(game, clients) {
     }),
 
     [ClientMsg.SAVE_GAME_PRESET]: requireHost((ws, payload) => {
-      const { name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId } = payload
-      game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId)
+      const { name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId, elderRecruitRole, elderRecruitThreshold } = payload
+      game.saveGamePreset(name, timerDuration, autoAdvanceEnabled, fakeHeartbeats, overwriteId, elderRecruitRole, elderRecruitThreshold)
       send(ws, ServerMsg.GAME_PRESETS, game.getGamePresets())
       return { success: true }
     }),

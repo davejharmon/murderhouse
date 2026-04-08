@@ -6,8 +6,8 @@ import PixelGlyph from '../PixelGlyph'
 import styles from '../../pages/Screen.module.css'
 
 export default function RoleTipSlide({ slide, strings = SLIDE_STRINGS.roleTip }) {
-  const isCell = slide.team === 'cell'
-  const isNeutral = slide.team === 'neutral'
+  const isCell = slide.team === 'children'
+  const isNeutral = slide.team === 'outsider'
   const teamColor = isCell ? '#c94c4c' : isNeutral ? '#e8a020' : '#7eb8da'
   const teamLabel = isCell ? (strings.cell ?? 'CELL') : isNeutral ? strings.independent : (strings.circle ?? 'CIRCLE')
 

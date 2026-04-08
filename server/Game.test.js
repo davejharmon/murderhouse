@@ -37,7 +37,7 @@ describe('Game lifecycle', () => {
 
   it('addPlayer returns error when game is in progress', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const ws = { send: vi.fn(), readyState: 1, source: 'web' }
     const result = game.addPlayer('99', ws)
     expect(result.success).toBe(false)
@@ -51,7 +51,7 @@ describe('Game lifecycle', () => {
 
   it('reset clears players and returns to LOBBY', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.reset()
     expect(game.phase).toBe(GamePhase.LOBBY)
     expect(game.dayCount).toBe(0)
@@ -64,7 +64,7 @@ describe('Game lifecycle', () => {
 describe('phase transitions', () => {
   it('startGame in LOBBY with 4+ players → phase=DAY, dayCount=1', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     expect(game.phase).toBe(GamePhase.DAY)
     expect(game.dayCount).toBe(1)
   })
@@ -78,14 +78,14 @@ describe('phase transitions', () => {
 
   it('startGame when not LOBBY → returns error', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const result = game.startGame()
     expect(result.success).toBe(false)
   })
 
   it('nextPhase DAY → NIGHT (same dayCount)', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const day = game.dayCount
     game.nextPhase()
     expect(game.phase).toBe(GamePhase.NIGHT)
@@ -94,7 +94,7 @@ describe('phase transitions', () => {
 
   it('nextPhase NIGHT → DAY (dayCount increments)', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.nextPhase() // DAY → NIGHT
     const nightDay = game.dayCount
     game.nextPhase() // NIGHT → DAY
@@ -104,8 +104,8 @@ describe('phase transitions', () => {
 
   it('endGame sets phase to GAME_OVER', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
-    game.endGame(Team.CIRCLE)
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
+    game.endGame(Team.CITIZENS)
     expect(game.phase).toBe(GamePhase.GAME_OVER)
   })
 })
@@ -115,7 +115,7 @@ describe('phase transitions', () => {
 describe('role assignment', () => {
   it('every player gets a role after startGame', () => {
     const { game, players } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     for (const p of players) {
       expect(p.role).not.toBeNull()
     }
@@ -123,11 +123,11 @@ describe('role assignment', () => {
 
   it('startGameWithRoles assigns exact roles in seat order', () => {
     const { game } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'sleeper', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'detective', 'citizen', 'citizen'])
     const seats = game.getPlayersBySeat()
-    expect(seats[0].role.id).toBe('alpha')
-    expect(seats[1].role.id).toBe('sleeper')
-    expect(seats[2].role.id).toBe('seeker')
+    expect(seats[0].role.id).toBe('elder')
+    expect(seats[1].role.id).toBe('child')
+    expect(seats[2].role.id).toBe('detective')
   })
 })
 
@@ -138,7 +138,7 @@ describe('event lifecycle', () => {
 
   beforeEach(() => {
     ;({ game, players } = createTestGame(4))
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
   })
 
   it('startEvent creates active event', () => {
@@ -168,7 +168,7 @@ describe('vote resolution', () => {
   beforeEach(() => {
     ;({ game } = createTestGame(4))
     // Use 4 villagers-equivalent — no judge (avoids pardon flow), no hunter
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
   })
 
   it('majority vote → outcome eliminated, victim killed', () => {
@@ -215,14 +215,14 @@ describe('vote resolution', () => {
 describe('death queue', () => {
   it('kill: player dies', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.killPlayer('2', 'test')
     expect(game.getPlayer('2').isAlive).toBe(false)
   })
 
   it('re-kill guard: killPlayer on dead player → returns false', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.killPlayer('2', 'test')
     const result = game.killPlayer('2', 'test-again')
     expect(result).toBe(false)
@@ -230,7 +230,7 @@ describe('death queue', () => {
 
   it('cupid-linked death: killing one kills the other', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     const p3 = game.getPlayer('3')
     const p4 = game.getPlayer('4')
     p3.linkedTo = '4'
@@ -242,10 +242,10 @@ describe('death queue', () => {
 
   it('alpha promotion: kill alpha with living werewolf → werewolf becomes alpha', () => {
     const { game } = createTestGame(5)
-    startGameWithRoles(game, ['alpha', 'sleeper', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'detective', 'citizen', 'citizen'])
     const wolf = game.getPlayer('2')
     game.killPlayer('1', 'test')
-    expect(wolf.role.id).toBe('alpha')
+    expect(wolf.role.id).toBe('elder')
   })
 })
 
@@ -254,24 +254,24 @@ describe('death queue', () => {
 describe('win conditions', () => {
   it('all wolves dead → returns CIRCLE win', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     game.killPlayer('1', 'test') // kill alpha
     const winner = game.checkWinCondition()
-    expect(winner).toBe(Team.CIRCLE)
+    expect(winner).toBe(Team.CITIZENS)
   })
 
   it('wolves >= villagers → returns CELL win', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'sleeper', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'child', 'citizen', 'citizen'])
     game.killPlayer('3', 'test') // kill villager
     game.killPlayer('4', 'test') // kill villager — wolves(2) >= circle(0)
     const winner = game.checkWinCondition()
-    expect(winner).toBe(Team.CELL)
+    expect(winner).toBe(Team.CHILDREN)
   })
 
   it('mixed alive → returns null', () => {
     const { game } = createTestGame(4)
-    startGameWithRoles(game, ['alpha', 'seeker', 'nobody', 'nobody'])
+    startGameWithRoles(game, ['elder', 'detective', 'citizen', 'citizen'])
     expect(game.checkWinCondition()).toBeNull()
   })
 })
